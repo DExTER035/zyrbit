@@ -1,0 +1,1 @@
+{ "name": "zyrbit", "rewrites": [{ "source": "/(.*)", "destination": "/" }] }

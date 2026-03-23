@@ -1,0 +1,153 @@
+{
+  "id": "/",
+  "dir": "ltr",
+  "lang": "en",
+  "name": "Zyrbit",
+  "short_name": "Zyrbit",
+  "description": "Build habits that break gravity — AI-powered life OS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#00FFCC",
+  "orientation": "portrait",
+  "categories": [
+    "health",
+    "fitness",
+    "lifestyle",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/icons/manifest-icon-192.maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/manifest-icon-192.maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/manifest-icon-512.maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/manifest-icon-512.maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile-1.png",
+      "sizes": "625x939",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Orbit Dashboard — Track your daily habits and Gravity Score"
+    },
+    {
+      "src": "/screenshots/mobile-2.png",
+      "sizes": "625x939",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Journal — Study hub with Pomodoro timer and encrypted diary"
+    },
+    {
+      "src": "/screenshots/mobile-3.png",
+      "sizes": "625x939",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Stats — Weekly completion analytics and zone breakdown"
+    },
+    {
+      "src": "/screenshots/mobile-4.png",
+      "sizes": "625x939",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Community — Join orbit groups and compete with friends"
+    },
+    {
+      "src": "/screenshots/mobile-5.png",
+      "sizes": "625x939",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Profile — Your Terminal with rank, Zyrons and cosmos shop"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Log Habit",
+      "url": "/orbit",
+      "icons": [
+        {
+          "src": "/icons/manifest-icon-192.maskable.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Open Journal",
+      "url": "/journal",
+      "icons": [
+        {
+          "src": "/icons/manifest-icon-192.maskable.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+zyrbit",
+      "url": "/?action=%s"
+    }
+  ],
+  "share_target": {
+    "action": "/journal",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "display_override": ["window-controls-overlay", "standalone"],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "widgets": [
+    {
+      "name": "Gravity Score",
+      "description": "View your current gravity status",
+      "tag": "gravity-widget",
+      "ms_ac_template": "/widgets/template.json",
+      "data": "/widgets/data.json",
+      "type": "application/json",
+      "screenshots": [
+        {
+          "src": "/icons/manifest-icon-192.maskable.png",
+          "sizes": "192x192",
+          "label": "Gravity Widget"
+        }
+      ],
+      "icons": [
+        {
+          "src": "/icons/manifest-icon-192.maskable.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

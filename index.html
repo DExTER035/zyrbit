@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+
+  <title>Zyrbit — Build habits that break gravity</title>
+
+  <meta name="description" content="AI-powered habit tracker with Zyrons, ranks, and community."/>
+  <meta name="theme-color" content="#00FFCC"/>
+
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Zyrbit"/>
+
+  <link rel="manifest" href="/manifest.json"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <link rel="apple-touch-icon" href="/icons/apple-icon-180.png"/>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      });
+    }
+  </script>
+
+  <!-- Fonts: Inter + Syne + DM Sans -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@300;400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; min-width: 0; min-height: 0; }
+    html, body { height: 100%; background: #000; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+    #root { height: 100%; background: #000; }
+    @media (min-width: 768px) { body { overflow-y: scroll; } }
+  </style>
+</head>
+<body>
+  <!-- Splash screen with new Atom Z logo -->
+  <div id="splash" style="position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.5s ease;">
+    <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="sg" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="2.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="sdg" x="-150%" y="-150%" width="400%" height="400%">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <rect width="96" height="96" rx="22" fill="#000000"/>
+      <ellipse cx="48" cy="48" rx="31" ry="12" stroke="#00FFCC" stroke-width="0.8" fill="none" opacity="0.12"/>
+      <ellipse cx="48" cy="48" rx="12" ry="31" stroke="#00FFCC" stroke-width="0.8" fill="none" opacity="0.12"/>
+      <path d="M17 48 A31 12 0 0 1 79 48" stroke="#00FFCC" stroke-width="2" stroke-linecap="round" fill="none" filter="url(#sg)"/>
+      <path d="M48 17 A12 31 0 0 1 48 79" stroke="#00FFCC" stroke-width="2" stroke-linecap="round" fill="none" filter="url(#sg)"/>
+      <circle cx="48" cy="17" r="4" fill="#ffffff" filter="url(#sdg)"/>
+      <circle cx="17" cy="48" r="3.5" fill="#ffffff" filter="url(#sdg)"/>
+      <circle cx="48" cy="79" r="3.5" fill="#ffffff" filter="url(#sdg)"/>
+      <line x1="37" y1="41" x2="59" y2="41" stroke="#ffffff" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="59" y1="41" x2="37" y2="55" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+      <line x1="37" y1="55" x2="59" y2="55" stroke="#ffffff" stroke-width="5.5" stroke-linecap="round"/>
+    </svg>
+    <div style="font-size:26px;font-weight:900;color:#fff;margin-top:14px;font-family:'Syne','Inter',sans-serif;letter-spacing:-0.5px;">
+      Zyr<span style="color:#00FFCC">bit</span>
+    </div>
+    <div style="font-size:11px;color:#333;margin-top:6px;letter-spacing:2px;text-transform:uppercase;font-family:'Inter',sans-serif;">Build habits that break gravity</div>
+  </div>
+
+  <div id="root"></div>
+
+  <script>
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const s = document.getElementById('splash')
+        if(s) {
+          s.style.opacity = '0'
+          setTimeout(() => s.remove(), 500)
+        }
+      }, 1500)
+    })
+  </script>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

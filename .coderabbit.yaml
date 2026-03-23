@@ -1,0 +1,22 @@
+reviews:
+  auto_review:
+    enabled: true
+    drafts: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  request_changes_workflow: false
+  path_filters:
+    - "!node_modules/**"
+    - "!dist/**"
+    - "!public/**"
+  path_instructions:
+    - path: "src/lib/zyrons.js"
+      instructions: "Check for silent failures on earnZyrons, stale closures, and missing awaits."
+    - path: "src/pages/**"
+      instructions: "Look for stale React state closures, missing error handling on Supabase calls, and unhandled promise rejections."
+    - path: "src/lib/**"
+      instructions: "Verify all Supabase queries have error handling. Check for security issues like exposed user IDs."
+chat:
+  auto_reply: true
