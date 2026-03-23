@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { computeGravityScore } from '../lib/gravity'
-import { earnZyrons, getWallet, ZYRON_REWARDS } from '../lib/zyrons'
+import { earnZyrons, getWallet, ZYRON_REWARDS, checkZyronEligibility, setZyronCooldown } from '../lib/zyrons'
 import { getRankByZyrons } from '../lib/ranks'
 
 import Logo from '../components/Logo'
@@ -24,13 +24,15 @@ const ZONE_COLORS = {
 export default function Orbit() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
-  
+  const userRef = useRef(null) // always-current ref to avoid stale closures
+
   // Data
   const [habits, setHabits] = useState([])
   const [activity, setActivity] = useState([])
   const [gravityScore, setGravityScore] = useState(0)
   const [wallet, setWallet] = useState({})
-  const [streaks, setStreaks] = useState({})  
+  const [streaks, setStreaks] = useState({})
+
   // UI State
   const [loading, setLoading] = useState(true)
   const [offline, setOffline] = useState(!navigator.onLine)
@@ -38,6 +40,7 @@ export default function Orbit() {
   const [showModal, setShowModal] = useState(false)
   const [editHabit, setEditHabit] = useState(null)
   const [skipTarget, setSkipTarget] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null) // replaces window.confirm
   const [rankBanner, setRankBanner] = useState(null)
   const [celebrationShown, setCelebrationShown] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
@@ -53,6 +56,7 @@ export default function Orbit() {
       if (!session) {
         navigate('/login')
       } else {
+        userRef.current = session.user
         setUser(session.user)
         loadAll(session.user.id)
       }
@@ -132,37 +136,58 @@ export default function Orbit() {
   }
 
   // Actions
-  const handleToggle = async (habit) => {
-    if (!user) return
+  const handleToggle = useCallback(async (habit) => {
+    const currentUser = userRef.current
+    if (!currentUser) return
     const isCompleted = completedToday.has(habit.id)
 
     if (!isCompleted) {
       // Optimistic UI update
-      const newLog = { id: 'opt-' + Date.now(), user_id: user.id, habit_id: habit.id, completed_date: today, status: 'completed' }
+      const newLog = { id: 'opt-' + Date.now(), user_id: currentUser.id, habit_id: habit.id, completed_date: today, status: 'completed' }
       const nextActivity = [...activity, newLog]
       setActivity(nextActivity)
 
       const { error } = await supabase.from('activity_log').insert({
-        user_id: user.id, habit_id: habit.id, completed_date: today, status: 'completed'
+        user_id: currentUser.id, habit_id: habit.id, completed_date: today, status: 'completed'
       })
 
       if (!error) {
-        await earnZyrons(user.id, 10, 'Habit complete')
-        showToast('🔥 +10 ⚡ Zyrons earned!', 'success')
+        // Check cooldown before awarding zyrons (prevents farming by toggling)
+        const { eligible } = await checkZyronEligibility(currentUser.id, habit.id)
+        if (eligible) {
+          const earned = await earnZyrons(currentUser.id, ZYRON_REWARDS.HABIT_COMPLETE, 'Habit complete')
+          if (earned) {
+            await setZyronCooldown(currentUser.id, habit.id)
+            showToast('🔥 +10 ⚡ Zyrons earned!', 'success')
+          } else {
+            showToast('✅ Habit logged! (Sync delayed)', 'warning')
+          }
+        } else {
+          showToast('✅ Habit logged! (Zyrons on cooldown)', 'info')
+        }
         checkAllDone(nextActivity)
-        await loadAll(user.id)
+        await loadAll(currentUser.id)
       } else {
+        // Rollback optimistic update on DB error
         setActivity(prev => prev.filter(l => l.id !== newLog.id))
+        showToast('❌ Failed to log habit. Try again.', 'error')
       }
     } else {
-      // Undo
+      // Undo completion
+      const previousActivity = [...activity]
       setActivity(prev => prev.filter(l => !(l.habit_id === habit.id && l.completed_date === today && l.status === 'completed')))
-      await supabase.from('activity_log').delete()
-        .eq('user_id', user.id).eq('habit_id', habit.id)
+      const { error } = await supabase.from('activity_log').delete()
+        .eq('user_id', currentUser.id).eq('habit_id', habit.id)
         .eq('completed_date', today).eq('status', 'completed')
-      await loadAll(user.id)
+      
+      if (!error) {
+        await loadAll(currentUser.id)
+      } else {
+        setActivity(previousActivity)
+        showToast('❌ Failed to uncheck habit.', 'error')
+      }
     }
-  }
+  }, [activity, completedToday, today])
 
   const handleSkip = async (habit) => {
     if (!user) return
@@ -191,14 +216,24 @@ export default function Orbit() {
     await loadAll(user.id)
   }
 
-  const deleteHabit = async (target) => {
+  const deleteHabit = useCallback((target) => {
     const activeTarget = target || editHabit
-    if (!activeTarget || !user) return
-    if (!window.confirm(`Delete "${activeTarget.name}"?`)) return
-    await supabase.from('habits').delete().eq('id', activeTarget.id)
-    setShowModal(false)
-    showToast('🗑️ Habit removed', 'info')
-    await loadAll(user.id)
+    if (!activeTarget) return
+    setDeleteTarget(activeTarget) // show confirm modal instead of window.confirm
+  }, [editHabit])
+
+  const confirmDelete = async () => {
+    const currentUser = userRef.current
+    if (!deleteTarget || !currentUser) return
+    const { error } = await supabase.from('habits').delete().eq('id', deleteTarget.id)
+    if (!error) {
+      setShowModal(false)
+      setDeleteTarget(null)
+      showToast('🗑️ Habit removed', 'info')
+      await loadAll(currentUser.id)
+    } else {
+      showToast('❌ Delete failed. Try again.', 'error')
+    }
   }
 
   const filteredHabits = activeZone === 'all' ? habits : habits.filter(h => h.zone === activeZone)
@@ -401,6 +436,20 @@ export default function Orbit() {
               {editHabit ? 'Save Changes' : 'Add Habit ✓'}
             </button>
             {editHabit && <button className="btn-ghost" style={{ width: '100%', borderColor: 'var(--color-border)', color: '#EF4444' }} onClick={() => deleteHabit()}>Delete Habit</button>}
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRM MODAL */}
+      {deleteTarget && (
+        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="animate-slideUpModal" style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', borderRadius: '24px 24px 0 0', padding: '24px', width: '100%', maxWidth: '430px' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ color: 'var(--color-text)', fontWeight: 800, fontSize: '18px', marginBottom: '12px' }}>Delete Habit?</h3>
+            <p style={{ color: 'var(--color-muted)', fontSize: '13px', lineHeight: 1.6, marginBottom: '24px' }}>"{deleteTarget.name}" will be permanently removed along with all its history.</p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setDeleteTarget(null)}>Cancel</button>
+              <button className="btn-primary" style={{ flex: 1, background: '#EF4444', color: '#fff' }} onClick={confirmDelete}>Delete</button>
+            </div>
           </div>
         </div>
       )}
