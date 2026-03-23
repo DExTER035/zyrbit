@@ -444,7 +444,7 @@ Return ONLY a raw JSON array, no markdown, no explanation:
     setLoading(false)
   }
 
-  const handleAnswer = (idx) => {
+  const handleAnswer = async (idx) => {
     if (status !== 'idle') return
     setSelected(idx)
     const q = questions[qIdx]
@@ -453,8 +453,12 @@ Return ONLY a raw JSON array, no markdown, no explanation:
     if (isCorrect) {
       setStatus('correct')
       const actualEarn = Math.min(EARNINGS[qIdx], 2500 - sessionEarned)
-      earn(actualEarn, 'Quiz correct answer')
-      setSessionEarned(prev => prev + actualEarn)
+      
+      // AWAIT database save instead of skipping it
+      const success = await earn(actualEarn, 'Quiz correct answer')
+      if (success) {
+        setSessionEarned(prev => prev + actualEarn)
+      }
       
       setTimeout(() => {
         if (qIdx === 9) {
@@ -686,11 +690,20 @@ export default function AICoach() {
 
   const handleEarn = useCallback(async (amt, reason) => {
     const currentUser = userRef.current
-    if (!currentUser) { console.warn('handleEarn: user not loaded yet, zyrons skipped'); return }
-    if (amt <= 0) return
-    await earnZyrons(currentUser.id, amt, reason)
-    showToast(`+${amt} ⚡`, 'success')
-    setUserContext(prev => prev ? { ...prev, balance: prev.balance + amt } : prev)
+    if (!currentUser) { console.warn('handleEarn: user not loaded yet, zyrons skipped'); return false }
+    if (amt <= 0) return true
+    
+    // Wait for the DB call and ensure it succeeds
+    const earned = await earnZyrons(currentUser.id, amt, reason)
+    
+    if (earned) {
+      showToast(`+${amt} ⚡`, 'success')
+      setUserContext(prev => prev ? { ...prev, balance: prev.balance + amt } : prev)
+      return true
+    } else {
+      showToast('❌ Failed to save Zyrons. Connection issue?', 'error')
+      return false
+    }
   }, [])  // stable ref — no stale closure risk
 
   const handleNavClick = (tab) => {
