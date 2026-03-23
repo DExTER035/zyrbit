@@ -155,9 +155,13 @@ export default function Orbit() {
         // Check cooldown before awarding zyrons (prevents farming by toggling)
         const { eligible } = await checkZyronEligibility(currentUser.id, habit.id)
         if (eligible) {
-          await earnZyrons(currentUser.id, ZYRON_REWARDS.HABIT_COMPLETE, 'Habit complete')
-          await setZyronCooldown(currentUser.id, habit.id)
-          showToast('🔥 +10 ⚡ Zyrons earned!', 'success')
+          const earned = await earnZyrons(currentUser.id, ZYRON_REWARDS.HABIT_COMPLETE, 'Habit complete')
+          if (earned) {
+            await setZyronCooldown(currentUser.id, habit.id)
+            showToast('🔥 +10 ⚡ Zyrons earned!', 'success')
+          } else {
+            showToast('✅ Habit logged! (Sync delayed)', 'warning')
+          }
         } else {
           showToast('✅ Habit logged! (Zyrons on cooldown)', 'info')
         }
@@ -170,11 +174,18 @@ export default function Orbit() {
       }
     } else {
       // Undo completion
+      const previousActivity = [...activity]
       setActivity(prev => prev.filter(l => !(l.habit_id === habit.id && l.completed_date === today && l.status === 'completed')))
       const { error } = await supabase.from('activity_log').delete()
         .eq('user_id', currentUser.id).eq('habit_id', habit.id)
         .eq('completed_date', today).eq('status', 'completed')
-      if (!error) await loadAll(currentUser.id)
+      
+      if (!error) {
+        await loadAll(currentUser.id)
+      } else {
+        setActivity(previousActivity)
+        showToast('❌ Failed to uncheck habit.', 'error')
+      }
     }
   }, [activity, completedToday, today])
 
