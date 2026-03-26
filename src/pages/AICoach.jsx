@@ -525,7 +525,19 @@ Return ONLY a raw JSON array, no markdown, no explanation:
 
         {cooldown ? (
           <div style={{ background: '#1e1e2a', padding: 16, borderRadius: 12, color: '#aaaabc', fontSize: 12, fontWeight: 700 }}>
-            Already played today — resets in {formatTime(cooldown)}
+            <div style={{ marginBottom: userContext?.todayQuizEarned !== undefined ? 10 : 0 }}>
+              Already played today — resets in {formatTime(cooldown)}
+            </div>
+            {userContext?.todayQuizEarned > 0 && (
+              <div style={{ fontSize: 16, color: '#ff9800', fontWeight: 900 }}>
+                You won {userContext.todayQuizEarned} ⚡ this cycle!
+              </div>
+            )}
+            {userContext?.todayQuizEarned === 0 && (
+              <div style={{ fontSize: 14, color: '#ef4444', fontWeight: 800 }}>
+                Brain fried on Q1 this cycle! 💥
+              </div>
+            )}
           </div>
         ) : (
           <button onClick={startQuiz} disabled={loading} style={{ background: '#ff9800', color: '#000', width: '100%', padding: 16, borderRadius: 12, fontWeight: 900, fontSize: 14, border: 'none', cursor: 'pointer' }}>
@@ -652,14 +664,16 @@ export default function AICoach() {
 
   const buildContext = async (u) => {
     const today = new Date().toISOString().split('T')[0]
+    const quizTimeLimit = new Date(Date.now() - 86400000).toISOString()
     
-    const [{ data: h }, { data: logs }, { data: streaks }, wallet, gs, { data: journal }] = await Promise.all([
+    const [{ data: h }, { data: logs }, { data: streaks }, wallet, gs, { data: journal }, { data: qTxs }] = await Promise.all([
       supabase.from('habits').select('*').eq('user_id', u.id),
       supabase.from('activity_log').select('habit_id,status').eq('user_id', u.id).eq('completed_date', today),
       supabase.from('user_streaks').select('current_streak,longest_streak').eq('user_id', u.id),
       getWallet(u.id),
       computeGravityScore(supabase, u.id),
-      supabase.from('orbit_journal').select('mood').eq('user_id', u.id).eq('entry_date', today).single()
+      supabase.from('orbit_journal').select('mood').eq('user_id', u.id).eq('entry_date', today).single(),
+      supabase.from('zyron_transactions').select('amount').eq('user_id', u.id).eq('reason', 'Quiz correct answer').gte('created_at', quizTimeLimit)
     ])
 
     const completed = logs?.filter(l => l.status === 'completed').length || 0
@@ -673,6 +687,8 @@ export default function AICoach() {
       weakest = Object.entries(zoneCounts).sort((a,b)=>a[1]-b[1])[0][0]
     }
 
+    const todayQuizEarned = qTxs ? qTxs.reduce((sum, tx) => sum + tx.amount, 0) : 0
+
     setUserContext({
       name: u.user_metadata?.full_name || 'Orbiter',
       rank: rs.name,
@@ -684,7 +700,8 @@ export default function AICoach() {
       balance: wallet?.balance || 0,
       gravity: gs,
       mood: journal?.mood || 'not logged',
-      weakestZone: weakest
+      weakestZone: weakest,
+      todayQuizEarned
     })
   }
 
