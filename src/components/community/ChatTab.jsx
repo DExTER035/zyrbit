@@ -79,18 +79,18 @@ export default function ChatTab({ user, profile }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 160px)' }}>
       {/* Room Selector */}
-      <div style={{ padding: '0 16px 10px', overflowX: 'auto', display: 'flex', gap: 8, scrollbarWidth: 'none', flexShrink: 0 }}>
+      <div style={{ padding: '0 16px 10px', display: 'flex', flexWrap: 'wrap', gap: '8px', flexShrink: 0 }}>
         {accessibleRooms.map((room, i) => {
           const active = currentRoom.name === room.name
           return (
-            <button key={i} onClick={() => setCurrentRoom(room)} style={{ flexShrink: 0, padding: '7px 13px', borderRadius: 100, border: active ? 'none' : `1px solid ${room.color}40`, background: active ? room.color : 'transparent', color: active ? '#000' : room.color, fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', gap: 5, alignItems: 'center' }}>
+            <button key={i} onClick={() => setCurrentRoom(room)} style={{ flex: '1 1 auto', padding: '7px 13px', borderRadius: 100, border: active ? 'none' : `1px solid ${room.color}40`, background: active ? room.color : 'transparent', color: active ? '#000' : room.color, fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', gap: 5, alignItems: 'center', justifyContent: 'center' }}>
               <span>{room.icon}</span>
               <span>{room.name}</span>
             </button>
           )
         })}
         {lockedRooms.map((room, i) => (
-          <button key={`locked-${i}`} disabled style={{ flexShrink: 0, padding: '7px 13px', borderRadius: 100, border: '1px solid #1A1A24', background: '#0A0A12', color: '#333', fontWeight: 700, fontSize: 12, cursor: 'not-allowed', display: 'flex', gap: 5, alignItems: 'center', opacity: 0.6 }}>
+          <button key={`locked-${i}`} disabled style={{ flex: '1 1 auto', padding: '7px 13px', borderRadius: 100, border: '1px solid #1A1A24', background: '#0A0A12', color: '#333', fontWeight: 700, fontSize: 12, cursor: 'not-allowed', display: 'flex', gap: 5, alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
             <span>{room.icon}</span>
             <span>🔒</span>
           </button>

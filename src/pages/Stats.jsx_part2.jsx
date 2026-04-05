@@ -9,17 +9,17 @@
       </div>
 
       {/* FILTER PILLS */}
-      <div style={{ padding: '0 0 32px', overflowX: 'auto', display: 'flex', gap: 10, scrollbarWidth: 'none' }}>
+      <div style={{ padding: '0 0 32px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
         {FILTERS.map(f => {
           const isActive = activeFilter === f.id
           return (
             <button key={f.id} onClick={() => f.id === 'all' ? setActiveFilter('all') : scrollTo(f.id)}
               style={{
-                flexShrink: 0, padding: '10px 20px', borderRadius: 100, cursor: 'pointer',
+                flex: '1 1 calc(33% - 8px)', padding: '10px 12px', borderRadius: 100, cursor: 'pointer',
                 border: isActive ? '1px solid #FFF' : '1px solid #1A1A24',
                 background: isActive ? '#FFF' : '#0A0A12',
                 color: isActive ? '#000' : '#444',
-                fontWeight: 900, fontSize: 12, transition: 'all 0.2s', whiteSpace: 'nowrap'
+                fontWeight: 900, fontSize: 12, transition: 'all 0.2s', textAlign: 'center'
               }}>
               {f.label}
             </button>

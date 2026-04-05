@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { computeGravityScore } from '../lib/gravity'
-import { earnZyrons, getWallet, ZYRON_REWARDS, checkZyronEligibility, setZyronCooldown } from '../lib/zyrons'
-import { getRankByZyrons } from '../lib/ranks'
 
 import Logo from '../components/Logo'
 import BottomNav from '../components/BottomNav'
@@ -12,6 +10,21 @@ import GravityRing from '../components/GravityRing'
 import HabitCard from '../components/HabitCard'
 import RankBanner from '../components/RankBanner'
 import { showToast } from '../components/Toast'
+
+const REFLECTION_QUESTIONS = [
+  'What was the hardest habit to complete today?',
+  'What are you most proud of today?',
+  'What would you do differently tomorrow?',
+  'Which habit gave you the most energy?',
+  'What\u2019s one thing you learned about yourself today?',
+]
+
+const WEEKLY_INSIGHTS = [
+  'Consistency beats intensity. Every orbit counts. 🪐',
+  'You\u2019re building gravity with every habit logged. Keep burning! 🔥',
+  'The stars don\u2019t take days off \u2014 neither do you. 🌟',
+  'Small habits, massive trajectory. Stay in orbit! 🚀',
+]
 
 // Utility mapping
 const ZONE_COLORS = {
@@ -30,7 +43,6 @@ export default function Orbit() {
   const [habits, setHabits] = useState([])
   const [activity, setActivity] = useState([])
   const [gravityScore, setGravityScore] = useState(0)
-  const [wallet, setWallet] = useState({})
   const [streaks, setStreaks] = useState({})
 
   // UI State
@@ -44,6 +56,17 @@ export default function Orbit() {
   const [rankBanner, setRankBanner] = useState(null)
   const [celebrationShown, setCelebrationShown] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
+
+  // Reflection
+  const [showReflection, setShowReflection] = useState(false)
+  const [reflectionText, setReflectionText] = useState('')
+  const [reflectionQuestion, setReflectionQuestion] = useState('')
+
+  // Weekly Review
+  const [showWeeklyReview, setShowWeeklyReview] = useState(false)
+
+  // Share Card
+  const [showShareCard, setShowShareCard] = useState(false)
 
   // Form
   const [form, setForm] = useState({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' })
@@ -72,6 +95,16 @@ export default function Orbit() {
     const lastCel = localStorage.getItem('zyrbit_celebration_date')
     if (lastCel === today) setCelebrationShown(true)
 
+    // Weekly Review — show every Sunday
+    const now = new Date()
+    if (now.getDay() === 0) {
+      const weekKey = `${now.getFullYear()}-W${Math.ceil(now.getDate() / 7)}`
+      const alreadySeen = localStorage.getItem(`zyrbit_weekly_review_${weekKey}`)
+      if (!alreadySeen) {
+        setTimeout(() => setShowWeeklyReview(true), 2000)
+      }
+    }
+
     return () => authListener?.subscription?.unsubscribe()
   }, [])
 
@@ -94,9 +127,6 @@ export default function Orbit() {
         setStreaks(smap)
       }
 
-      const w = await getWallet(userId)
-      if (w) setWallet(w)
-
       const gs = await computeGravityScore(supabase, userId)
       setGravityScore(gs)
 
@@ -114,7 +144,18 @@ export default function Orbit() {
   )
 
   const getGravityStatus = (score) => {
-    if (score < 30) return { label: 'Orbit Decaying 🪐', color: 'var(--color-text2)' }
+    // Check if user has logged anything in last 2 days
+    const today2 = new Date().toLocaleDateString('en-CA')
+    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA')
+    const hasLoggedToday = activity.some(l => l.completed_date === today2 && l.status === 'completed')
+    const hasLoggedYesterday = activity.some(l => l.completed_date === yesterday && l.status === 'completed')
+
+    if (!hasLoggedToday && !hasLoggedYesterday) {
+      return { label: 'Orbit Decaying 🪐', color: 'var(--color-text2)' }
+    }
+    if (!hasLoggedToday) {
+      return { label: 'Ready for Launch 🚀', color: 'var(--color-orange)' }
+    }
     if (score < 60) return { label: 'Stable Orbit 🪐', color: 'var(--color-cyan-dim)' }
     if (score < 85) return { label: 'Strong Orbit 🪐', color: 'var(--color-cyan)' }
     return { label: 'Light Speed 🌟', color: '#00FFFF' }
@@ -130,8 +171,11 @@ export default function Orbit() {
     if (allDone && habits.length > 0 && !celebrationShown) {
       setCelebrationShown(true)
       localStorage.setItem('zyrbit_celebration_date', today)
-      setTimeout(() => setShowCelebration(true), 400)
-      if (user) await earnZyrons(user.id, 50, 'Perfect orbit bonus')
+      // Show reflection first, then celebration
+      const q = REFLECTION_QUESTIONS[Math.floor(Math.random() * REFLECTION_QUESTIONS.length)]
+      setReflectionQuestion(q)
+      setReflectionText('')
+      setTimeout(() => setShowReflection(true), 400)
     }
   }
 
@@ -152,19 +196,7 @@ export default function Orbit() {
       })
 
       if (!error) {
-        // Check cooldown before awarding zyrons (prevents farming by toggling)
-        const { eligible } = await checkZyronEligibility(currentUser.id, habit.id)
-        if (eligible) {
-          const earned = await earnZyrons(currentUser.id, ZYRON_REWARDS.HABIT_COMPLETE, 'Habit complete')
-          if (earned) {
-            await setZyronCooldown(currentUser.id, habit.id)
-            showToast('🔥 +10 ⚡ Zyrons earned!', 'success')
-          } else {
-            showToast('✅ Habit logged! (Sync delayed)', 'warning')
-          }
-        } else {
-          showToast('✅ Habit logged! (Zyrons on cooldown)', 'info')
-        }
+        showToast('✅ Habit logged!', 'success')
         checkAllDone(nextActivity)
         await loadAll(currentUser.id)
       } else {
@@ -208,8 +240,7 @@ export default function Orbit() {
       showToast('✅ Habit updated!', 'success')
     } else {
       await supabase.from('habits').insert({ user_id: user.id, ...form, color })
-      await earnZyrons(user.id, ZYRON_REWARDS.HABIT_COMPLETE, `Created habit: ${form.name}`)
-      showToast('🌱 New habit! +10 ⚡', 'success')
+      showToast('🌱 New habit added!', 'success')
     }
     
     setShowModal(false)
@@ -239,9 +270,46 @@ export default function Orbit() {
   const filteredHabits = activeZone === 'all' ? habits : habits.filter(h => h.zone === activeZone)
 
   const bestStreak = Object.values(streaks).length > 0 ? Math.max(...Object.values(streaks)) : 0
-  const todayZyrons = wallet?.daily_earned || 0
   const doneCount = completedToday.size
   const totalCount = habits.length
+  const completionPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
+
+  const saveReflection = async () => {
+    if (!user) return
+    try {
+      await supabase.from('diary_entries').insert({
+        user_id: user.id,
+        entry_date: today,
+        entry_type: 'reflection',
+        content: reflectionText || '(No response)',
+        prompt: reflectionQuestion,
+        mood: 'neutral'
+      })
+    } catch (_) { /* silent fail if column not found */ }
+    setShowReflection(false)
+    setTimeout(() => setShowCelebration(true), 300)
+  }
+
+  const generateShareCard = () => setShowShareCard(true)
+
+  const dismissWeeklyReview = () => {
+    const now = new Date()
+    const weekKey = `${now.getFullYear()}-W${Math.ceil(now.getDate() / 7)}`
+    localStorage.setItem(`zyrbit_weekly_review_${weekKey}`, 'seen')
+    setShowWeeklyReview(false)
+  }
+
+  // Compute this week's stats for weekly review
+  const thisWeekDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6 - i))
+    return d.toLocaleDateString('en-CA')
+  })
+  const weekCompletions = activity.filter(l => thisWeekDates.includes(l.completed_date) && l.status === 'completed').length
+  const mostSkipped = habits.length > 0 ? habits.reduce((prev, h) => {
+    const hCount = activity.filter(l => thisWeekDates.includes(l.completed_date) && l.habit_id === h.id && l.status === 'completed').length
+    const pCount = activity.filter(l => thisWeekDates.includes(l.completed_date) && l.habit_id === prev.id && l.status === 'completed').length
+    return hCount < pCount ? h : prev
+  }, habits[0])?.name || '—' : '—'
 
   return (
     <div className="app-container animate-fadeSlideUp" style={{ background: '#000' }}>
@@ -272,7 +340,7 @@ export default function Orbit() {
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
             <span style={{ fontSize: 96, fontWeight: 900, color: '#FFF', letterSpacing: -4, lineHeight: 1 }}>{gravityScore}</span>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--color-cyan)' }}>+{wallet?.daily_earned || 0} this week</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--color-cyan)' }}>+{weekCompletions} this week</div>
               <div style={{ fontSize: 13, color: 'var(--color-muted)', fontWeight: 600 }}>{gStatus.label}</div>
             </div>
           </div>
@@ -293,8 +361,8 @@ export default function Orbit() {
             <div style={{ display: 'flex', gap: 12, marginBottom: 40 }}>
               {[
                 { label: 'Streak', value: bestStreak, sub: 'DAY STREAK', color: 'var(--color-orange)' },
-                { label: 'Earned', value: todayZyrons, sub: 'ZYRONS TODAY', color: 'var(--color-cyan)' },
                 { label: 'Done', value: `${doneCount}/${totalCount}`, sub: 'HABITS', color: doneCount === totalCount && totalCount >0 ? 'var(--color-zone-body)' : 'var(--color-text)' },
+                { label: 'Today', value: `${completionPct}%`, sub: 'COMPLETE', color: completionPct === 100 ? 'var(--color-zone-body)' : 'var(--color-cyan)' },
               ].map((s, i) => (
                 <div key={i} style={{ flex: 1, height: 120, background: '#0A0A12', border: '1px solid #1A1A24', borderRadius: 24, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ display: 'inline-block', padding: '3px 8px', background: `${s.color}15`, borderRadius: 8, width: 'fit-content', marginBottom: 12 }}>
@@ -313,36 +381,96 @@ export default function Orbit() {
 
             {/* HABITS LIST */}
             <h3 style={{ fontSize: 11, color: 'var(--color-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 20 }}>TODAY'S HABITS</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {filteredHabits.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--color-muted)' }}>
-                  <div style={{ fontSize: '40px', marginBottom: '12px' }}>🌱</div>
-                  <p style={{ fontSize: '13px' }}>No habits in this orbit yet.<br/>Tap + to begin tracking.</p>
-                </div>
-              ) : (
-                filteredHabits.map(habit => (
-                  <HabitCard
-                    key={habit.id} habit={habit}
-                    logs={getHabitLogs(habit.id)}
-                    streak={streaks[habit.id] || 0}
-                    isCompleted={completedToday.has(habit.id)}
-                    onToggle={handleToggle}
-                    onLongPress={setSkipTarget}
-                    onDelete={deleteHabit}
-                    onStats={(h) => showToast('Stats view coming soon!', 'info')}
-                    onEdit={(h) => { setEditHabit(h); setForm({ name: h.name, zone: h.zone, icon: h.icon||'🌱', frequency: h.frequency||'daily', reminder_enabled: h.reminder_enabled||false, reminder_time: h.reminder_time||'' }); setShowModal(true) }}
-                  />
-                ))
-              )}
-            </div>
+
+            {filteredHabits.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--color-muted)' }}>
+                <div style={{ fontSize: '40px', marginBottom: '12px' }}>🌱</div>
+                <p style={{ fontSize: '13px' }}>No habits in this orbit yet.<br/>Tap + to begin tracking.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {filteredHabits.map(habit => {
+                  const done = completedToday.has(habit.id)
+                  return (
+                    <div key={habit.id} style={{ opacity: done ? 0.62 : 1, transition: 'opacity 0.3s' }}>
+                      <HabitCard
+                        habit={habit}
+                        logs={getHabitLogs(habit.id)}
+                        streak={streaks[habit.id] || 0}
+                        isCompleted={done}
+                        onToggle={handleToggle}
+                        onLongPress={setSkipTarget}
+                        onDelete={deleteHabit}
+                        onStats={() => showToast('Stats view coming soon!', 'info')}
+                        onEdit={h => { setEditHabit(h); setForm({ name: h.name, zone: h.zone, icon: h.icon||'🌱', frequency: h.frequency||'daily', reminder_enabled: h.reminder_enabled||false, reminder_time: h.reminder_time||'' }); setShowModal(true) }}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </>
         )}
       </div>
 
       <BottomNav activeTab="orbit" onTabChange={(t) => navigate(t === 'orbit' ? '/orbit' : `/${t}`)} />
 
-      {/* FAB */}
+      {/* FAB + SHARE */}
       <button className="fab" onClick={() => { setEditHabit(null); setForm({ name:'', zone:'mind', icon:'🌱', frequency:'daily', reminder_enabled: false, reminder_time: '' }); setShowModal(true); }}>+</button>
+      <button
+        onClick={generateShareCard}
+        style={{
+          position: 'fixed', bottom: 100, right: 20, zIndex: 40,
+          background: 'linear-gradient(135deg, #9C27B0, #00FFFF)',
+          border: 'none', borderRadius: '50px', padding: '10px 16px',
+          fontSize: '11px', fontWeight: 800, color: '#fff', cursor: 'pointer',
+          boxShadow: '0 4px 20px rgba(0,255,255,0.25)', letterSpacing: '0.5px'
+        }}
+      >
+        📸 Share
+      </button>
+
+      {/* DAILY REFLECTION POPUP */}
+      {showReflection && (
+        <div className="modal-overlay" style={{ background: '#00000090', zIndex: 210, alignItems: 'center' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #0D0D18, #111128)',
+            border: '1px solid #9C27B030',
+            borderRadius: '28px', padding: '32px 28px',
+            textAlign: 'center', animation: 'scaleIn 0.4s ease',
+            maxWidth: '320px', width: '90%'
+          }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>✏️</div>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#9C27B0', textTransform: 'uppercase', letterSpacing: 2, marginBottom: '8px' }}>Daily Reflection</div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFF', lineHeight: 1.5, marginBottom: '20px' }}>{reflectionQuestion}</div>
+            <textarea
+              autoFocus
+              value={reflectionText}
+              onChange={e => setReflectionText(e.target.value)}
+              placeholder="Type something short..."
+              rows={3}
+              style={{
+                width: '100%', background: '#0A0A12', border: '1px solid #1E1E28',
+                borderRadius: '14px', padding: '12px', color: '#FFF', fontSize: '13px',
+                resize: 'none', outline: 'none', fontFamily: 'inherit', marginBottom: '16px',
+                boxSizing: 'border-box', lineHeight: 1.5
+              }}
+            />
+            <button
+              onClick={saveReflection}
+              style={{ background: '#9C27B0', color: '#FFF', border: 'none', borderRadius: '14px', padding: '14px', fontSize: '14px', fontWeight: 800, width: '100%', cursor: 'pointer', marginBottom: '8px' }}
+            >
+              Save & Continue 🚀
+            </button>
+            <button
+              onClick={() => { setShowReflection(false); setTimeout(() => setShowCelebration(true), 300) }}
+              style={{ background: 'transparent', color: '#444', border: 'none', fontSize: '12px', cursor: 'pointer', padding: '4px' }}
+            >
+              Skip for now
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* PERFECT ORBIT CELEBRATION */}
       {showCelebration && (
@@ -363,7 +491,7 @@ export default function Orbit() {
             <div style={{ fontSize: '13px', color: '#555566', marginBottom: '20px' }}>All habits completed today!</div>
             
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '24px' }}>
-              <span style={{ padding: '4px 10px', background: '#00FFFF15', border: '1px solid #00FFFF30', color: '#00FFFF', borderRadius: '100px', fontSize: '11px', fontWeight: 800 }}>+50 ⚡ Bonus!</span>
+              <span style={{ padding: '4px 10px', background: '#00FFFF15', border: '1px solid #00FFFF30', color: '#00FFFF', borderRadius: '100px', fontSize: '11px', fontWeight: 800 }}>💫 Perfect Orbit!</span>
               <span style={{ padding: '4px 10px', background: '#4CAF5015', border: '1px solid #4CAF5030', color: '#4CAF50', borderRadius: '100px', fontSize: '11px', fontWeight: 800 }}>{totalCount}/{totalCount} Done ✅</span>
             </div>
 
@@ -453,6 +581,127 @@ export default function Orbit() {
           </div>
         </div>
       )}
+
+      {/* WEEKLY REVIEW MODAL */}
+      {showWeeklyReview && (
+        <div className="modal-overlay" style={{ background: '#00000095', zIndex: 220, alignItems: 'center' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #0D0D18 0%, #0A0A20 100%)',
+            border: '1px solid #00FFFF20', borderRadius: '28px',
+            padding: '32px 24px', maxWidth: '340px', width: '92%',
+            animation: 'scaleIn 0.4s ease'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{ fontSize: '42px', marginBottom: '8px' }}>🪐</div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: '#FFF', marginBottom: '4px' }}>Week Wrapped</div>
+              <div style={{ fontSize: '11px', color: '#444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>Your orbit report</div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+              {[
+                { label: 'Completions', value: weekCompletions, color: '#00FFFF', icon: '✅' },
+                { label: 'Best Streak', value: `${bestStreak}d`, color: '#FF9800', icon: '🔥' },
+                { label: 'Most Skipped', value: (mostSkipped || '—').length > 12 ? (mostSkipped || '—').slice(0,10)+'…' : (mostSkipped || '—'), color: '#EF4444', icon: '⚠️' },
+                { label: 'Gravity', value: gravityScore, color: '#9C27B0', icon: '⚡' },
+              ].map((s, i) => (
+                <div key={i} style={{ background: '#111', border: '1px solid #1A1A24', borderRadius: '16px', padding: '14px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '18px', marginBottom: '4px' }}>{s.icon}</div>
+                  <div style={{ fontSize: '20px', fontWeight: 900, color: s.color, marginBottom: '2px' }}>{s.value}</div>
+                  <div style={{ fontSize: '9px', color: '#333', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: '#000', borderRadius: '16px', padding: '14px', marginBottom: '20px', border: '1px solid #111' }}>
+              <div style={{ fontSize: '12px', color: '#666', lineHeight: 1.6, fontStyle: 'italic' }}>
+                "{WEEKLY_INSIGHTS[new Date().getDay() % WEEKLY_INSIGHTS.length]}"
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => {
+                  const text = `🪐 My Zyrbit Week Wrapped!\n✅ ${weekCompletions} habits done\n🔥 ${bestStreak} day streak\n⚡ Gravity: ${gravityScore}\n\nBuilding better orbits, one habit at a time.`
+                  if (navigator.share) navigator.share({ text }).catch(() => {})
+                  else { navigator.clipboard.writeText(text); showToast('📋 Copied to clipboard!', 'success') }
+                }}
+                style={{ flex: 1, background: 'var(--color-cyan)', color: '#000', border: 'none', borderRadius: '14px', padding: '14px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+              >
+                Share 📤
+              </button>
+              <button
+                onClick={dismissWeeklyReview}
+                style={{ flex: 1, background: '#111', color: '#666', border: '1px solid #1A1A24', borderRadius: '14px', padding: '14px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+              >
+                Done ✓
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ANONYMOUS SHARE CARD MODAL */}
+      {showShareCard && (
+        <div className="modal-overlay" style={{ background: '#00000095', zIndex: 220, alignItems: 'center' }} onClick={() => setShowShareCard(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ maxWidth: '340px', width: '92%', animation: 'scaleIn 0.4s ease' }}>
+            {/* The shareable card itself */}
+            <div id="share-card" style={{
+              background: 'linear-gradient(135deg, #000005 0%, #0A0020 50%, #000010 100%)',
+              border: '1px solid #00FFFF20',
+              borderRadius: '28px', padding: '32px 28px', marginBottom: '16px',
+              textAlign: 'center', position: 'relative', overflow: 'hidden'
+            }}>
+              {/* bg glow */}
+              <div style={{ position: 'absolute', top: -40, left: '50%', transform: 'translateX(-50%)', width: 200, height: 200, background: 'radial-gradient(circle, #00FFFF08, transparent 70%)', borderRadius: '50%' }} />
+              <div style={{ fontSize: '36px', marginBottom: '8px' }}>🪐</div>
+              <div style={{ fontSize: '11px', fontWeight: 800, color: '#444', textTransform: 'uppercase', letterSpacing: 3, marginBottom: '16px' }}>ZYRBIT · ORBIT STATS</div>
+
+              <div style={{ fontSize: '72px', fontWeight: 900, color: '#FFF', letterSpacing: -3, lineHeight: 1, marginBottom: '4px' }}>{gravityScore}</div>
+              <div style={{ fontSize: '11px', color: 'var(--color-cyan)', fontWeight: 800, marginBottom: '24px' }}>GRAVITY SCORE</div>
+
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginBottom: '20px' }}>
+                <div>
+                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#FF9800' }}>🔥 {bestStreak}</div>
+                  <div style={{ fontSize: '9px', color: '#333', fontWeight: 700, textTransform: 'uppercase' }}>DAY STREAK</div>
+                </div>
+                <div style={{ width: 1, background: '#1A1A24' }} />
+                <div>
+                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#4CAF50' }}>{completionPct}%</div>
+                  <div style={{ fontSize: '9px', color: '#333', fontWeight: 700, textTransform: 'uppercase' }}>TODAY</div>
+                </div>
+                <div style={{ width: 1, background: '#1A1A24' }} />
+                <div>
+                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#9C27B0' }}>{doneCount}/{totalCount}</div>
+                  <div style={{ fontSize: '9px', color: '#333', fontWeight: 700, textTransform: 'uppercase' }}>HABITS</div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '10px', color: '#222', fontWeight: 700, letterSpacing: 1 }}>zyrbit.app · stay in orbit</div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => {
+                  const text = `🪐 My Zyrbit Orbit Stats!\n⚡ Gravity Score: ${gravityScore}\n🔥 Streak: ${bestStreak} days\n✅ Today: ${completionPct}% complete\n\nBuilding better habits, one orbit at a time. 🚀`
+                  if (navigator.share) navigator.share({ text, title: 'My Zyrbit Stats' }).catch(() => {})
+                  else { navigator.clipboard.writeText(text); showToast('📋 Stats copied!', 'success') }
+                  setShowShareCard(false)
+                }}
+                style={{ flex: 1, background: 'linear-gradient(135deg, #9C27B0, #00FFFF)', color: '#fff', border: 'none', borderRadius: '14px', padding: '14px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+              >
+                Share 📤
+              </button>
+              <button
+                onClick={() => setShowShareCard(false)}
+                style={{ flex: 1, background: '#111', color: '#666', border: '1px solid #1A1A24', borderRadius: '14px', padding: '14px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

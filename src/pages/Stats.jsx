@@ -9,7 +9,6 @@ import {
 import BottomNav from '../components/BottomNav.jsx'
 import { showToast } from '../components/Toast.jsx'
 import { supabase } from '../lib/supabase.js'
-import { earnZyrons } from '../lib/zyrons.js'
 import { askZyra } from '../lib/gemini.js'
 
 // ─── Helpers ───────────────────────────────────────
@@ -226,7 +225,7 @@ const ZONE_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 // ─── FILTER PILLS ─────────────────────────────────
 const FILTERS = [
   { id: 'all', label: 'All' }, { id: 'habits', label: '🪐' },
-  { id: 'zyrons', label: '⚡' }, { id: 'money', label: '💰' },
+  { id: 'money', label: '💰' },
   { id: 'move', label: '🏃' }, { id: 'study', label: '📚' },
   { id: 'diary', label: '📖' }, { id: 'community', label: '🌍' },
 ]
@@ -273,47 +272,59 @@ export default function Stats() {
     const firstMonth = firstOfMonth()
     const todayStr = today()
 
-    const [
-      { data: hData }, { data: alData }, { data: stData },
-      { data: wData }, { data: txData },
-      { data: expData }, { data: msData },
-      { data: mlData }, { data: mstData },
-      { data: ssData }, { data: seData },
-      { data: deData }, { data: dsData },
-      { data: profData }, { data: btData }
-    ] = await Promise.all([
+    // Use allSettled so missing legacy tables (zyron_wallet etc.) don't crash the page
+    const results = await Promise.allSettled([
       supabase.from('habits').select('*').eq('user_id', uid),
       supabase.from('activity_log').select('*').eq('user_id', uid).gte('completed_date', since30),
       supabase.from('user_streaks').select('*').eq('user_id', uid),
-      supabase.from('zyron_wallet').select('*').eq('user_id', uid).single(),
+      supabase.from('zyron_wallet').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('zyron_transactions').select('*').eq('user_id', uid).gte('created_at', since30),
       supabase.from('money_expenses').select('*').eq('user_id', uid).gte('expense_date', firstMonth),
-      supabase.from('money_settings').select('*').eq('user_id', uid).single(),
+      supabase.from('money_settings').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('move_logs').select('*').eq('user_id', uid).gte('log_date', since30),
-      supabase.from('move_streaks').select('*').eq('user_id', uid).single(),
+      supabase.from('move_streaks').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('study_sessions').select('*, study_subjects(name, color)').eq('user_id', uid).gte('session_date', firstMonth),
       supabase.from('study_exams').select('*').eq('user_id', uid).gte('exam_date', todayStr),
       supabase.from('diary_entries').select('entry_date, mood').eq('user_id', uid).gte('entry_date', since30),
-      supabase.from('diary_settings').select('*').eq('user_id', uid).single(),
-      supabase.from('profiles').select('*').eq('id', uid).single(),
+      supabase.from('diary_settings').select('*').eq('user_id', uid).maybeSingle(),
+      supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
       supabase.from('battles').select('*').or(`challenger_id.eq.${uid},opponent_id.eq.${uid}`).eq('status', 'complete'),
     ])
 
-    setHabits(hData || [])
-    setActivityLog(alData || [])
-    setUserStreaks(stData || [])
+    const safeData = (idx, fallback = null) =>
+      results[idx].status === 'fulfilled' ? (results[idx].value?.data ?? fallback) : fallback
+
+    const hData  = safeData(0, [])
+    const alData = safeData(1, [])
+    const stData = safeData(2, [])
+    const wData  = safeData(3)
+    const txData = safeData(4, [])
+    const expData= safeData(5, [])
+    const msData = safeData(6)
+    const mlData = safeData(7, [])
+    const mstData= safeData(8)
+    const ssData = safeData(9, [])
+    const seData = safeData(10, [])
+    const deData = safeData(11, [])
+    const dsData = safeData(12)
+    const profData=safeData(13)
+    const btData = safeData(14, [])
+
+    setHabits(hData)
+    setActivityLog(alData)
+    setUserStreaks(stData)
     setWallet(wData)
-    setTransactions(txData || [])
-    setExpenses(expData || [])
+    setTransactions(txData)
+    setExpenses(expData)
     setMoneySettings(msData)
-    setMoveLogs(mlData || [])
+    setMoveLogs(mlData)
     setMoveStreaks(mstData)
-    setStudySessions(ssData || [])
-    setStudyExams(seData || [])
-    setDiaryEntries(deData || [])
+    setStudySessions(ssData)
+    setStudyExams(seData)
+    setDiaryEntries(deData)
     setDiarySettings(dsData)
     setProfile(profData)
-    setBattles(btData || [])
+    setBattles(btData)
     setLoading(false)
 
     // Load cached weekly report
@@ -575,7 +586,6 @@ export default function Stats() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 900, color: '#FFF', letterSpacing: -0.3 }}>Weekly Orbit Report</div>
-            <div style={{ fontSize: 10, color: '#666', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 4 }}>POWERED BY ZYRA AI</div>
           </div>
           <button onClick={refreshReport} style={{ background: '#111', border: '1px solid #222', padding: '8px 16px', borderRadius: 12, color: '#FFF', fontSize: 11, fontWeight: 900, cursor: 'pointer' }}>
             REFRESH
@@ -642,22 +652,6 @@ export default function Stats() {
           )}
         </div>
 
-        {/* ZYRONS */}
-        <div id="zyrons">
-          <SectionHeader emoji="⚡" title="Zyrons" />
-          {loading ? <Skeleton height={200} /> : (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <StatBox label="Balance" value={(wallet?.balance || 0).toLocaleString()} color="#FF9800" />
-                <StatBox label="Earned Today" value={(wallet?.daily_earned || 0).toLocaleString()} color="#4CAF50" />
-              </div>
-              <Card>
-                <CardHeader title="Growth Chart" chartType="LINE" />
-                <MiniLine data={zyronGrowth} color="#FF9800" height={120} />
-              </Card>
-            </>
-          )}
-        </div>
 
         {/* MONEY */}
         <div id="money">

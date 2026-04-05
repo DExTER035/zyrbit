@@ -141,12 +141,12 @@ function ZyraTab({ userContext, earn }) {
 
       {/* Context Bar */}
       {userContext && (
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 12, paddingBottom: 4 }}>
-          <div style={{ flexShrink: 0, padding: '4px 10px', background: '#0a0a12', border: '1px solid #1e1e2a', borderRadius: 100, fontSize: 11, color: '#4caf50', fontWeight: 700 }}>✅ {userContext.done}/{userContext.total} habits</div>
-          <div style={{ flexShrink: 0, padding: '4px 10px', background: '#0a0a12', border: '1px solid #1e1e2a', borderRadius: 100, fontSize: 11, color: '#ff9800', fontWeight: 700 }}>🔥 {userContext.streak}d streak</div>
-          <div style={{ flexShrink: 0, padding: '4px 10px', background: '#0a0a12', border: '1px solid #1e1e2a', borderRadius: 100, fontSize: 11, color: '#00ffff', fontWeight: 700 }}>⚡ {userContext.balance} Zyrons</div>
-          <div style={{ flexShrink: 0, padding: '4px 10px', background: '#0a0a12', border: '1px solid #1e1e2a', borderRadius: 100, fontSize: 11, color: '#ce93d8', fontWeight: 700 }}>{userContext.rank}</div>
-          {userContext.mood && <div style={{ flexShrink: 0, padding: '4px 10px', background: '#0a0a12', border: '1px solid #1e1e2a', borderRadius: 100, fontSize: 11, color: '#aaaabc', fontWeight: 700 }}>Mood: {userContext.mood}</div>}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: 12, paddingBottom: 4 }}>
+          <div style={{ flex: '1 1 auto', padding: '4px 10px', background: '#0a0a12', border: '1px solid #1e1e2a', borderRadius: 100, fontSize: 11, color: '#4caf50', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>✅ {userContext.done}/{userContext.total} habits</div>
+          <div style={{ flex: '1 1 auto', padding: '4px 10px', background: '#0a0a12', border: '1px solid #1e1e2a', borderRadius: 100, fontSize: 11, color: '#ff9800', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>🔥 {userContext.streak}d streak</div>
+          <div style={{ flex: '1 1 auto', padding: '4px 10px', background: '#0a0a12', border: '1px solid #1e1e2a', borderRadius: 100, fontSize: 11, color: '#00ffff', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>⚡ {userContext.balance} Zyrons</div>
+          <div style={{ flex: '1 1 auto', padding: '4px 10px', background: '#0a0a12', border: '1px solid #1e1e2a', borderRadius: 100, fontSize: 11, color: '#ce93d8', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>{userContext.rank}</div>
+          {userContext.mood && <div style={{ flex: '1 1 auto', padding: '4px 10px', background: '#0a0a12', border: '1px solid #1e1e2a', borderRadius: 100, fontSize: 11, color: '#aaaabc', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>Mood: {userContext.mood}</div>}
         </div>
       )}
 

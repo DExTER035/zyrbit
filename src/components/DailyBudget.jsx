@@ -92,7 +92,7 @@ export default function DailyBudget({ wallet, onUpdate }) {
           <div className="animate-slideUpModal" style={{ background: '#111116', borderTop: '1px solid #1E1E28', borderRadius: '24px 24px 0 0', padding: 24, width: '100%', maxWidth: 430, marginTop: 'auto' }} onClick={e => e.stopPropagation()}>
             <h3 style={{ fontSize: 20, fontWeight: 900, color: '#E8E8F0', marginBottom: 20 }}>Set Daily Budget</h3>
             
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 16, marginBottom: 12, scrollbarWidth: 'none' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingBottom: 16, marginBottom: 12 }}>
               {[
                 { label: 'Conservative', val: 200 },
                 { label: 'Balanced', val: 400 },
@@ -102,10 +102,11 @@ export default function DailyBudget({ wallet, onUpdate }) {
                 <button
                   key={p.label} onClick={() => setBudgetVal(p.val)}
                   style={{
-                    flexShrink: 0, padding: '8px 16px', borderRadius: 100, fontSize: 12, fontWeight: 800,
+                    flex: '1 1 calc(50% - 8px)', padding: '8px 16px', borderRadius: 100, fontSize: 12, fontWeight: 800,
                     background: budgetVal === p.val ? 'var(--color-cyan-glow)' : 'transparent',
                     color: budgetVal === p.val ? 'var(--color-cyan)' : 'var(--color-text)',
-                    border: `1px solid ${budgetVal === p.val ? 'var(--color-cyan)' : '#1E1E28'}`
+                    border: `1px solid ${budgetVal === p.val ? 'var(--color-cyan)' : '#1E1E28'}`,
+                    textAlign: 'center'
                   }}
                 >
                   {p.label}

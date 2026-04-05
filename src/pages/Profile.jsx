@@ -289,12 +289,12 @@ export default function Profile() {
           </div>
 
           <div style={{ fontSize: 11, color: '#444', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 20 }}>Echelon Journey</div>
-          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'none' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', paddingBottom: 12 }}>
             {visibleRanks.map((r) => {
               const isUnlocked = wallet.total_earned >= r.req
               const isCurrent = r.id === rank.id
               return (
-                <div key={r.id} style={{ flexShrink: 0, textAlign: 'center', width: 80 }}>
+                <div key={r.id} style={{ flex: '1 1 calc(25% - 12px)', textAlign: 'center' }}>
                   <div style={{
                     width: 72, height: 72, borderRadius: 20, margin: '0 auto 10px',
                     background: isUnlocked ? '#0A0A12' : '#05050A',

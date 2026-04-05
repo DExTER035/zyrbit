@@ -228,9 +228,9 @@ export default function JournalTabMove({ user }) {
            <div style={{ background: '#111118', width: '100%', borderRadius: '24px 24px 0 0', padding: 24, paddingBottom: 40, maxHeight: '90vh', overflowY: 'auto' }}>
               <div style={{ fontSize: 18, fontWeight: 900, color: '#E8E8F0', marginBottom: 20 }}>Log Activity</div>
               
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 20, paddingBottom: 4 }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: 20, paddingBottom: 4 }}>
                  {Object.entries(actIcons).map(([k,v]) => (
-                   <button key={k} onClick={() => setLogForm({...logForm, type: k})} style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 100, background: logForm.type === k ? '#4CAF50' : '#1A1A24', border: 'none', color: logForm.type === k ? '#000' : '#888', fontWeight: 800, textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                   <button key={k} onClick={() => setLogForm({...logForm, type: k})} style={{ flex: '1 1 calc(33% - 8px)', padding: '8px 16px', borderRadius: 100, background: logForm.type === k ? '#4CAF50' : '#1A1A24', border: 'none', color: logForm.type === k ? '#000' : '#888', fontWeight: 800, textTransform: 'capitalize', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer' }}>
                      {v} {k}
                    </button>
                  ))}

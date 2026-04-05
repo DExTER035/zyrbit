@@ -203,10 +203,10 @@ export default function StudyNotesTab({ user }) {
       />
 
       {/* Filter Pills */}
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 2 }}>
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', paddingBottom: 2 }}>
         {TAGS.map(tag => (
           <button key={tag} onClick={() => setFilterTag(tag)} style={{
-            flexShrink: 0, padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize',
+            flex: '1 1 auto', padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize', textAlign: 'center',
             background: filterTag === tag ? '#ff980015' : '#0a0a12',
             border: `1px solid ${filterTag === tag ? '#ff9800' : '#1e1e2a'}`,
             color: filterTag === tag ? '#ff9800' : '#444'
@@ -249,7 +249,7 @@ export default function StudyNotesTab({ user }) {
           <div style={{ background: '#0d0d14', borderRadius: '20px 20px 0 0', padding: 16, width: '100%', maxHeight: '90vh', overflowY: 'auto', animation: 'fadeSlideUp 0.25s ease' }} onClick={e => e.stopPropagation()}>
 
             {/* Color Picker */}
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 14, paddingBottom: 2 }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: 14, paddingBottom: 2 }}>
               {NOTE_COLORS.map(c => (
                 <div key={c.name} onClick={() => setSelectedColor(c.name)} style={{
                   width: 26, height: 26, borderRadius: '50%', background: c.bg,
@@ -257,7 +257,7 @@ export default function StudyNotesTab({ user }) {
                   outline: selectedColor === c.name ? '2px solid #fff' : 'none',
                   outlineOffset: 2,
                   transform: selectedColor === c.name ? 'scale(1.15)' : 'scale(1)',
-                  flexShrink: 0, cursor: 'pointer', transition: 'all 0.15s'
+                  cursor: 'pointer', transition: 'all 0.15s'
                 }} />
               ))}
             </div>

@@ -95,8 +95,9 @@ html, body, #root {
 /* Floating Action Button */
 .fab {
   position: fixed;
-  bottom: 88px;
-  right: 20px;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
   width: 56px;
   height: 56px;
   min-width: 56px;
@@ -112,12 +113,12 @@ html, body, #root {
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 24px rgba(0, 255, 255, 0.4), 0 2px 8px rgba(0,0,0,0.4);
-  z-index: 45;
+  z-index: 55;
   transition: transform 0.2s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s;
   line-height: 1;
 }
 .fab:active {
-  transform: scale(0.92);
+  transform: translateX(-50%) scale(0.92);
   box-shadow: 0 2px 12px rgba(0, 255, 255, 0.3);
 }
 
@@ -138,11 +139,27 @@ html, body, #root {
 
 /* Layouts */
 .app-container {
-  max-width: 430px;
+  width: 100%;
   margin: 0 auto;
   min-height: 100%;
   position: relative;
   background: var(--color-void);
+}
+
+.app-layout {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .app-container {
+    max-width: 430px;
+  }
+  .app-layout {
+    max-width: 430px;
+    border-left: 1px solid #1A1A24;
+    border-right: 1px solid #1A1A24;
+    box-shadow: 0 0 50px rgba(0,255,255,0.03);
+  }
 }
 .page-content {
   padding-bottom: 90px;

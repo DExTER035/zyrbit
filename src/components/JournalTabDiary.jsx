@@ -400,14 +400,14 @@ export default function JournalTabDiary({ user, navigate }) {
           <div style={{ fontSize: 10, color: '#9C27B060', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700, marginBottom: 8 }}>{dStr}</div>
           <input type="text" value={entryTitle} onChange={e => setEntryTitle(e.target.value)} placeholder="Give today a title..." style={{ width: '100%', border: 'none', borderBottom: '1px solid #1A1A24', background: 'transparent', color: '#E8E8F0', padding: '8px 0', fontFamily: '"Crimson Pro", Georgia, serif', fontSize: 20, fontWeight: 700, marginBottom: 16, outline: 'none' }} />
           
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingBottom: 8, marginBottom: 16 }}>
             {moodEmojis.map((em, i) => {
               const val = i + 1
               const isActive = entryMood === val
               const moodColors = ['#0A0A12', '#EF4444', '#FF9800', '#FDE047', '#4CAF50', '#00FFFF']
               const color = moodColors[val]
               return (
-                <button key={val} onClick={() => setEntryMood(val)} style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 100, border: isActive ? `1px solid ${color}` : '1px solid #1A1A24', background: isActive ? color+'20' : '#0A0A12', color: isActive ? color : '#555566', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button key={val} onClick={() => setEntryMood(val)} style={{ flex: '1 1 calc(33% - 8px)', padding: '6px 14px', borderRadius: 100, border: isActive ? `1px solid ${color}` : '1px solid #1A1A24', background: isActive ? color+'20' : '#0A0A12', color: isActive ? color : '#555566', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   <span>{em}</span> {val === 1 ? 'Low' : val === 2 ? 'Okay' : val === 3 ? 'Good' : val === 4 ? 'Great' : 'Amazing'}
                 </button>
               )

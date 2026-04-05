@@ -222,7 +222,7 @@ export default function JournalTabStudy({ user }) {
     <div style={{ padding: '0 16px', paddingBottom: 100, animation: 'fadeIn 0.4s ease-out' }}>
 
       {/* 4-TAB BAR */}
-      <div style={{ overflowX: 'auto', display: 'flex', gap: 10, padding: '20px 0 16px', scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '20px 0 16px' }}>
         {[
           { id: 'pomodoro',   icon: '📚', label: 'Pomodoro' },
           { id: 'tasks',      icon: '✅', label: 'Tasks' },
@@ -232,12 +232,12 @@ export default function JournalTabStudy({ user }) {
           const act = activeStudyTab === t.id
           return (
             <button key={t.id} onClick={() => setActiveStudyTab(t.id)} style={{
-              flexShrink: 0, padding: '8px 18px', borderRadius: 100, cursor: 'pointer', transition: 'all 0.2s',
+              flex: '1 1 calc(50% - 8px)', padding: '8px 18px', borderRadius: 100, cursor: 'pointer', transition: 'all 0.2s',
               background: act ? '#FFF' : '#0A0A12',
               border: `1px solid ${act ? '#FFF' : '#1A1A24'}`,
               color: act ? '#000' : '#444',
               fontWeight: 900, fontSize: 11,
-              display: 'flex', alignItems: 'center', gap: 6
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
             }}>
               <span>{t.icon}</span>
               {t.label}
@@ -274,9 +274,9 @@ export default function JournalTabStudy({ user }) {
               <div style={{ fontSize: 10, color: '#00BCD4', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 900, marginBottom: 4 }}>
                 Session {pomSessionNum}/4 · {pomPhase === 'focus' ? 'Focus' : 'Break'}
               </div>
-              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', paddingBottom: 4 }}>
                 {[{id:'general', name:'General'}, ...subjects].map(s => (
-                  <button key={s.id} onClick={() => setPomSubject(s.id)} style={{ flexShrink: 0, padding: '4px 10px', borderRadius: 8, border: pomSubject === s.id ? '1px solid #00BCD4' : '1px solid #1A1A24', background: pomSubject === s.id ? '#00BCD415' : 'transparent', color: pomSubject === s.id ? '#00BCD4' : '#666', fontWeight: 700, fontSize: 11, cursor: 'pointer', transition: 'all 0.2s' }}>
+                  <button key={s.id} onClick={() => setPomSubject(s.id)} style={{ flex: '1 1 auto', padding: '4px 10px', borderRadius: 8, border: pomSubject === s.id ? '1px solid #00BCD4' : '1px solid #1A1A24', background: pomSubject === s.id ? '#00BCD415' : 'transparent', color: pomSubject === s.id ? '#00BCD4' : '#666', fontWeight: 700, fontSize: 11, cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center' }}>
                     {s.name}
                   </button>
                 ))}
@@ -521,9 +521,9 @@ export default function JournalTabStudy({ user }) {
               
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', fontWeight: 800, marginBottom: 8, letterSpacing: 1 }}>Event Type</div>
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingBottom: 4 }}>
                    {['exam', 'event', 'deadline', 'other'].map(t => (
-                      <button key={t} onClick={() => setCdForm({...cdForm, type: t})} style={{ flexShrink: 0, padding: '10px 18px', borderRadius: 100, background: cdForm.type === t ? '#00BCD415' : '#1A1A24', border: cdForm.type === t ? '1px solid #00BCD4' : '1px solid transparent', color: cdForm.type === t ? '#00BCD4' : '#888', fontWeight: 800, textTransform: 'capitalize', fontSize: 13, cursor: 'pointer', transition: 'all 0.2s' }}>{t}</button>
+                      <button key={t} onClick={() => setCdForm({...cdForm, type: t})} style={{ flex: '1 1 auto', padding: '10px 18px', borderRadius: 100, background: cdForm.type === t ? '#00BCD415' : '#1A1A24', border: cdForm.type === t ? '1px solid #00BCD4' : '1px solid transparent', color: cdForm.type === t ? '#00BCD4' : '#888', fontWeight: 800, textTransform: 'capitalize', fontSize: 13, cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center' }}>{t}</button>
                    ))}
                 </div>
               </div>

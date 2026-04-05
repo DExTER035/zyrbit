@@ -131,8 +131,11 @@ export default function HabitCard({ habit, logs = [], streak = 0, isCompleted = 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ 
               fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', 
-              lineHeight: 1.2, marginBottom: '2px',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' 
+              lineHeight: 1.3, marginBottom: '2px',
+              overflow: 'hidden',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical'
             }}>
               {habit.name}
             </div>
@@ -168,10 +171,7 @@ export default function HabitCard({ habit, logs = [], streak = 0, isCompleted = 
             </svg>
           )}
         </button>
-        {/* Zyrons hint below checkbox */}
-        <div style={{ position: 'absolute', right: 14, top: 54, fontSize: 9, fontWeight: 800, textAlign: 'center', whiteSpace: 'nowrap' }}>
-          {!isCompleted && <span style={{ color: '#00FFFF40' }}>+10 ⚡</span>}
-        </div>
+
       </div>
 
       {/* Orbit Trail Header */}

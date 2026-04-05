@@ -1,285 +1,421 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 
-const COLOURS = ['#00e5cc', '#ff9800', '#9c27b0', '#4caf50']
-const BTN_TEXT = ['#000', '#000', '#fff', '#000']
+const CYAN = '#00f5d4'
+const BG = '#000'
 
+// ── Progress dots ──────────────────────────────────────────────────────────────
+const Dots = ({ current, total }) => (
+  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+    {Array.from({ length: total }, (_, i) => {
+      const active = i === current
+      return (
+        <div key={i} style={{
+          height: 3, borderRadius: 99,
+          width: active ? 22 : 12,
+          background: active ? CYAN : '#1e1e1e',
+          boxShadow: active ? `0 0 6px ${CYAN}88` : 'none',
+          transition: 'width 0.3s, background 0.3s',
+        }} />
+      )
+    })}
+  </div>
+)
+
+// ── CTA Button ─────────────────────────────────────────────────────────────────
+const CyanBtn = ({ onClick, children, gradient }) => (
+  <button onClick={onClick} style={{
+    width: '100%', border: 'none', borderRadius: 12,
+    padding: '13px', fontSize: 11, fontWeight: 800,
+    cursor: 'pointer', letterSpacing: '1.5px',
+    background: gradient ? 'linear-gradient(90deg, #00f5d4, #00c4a8)' : CYAN,
+    color: '#000',
+    boxShadow: gradient
+      ? '0 0 30px rgba(0,245,212,0.4), 0 4px 16px rgba(0,245,212,0.22)'
+      : '0 0 20px rgba(0,245,212,0.3), 0 4px 10px rgba(0,245,212,0.18)',
+    fontFamily: 'inherit',
+    flexShrink: 0,
+  }}
+    onTouchStart={e => e.currentTarget.style.transform = 'scale(0.97)'}
+    onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
+  >{children}</button>
+)
+
+// ── Slide shell — fixed full-screen, flex column ───────────────────────────────
+const Slide = ({ children, onSkip, onNext, slide, total, btnLabel, gradient }) => (
+  <div style={{
+    position: 'fixed', inset: 0, background: BG,
+    display: 'flex', flexDirection: 'column',
+    padding: '16px 20px 20px',
+    boxSizing: 'border-box',
+    fontFamily: "'Inter', system-ui, sans-serif",
+    overflow: 'hidden',
+  }}>
+    {/* Top bar — fixed height */}
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      marginBottom: 14, flexShrink: 0, height: 28,
+    }}>
+      <Dots current={slide} total={total} />
+      {slide < total - 1 && (
+        <button onClick={onSkip} style={{
+          background: 'none', border: 'none', color: '#2a2a2a',
+          fontSize: 8, letterSpacing: '1px', textTransform: 'uppercase',
+          cursor: 'pointer', padding: 0, fontFamily: 'inherit',
+        }}>SKIP</button>
+      )}
+    </div>
+
+    {/* Scrollable content middle — grows to fill remaining space */}
+    <div style={{
+      flex: 1, minHeight: 0,
+      overflowY: 'auto', overflowX: 'hidden',
+      display: 'flex', flexDirection: 'column',
+      gap: 0,
+      // hide scrollbar but allow scroll
+      msOverflowStyle: 'none', scrollbarWidth: 'none',
+    }}>
+      {children}
+    </div>
+
+    {/* Button — fixed at bottom */}
+    <div style={{ flexShrink: 0, marginTop: 14 }}>
+      <CyanBtn onClick={onNext} gradient={gradient}>{btnLabel}</CyanBtn>
+    </div>
+  </div>
+)
+
+// ─── Slide 1: Gravity ──────────────────────────────────────────────────────────
+const Slide1 = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, paddingBottom: 4 }}>
+
+    {/* Planet + Saturn rings */}
+    <div style={{ position: 'relative', width: 150, height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ position: 'absolute', width: 140, height: 36, borderRadius: '50%', border: '1.5px solid rgba(0,245,212,0.2)' }} />
+      <div style={{ position: 'absolute', width: 118, height: 30, borderRadius: '50%', border: '1.5px solid rgba(0,245,212,0.3)' }} />
+      <div style={{
+        width: 72, height: 72, borderRadius: '50%', position: 'relative', zIndex: 1,
+        background: 'radial-gradient(circle at 40% 35%, rgba(0,245,212,0.2) 0%, #001a15 40%, #000 100%)',
+        border: '2px solid rgba(0,245,212,0.28)',
+        boxShadow: '0 0 24px rgba(0,245,212,0.22), 0 0 48px rgba(0,245,212,0.07)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <span style={{ fontSize: 20, fontWeight: 900, color: CYAN, lineHeight: 1, textShadow: `0 0 10px ${CYAN}` }}>84</span>
+        <span style={{ fontSize: 6, color: CYAN, letterSpacing: '2px', marginTop: 2, fontWeight: 700 }}>GRAVITY</span>
+      </div>
+      <div style={{
+        position: 'absolute', right: 4, top: '50%', marginTop: -3,
+        width: 7, height: 7, borderRadius: '50%', background: CYAN,
+        boxShadow: `0 0 10px ${CYAN}, 0 0 20px ${CYAN}88`, zIndex: 2,
+      }} />
+    </div>
+
+    {/* Orbit trail */}
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 4 }}>
+        {[0,1,2,3,4,5,6,7,8,9].map(i => {
+          const filled = [0,1,2,4,5].includes(i)
+          const orange = i === 3
+          return (
+            <div key={i} style={{
+              width: 7, height: 7, borderRadius: '50%',
+              background: orange ? 'rgba(255,107,53,0.55)' : filled ? CYAN : '#111',
+              border: (filled || orange) ? 'none' : '1px solid #1a1a1a',
+              boxShadow: filled ? `0 0 5px ${CYAN}88` : 'none',
+            }} />
+          )
+        })}
+      </div>
+      <div style={{ fontSize: 6, color: '#1e1e1e', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 700 }}>
+        ORBIT TRAIL — 10 DAY VIEW
+      </div>
+    </div>
+
+    {/* 3 stat tiles */}
+    <div style={{ display: 'flex', gap: 6, width: '100%', flexShrink: 0 }}>
+      {[
+        { label: 'STREAK',    val: '7',   color: '#ff9900', bg: '#0f0800', border: 'rgba(255,153,0,0.2)' },
+        { label: 'DONE TODAY',val: '6/8', color: CYAN,      bg: '#00100d', border: 'rgba(0,245,212,0.13)' },
+        { label: 'DAYS',      val: '21',  color: '#8899ff', bg: '#0a0a18', border: 'rgba(136,153,255,0.13)' },
+      ].map(s => (
+        <div key={s.label} style={{
+          flex: 1, background: s.bg, border: `1px solid ${s.border}`,
+          borderRadius: 10, padding: '8px 4px', textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 15, fontWeight: 900, color: s.color, textShadow: `0 0 9px ${s.color}99`, lineHeight: 1 }}>{s.val}</div>
+          <div style={{ fontSize: 6, color: '#333', letterSpacing: '0.5px', marginTop: 3, fontWeight: 700 }}>{s.label}</div>
+        </div>
+      ))}
+    </div>
+
+    {/* Text */}
+    <div style={{ width: '100%' }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 6 }}>
+        Your habits have <span style={{ color: CYAN }}>gravity.</span>
+      </div>
+      <div style={{ fontSize: 9, color: '#444', lineHeight: 1.6 }}>
+        Every habit completed raises your Gravity Score. Miss a day and it falls. Track every step on your Orbit Trail.
+      </div>
+    </div>
+  </div>
+)
+
+// ─── Slide 2: Build your Orbit ─────────────────────────────────────────────────
+const Slide2 = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 4 }}>
+
+    {/* 2×2 zone pills */}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
+      {[
+        { emoji: '🧠', label: 'Mind',   bg: '#0c0c22', border: 'rgba(51,68,221,0.2)',   color: '#8899ff' },
+        { emoji: '💪', label: 'Body',   bg: '#0c1c0c', border: 'rgba(51,187,34,0.2)',   color: '#55ee66' },
+        { emoji: '🚀', label: 'Growth', bg: '#1c0c0c', border: 'rgba(221,51,51,0.2)',   color: '#ff7766' },
+        { emoji: '🌙', label: 'Soul',   bg: '#1c1c0c', border: 'rgba(221,187,34,0.2)', color: '#ffcc55' },
+      ].map(z => (
+        <div key={z.label} style={{
+          background: z.bg, border: `1px solid ${z.border}`,
+          borderRadius: 9, padding: '8px 10px',
+          fontSize: 9, fontWeight: 600, color: z.color,
+        }}>
+          {z.emoji} {z.label}
+        </div>
+      ))}
+    </div>
+
+    {/* Habit cards */}
+    {[
+      { icon: '🚿', name: 'Cold Shower',   streak: '🔥 5 streak', time: '⏰ 6:45 AM', done: true,  bg: '#00100d', border: 'rgba(0,245,212,0.1)' },
+      { icon: '📖', name: 'Read 20 Pages', streak: '🔥 3 streak', time: '⏰ 9:15 PM', done: false, bg: '#080808', border: '#141414' },
+    ].map(h => (
+      <div key={h.name} style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        background: h.bg, border: `1px solid ${h.border}`,
+        borderRadius: 9, padding: '10px 12px',
+      }}>
+        <span style={{ fontSize: 18, flexShrink: 0 }}>{h.icon}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 3 }}>{h.name}</div>
+          <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 9, color: '#ff9900', fontWeight: 600 }}>{h.streak}</span>
+            <span style={{ fontSize: 8, color: '#553300', background: '#1a0e00', border: '1px solid #331800', borderRadius: 4, padding: '1px 5px', fontWeight: 600 }}>{h.time}</span>
+          </div>
+        </div>
+        <div style={{
+          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+          background: h.done ? CYAN : 'transparent',
+          border: h.done ? 'none' : '2px solid #222',
+          boxShadow: h.done ? `0 0 10px ${CYAN}88` : 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {h.done && <span style={{ fontSize: 11, color: '#000', fontWeight: 900 }}>✓</span>}
+        </div>
+      </div>
+    ))}
+
+    {/* Text */}
+    <div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 6 }}>
+        Build your <span style={{ color: CYAN }}>Orbit.</span>
+      </div>
+      <div style={{ fontSize: 9, color: '#444', lineHeight: 1.6 }}>
+        Create habits across Mind, Body, Growth and Soul. Set best-before times, track streaks and never break the chain.
+      </div>
+    </div>
+  </div>
+)
+
+// ─── Slide 3: Rise together ────────────────────────────────────────────────────
+const Slide3 = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 4 }}>
+
+    <div style={{ fontSize: 6.5, color: '#222', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 700 }}>🏆 GLOBAL LEADERBOARD</div>
+
+    {[
+      { rank: '1', name: 'silent.grind', pts: '247 pts', rankColor: '#ffd700', bg: '#080808', border: '#141414', you: false },
+      { rank: '2', name: 'd3xter_',      pts: '198 pts', rankColor: '#c0c0c0', bg: '#080808', border: '#141414', you: false },
+      { rank: '3', name: 'you',          pts: '156 pts', rankColor: CYAN,      bg: '#00100d', border: 'rgba(0,245,212,0.25)', you: true },
+      { rank: '4', name: 'wizz',         pts: '120 pts', rankColor: '#444',    bg: '#080808', border: '#141414', you: false },
+    ].map(r => (
+      <div key={r.rank} style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: r.bg, border: `1px solid ${r.border}`,
+        borderRadius: 9, padding: '8px 10px',
+        boxShadow: r.you ? '0 0 12px rgba(0,245,212,0.08)' : 'none',
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 900, color: r.rankColor, width: 14, textAlign: 'center' }}>{r.rank}</span>
+        <div style={{
+          width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+          background: r.you ? 'rgba(0,245,212,0.12)' : '#111',
+          border: `1px solid ${r.you ? 'rgba(0,245,212,0.3)' : '#1a1a1a'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11,
+        }}>
+          {r.you ? '⭐' : r.name.charAt(0).toUpperCase()}
+        </div>
+        <div style={{ flex: 1, fontSize: 11, fontWeight: 700, color: r.you ? CYAN : '#aaa' }}>{r.name}</div>
+        <div style={{ fontSize: 10, fontWeight: 800, color: r.you ? CYAN : '#333' }}>{r.pts}</div>
+      </div>
+    ))}
+
+    {/* Friend Battle */}
+    <div style={{
+      background: '#09091a', border: '1px solid rgba(51,68,170,0.27)',
+      borderRadius: 10, padding: '10px 12px',
+      display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+        {['A','B'].map((l, i) => (
+          <div key={i} style={{
+            width: 22, height: 22, borderRadius: '50%',
+            background: '#1a1a2e', border: '1px solid #2a2a4a',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 9, color: '#8899ff', fontWeight: 700,
+          }}>{l}</div>
+        ))}
+        <span style={{ fontSize: 9, color: '#333', fontWeight: 800, marginLeft: 3 }}>VS</span>
+      </div>
+      <div>
+        <div style={{ fontSize: 10, fontWeight: 800, color: '#8899ff', marginBottom: 2 }}>⚔️ Friend Battle Mode</div>
+        <div style={{ fontSize: 8, color: '#333', lineHeight: 1.4 }}>Challenge friends. Compete on habits. Rise together.</div>
+      </div>
+    </div>
+
+    {/* Text */}
+    <div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 6 }}>
+        Rise <span style={{ color: CYAN }}>together.</span>
+      </div>
+      <div style={{ fontSize: 9, color: '#444', lineHeight: 1.6 }}>
+        Compete on global leaderboards, challenge friends to habit battles and climb the ranks. Accountability hits different.
+      </div>
+    </div>
+  </div>
+)
+
+// ─── Slide 4: More than a tracker ─────────────────────────────────────────────
+const Slide4 = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 4 }}>
+
+    {/* Large card */}
+    <div style={{
+      background: '#08080f', border: '1px solid #1a2255',
+      borderRadius: 11, padding: '12px',
+      display: 'flex', alignItems: 'center', gap: 12,
+    }}>
+      <span style={{ fontSize: 22, flexShrink: 0 }}>📓</span>
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Daily Journal</div>
+        <div style={{ fontSize: 8, color: '#3a3a3a', lineHeight: 1.5 }}>Reflect on your day. One honest entry a night. Watch your mindset shift over 21 days.</div>
+      </div>
+    </div>
+
+    {/* 2 smaller cards */}
+    <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ flex: 1, background: '#00100d', border: '1px solid rgba(0,245,212,0.1)', borderRadius: 11, padding: '10px' }}>
+        <div style={{ fontSize: 18, marginBottom: 5 }}>🏁</div>
+        <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', marginBottom: 3 }}>Challenges</div>
+        <div style={{ fontSize: 7.5, color: '#3a3a3a', lineHeight: 1.45, marginBottom: 7 }}>Commit to a streak and prove it.</div>
+        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          {['7 days','21 days','30 days'].map(t => (
+            <span key={t} style={{
+              fontSize: 6, color: CYAN,
+              border: `1px solid rgba(0,245,212,0.3)`,
+              borderRadius: 4, padding: '2px 5px',
+              background: 'rgba(0,245,212,0.04)', fontWeight: 700,
+            }}>{t}</span>
+          ))}
+        </div>
+      </div>
+      <div style={{ flex: 1, background: '#080808', border: '1px solid #141414', borderRadius: 11, padding: '10px' }}>
+        <div style={{ fontSize: 18, marginBottom: 5 }}>📊</div>
+        <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', marginBottom: 3 }}>Weekly Stats</div>
+        <div style={{ fontSize: 7.5, color: '#3a3a3a', lineHeight: 1.45 }}>See your completion rate and best streak every week.</div>
+      </div>
+    </div>
+
+    {/* Text */}
+    <div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 6 }}>
+        More than a <span style={{ color: CYAN }}>tracker.</span>
+      </div>
+      <div style={{ fontSize: 9, color: '#444', lineHeight: 1.6 }}>
+        Journal your growth, commit to challenges and review your weekly stats — all inside one orbit.
+      </div>
+    </div>
+  </div>
+)
+
+// ─── Slide 5: Ready for launch ─────────────────────────────────────────────────
+const Slide5 = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, paddingBottom: 4 }}>
+
+    {/* Rocket icon */}
+    <div style={{
+      width: 68, height: 68, borderRadius: '50%',
+      background: 'rgba(0,245,212,0.04)',
+      border: '2px solid rgba(0,245,212,0.2)',
+      boxShadow: '0 0 36px rgba(0,245,212,0.12), 0 0 70px rgba(0,245,212,0.05)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 26, flexShrink: 0,
+    }}>
+      🚀
+    </div>
+
+    <div style={{ fontSize: 8.5, color: '#2a2a2a', textAlign: 'center', fontWeight: 500 }}>
+      Everything you need. All in one orbit.
+    </div>
+
+    {/* 2×2 feature grid */}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, width: '100%' }}>
+      {[
+        { icon: '🪐', name: 'Gravity Score', desc: 'Track your rise',  border: 'rgba(0,245,212,0.13)' },
+        { icon: '⚔️', name: 'Friend Battles', desc: 'Compete & rise',  border: 'rgba(136,153,255,0.2)' },
+        { icon: '📓', name: 'Daily Journal',  desc: 'Reflect & grow',  border: 'rgba(255,204,85,0.2)' },
+        { icon: '🏁', name: 'Challenges',     desc: '7, 21, 30 days', border: 'rgba(255,153,0,0.2)' },
+      ].map(f => (
+        <div key={f.name} style={{
+          background: '#080808', border: `1px solid ${f.border}`,
+          borderRadius: 10, padding: '11px 8px', textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 18, marginBottom: 5 }}>{f.icon}</div>
+          <div style={{ fontSize: 8.5, fontWeight: 800, color: '#fff', marginBottom: 3 }}>{f.name}</div>
+          <div style={{ fontSize: 7, color: '#333' }}>{f.desc}</div>
+        </div>
+      ))}
+    </div>
+
+    {/* Text */}
+    <div style={{ width: '100%', textAlign: 'center' }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 6 }}>
+        Ready for <span style={{ color: CYAN }}>launch.</span>
+      </div>
+      <div style={{ fontSize: 9, color: '#444', lineHeight: 1.6 }}>
+        Your first orbit begins the moment you tap below. Show up every day and watch gravity do its thing.
+      </div>
+    </div>
+  </div>
+)
+
+// ─── Main ──────────────────────────────────────────────────────────────────────
 export default function OnboardingScreen({ onComplete }) {
   const [slide, setSlide] = useState(0)
-  const [stars, setStars] = useState([])
+  const TOTAL = 5
+  const slides = [Slide1, Slide2, Slide3, Slide4, Slide5]
+  const SlideContent = slides[slide]
 
-  useEffect(() => {
-    const s = Array.from({ length: 55 }, (_, i) => ({
-      id: i,
-      size: Math.random() * 1.8 + 0.4,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      duration: 2 + Math.random() * 4,
-      delay: Math.random() * 4,
-      lo: 0.04 + Math.random() * 0.08,
-      hi: 0.3 + Math.random() * 0.5,
-    }))
-    setStars(s)
-  }, [])
-
-  const nextSlide = () => {
-    if (slide < 3) setSlide(s => s + 1)
+  const next = () => {
+    if (slide < TOTAL - 1) setSlide(s => s + 1)
     else onComplete()
   }
 
-  const SplashStarField = () => (
-    <>
-      {stars.map(s => (
-        <div key={s.id} style={{
-          position: 'absolute', width: s.size, height: s.size,
-          left: `${s.left}%`, top: `${s.top}%`,
-          borderRadius: '50%', background: '#fff',
-          '--lo': s.lo, '--hi': s.hi,
-          animation: `twinkle ${s.duration}s ${s.delay}s infinite ease-in-out alternate`,
-        }} />
-      ))}
-    </>
-  )
-
-  const slidesData = [
-    {
-      chip: 'Welcome to Zyrbit',
-      title1: 'Your habits.', title2: 'In orbit.',
-      desc: 'Track every habit, build unstoppable streaks, and watch your gravity score rise daily.',
-      color: COLOURS[0],
-      renderIllustration: () => (
-        <svg width="240" height="240" viewBox="0 0 240 240" fill="none">
-          <circle cx="120" cy="120" r="100" stroke={COLOURS[0]} strokeWidth="1" opacity="0.06"/>
-          <circle cx="120" cy="120" r="70" stroke={COLOURS[0]} strokeWidth="1" opacity="0.10"/>
-          <circle cx="120" cy="120" r="40" stroke={COLOURS[0]} strokeWidth="1" opacity="0.18"/>
-          
-          <path d="M40 120 A80 40 0 0 1 200 120" stroke={COLOURS[0]} strokeWidth="3" strokeLinecap="round" opacity="0.8" filter="url(#glow0)"/>
-          <path d="M120 40 A40 80 0 0 1 120 200" stroke={COLOURS[0]} strokeWidth="3" strokeLinecap="round" opacity="0.8" filter="url(#glow0)"/>
-          
-          <circle cx="120" cy="40" r="6" fill="#fff" />
-          <circle cx="40" cy="120" r="5" fill="#fff" />
-          <circle cx="120" cy="200" r="5" fill="#fff" />
-          
-          <rect x="90" y="90" width="60" height="60" rx="14" fill="#000" />
-          <line x1="100" y1="105" x2="140" y2="105" stroke="#fff" strokeWidth="4" strokeLinecap="round"/>
-          <line x1="140" y1="105" x2="100" y2="135" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"/>
-          <line x1="100" y1="135" x2="140" y2="135" stroke={COLOURS[0]} strokeWidth="4" strokeLinecap="round"/>
-          
-          <defs>
-            <filter id="glow0" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="6" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-        </svg>
-      )
-    },
-    {
-      chip: 'Anti-Gravity Engine',
-      title1: 'One score.', title2: 'All habits.',
-      desc: 'Your Gravity Score rises every time you complete a habit. The higher it goes, the harder it is to fall.',
-      color: COLOURS[1],
-      renderIllustration: () => (
-        <svg width="240" height="240" viewBox="0 0 240 240" fill="none">
-          <circle cx="120" cy="120" r="90" stroke={COLOURS[1]} strokeWidth="2" opacity="0.2"/>
-          <path d="M30 120 A90 90 0 0 0 210 120" stroke={COLOURS[1]} strokeWidth="4" strokeLinecap="round" filter="url(#glow1)"/>
-          
-          <circle cx="120" cy="30" r="5" fill="#fff" />
-          <circle cx="210" cy="120" r="6" fill="#fde047" />
-          
-          <text x="120" y="105" fontFamily="'DM Sans', sans-serif" fontSize="11" fontWeight="700" fill={COLOURS[1]} opacity="0.6" letterSpacing="3" textAnchor="middle">GRAVITY</text>
-          <text x="120" y="155" fontFamily="'Syne', sans-serif" fontSize="64" fontWeight="900" fill={COLOURS[1]} textAnchor="middle" filter="url(#glow1)">74</text>
-          
-          <rect x="85" y="185" width="70" height="14" rx="7" fill={COLOURS[1]} opacity="0.15" />
-          <circle cx="95" cy="192" r="3" fill={COLOURS[1]} />
-          <line x1="105" y1="192" x2="145" y2="192" stroke={COLOURS[1]} strokeWidth="3" strokeLinecap="round" opacity="0.5"/>
-          
-          <defs>
-            <filter id="glow1" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="8" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-        </svg>
-      )
-    },
-    {
-      chip: 'Rise Through Ranks',
-      title1: 'Earn Zyrons.', title2: 'Break limits.',
-      desc: 'Climb 10 elemental ranks and unlock the legendary Ω rank at 100,000 Zyrons.',
-      color: COLOURS[2],
-      renderIllustration: () => (
-        <svg width="240" height="240" viewBox="0 0 240 240" fill="none">
-          <circle cx="120" cy="100" r="75" stroke={COLOURS[2]} strokeWidth="1" opacity="0.3"/>
-          <circle cx="120" cy="100" r="60" fill={COLOURS[2]} opacity="0.05"/>
-          
-          <text x="120" y="80" fontFamily="'DM Sans', sans-serif" fontSize="10" fontWeight="700" fill={COLOURS[2]} opacity="0.6" letterSpacing="2" textAnchor="middle">CURRENT RANK</text>
-          <text x="120" y="110" fontFamily="'Syne', sans-serif" fontSize="18" fontWeight="900" fill="#ce93d8" textAnchor="middle" filter="url(#glow2)">Emberon</text>
-          <text x="120" y="130" fontFamily="'DM Sans', sans-serif" fontSize="10" fontWeight="600" fill={COLOURS[2]} opacity="0.5" letterSpacing="1" textAnchor="middle">elemental rank 5</text>
-          
-          {/* Stat chips */}
-          <rect x="35" y="190" width="50" height="24" rx="6" fill="#00e5cc" opacity="0.15"/>
-          <text x="60" y="206" fontFamily="'Syne', sans-serif" fontSize="12" fontWeight="800" fill="#00e5cc" textAnchor="middle">4.2k</text>
-          
-          <rect x="95" y="190" width="50" height="24" rx="6" fill="#ff9800" opacity="0.15"/>
-          <text x="120" y="206" fontFamily="'Syne', sans-serif" fontSize="12" fontWeight="800" fill="#ff9800" textAnchor="middle">12🔥</text>
-          
-          <rect x="155" y="190" width="50" height="24" rx="6" fill="#fde047" opacity="0.15"/>
-          <text x="180" y="206" fontFamily="'Syne', sans-serif" fontSize="12" fontWeight="800" fill="#fde047" textAnchor="middle">Rank 5</text>
-
-          <defs>
-            <filter id="glow2" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="5" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-        </svg>
-      )
-    },
-    {
-      chip: 'Everything Connected',
-      title1: 'One app.', title2: 'Infinite growth.',
-      desc: 'Zyra AI, journal, stats, social challenges, move-to-earn — all in one seamless universe.',
-      color: COLOURS[3],
-      renderIllustration: () => (
-        <svg width="240" height="240" viewBox="0 0 240 240" fill="none">
-          <circle cx="120" cy="120" r="90" stroke={COLOURS[3]} strokeWidth="1" opacity="0.15"/>
-          
-          <line x1="120" y1="120" x2="120" y2="30" stroke={COLOURS[3]} strokeWidth="1" opacity="0.3"/>
-          <circle cx="120" cy="30" r="16" fill="#00e5cc" opacity="0.15"/>
-          <circle cx="120" cy="30" r="8" fill="#00e5cc" filter="url(#glow3)"/>
-          
-          <line x1="120" y1="120" x2="198" y2="75" stroke={COLOURS[3]} strokeWidth="1" opacity="0.3"/>
-          <circle cx="198" cy="75" r="14" fill="#ff9800" opacity="0.15"/>
-          <circle cx="198" cy="75" r="7" fill="#ff9800" />
-          
-          <line x1="120" y1="120" x2="198" y2="165" stroke={COLOURS[3]} strokeWidth="1" opacity="0.3"/>
-          <circle cx="198" cy="165" r="12" fill="#9c27b0" opacity="0.15"/>
-          <circle cx="198" cy="165" r="6" fill="#9c27b0" />
-          
-          <line x1="120" y1="120" x2="120" y2="210" stroke={COLOURS[3]} strokeWidth="1" opacity="0.3"/>
-          <circle cx="120" cy="210" r="18" fill="#4caf50" opacity="0.15"/>
-          <circle cx="120" cy="210" r="9" fill="#4caf50" filter="url(#glow3)"/>
-          
-          <line x1="120" y1="120" x2="42" y2="165" stroke={COLOURS[3]} strokeWidth="1" opacity="0.3"/>
-          <circle cx="42" cy="165" r="14" fill="#fde047" opacity="0.15"/>
-          <circle cx="42" cy="165" r="7" fill="#fde047" />
-          
-          <line x1="120" y1="120" x2="42" y2="75" stroke={COLOURS[3]} strokeWidth="1" opacity="0.3"/>
-          <circle cx="42" cy="75" r="12" fill="#ef4444" opacity="0.15"/>
-          <circle cx="42" cy="75" r="6" fill="#ef4444" />
-          
-          <rect x="95" y="95" width="50" height="50" rx="14" fill="#000" stroke={COLOURS[3]} strokeWidth="2" filter="url(#glow3)"/>
-          <line x1="105" y1="110" x2="135" y2="110" stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
-          <line x1="135" y1="110" x2="105" y2="130" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-          <line x1="105" y1="130" x2="135" y2="130" stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
-
-          <defs>
-            <filter id="glow3" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="6" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-        </svg>
-      )
-    }
-  ]
+  const isLast = slide === TOTAL - 1
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#000', overflow: 'hidden', fontFamily: "'DM Sans', sans-serif", zIndex: 1000 }}>
-      <SplashStarField />
-      
-      {/* Top Progress Bar */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: '#0a0a0a', zIndex: 10 }}>
-        <div style={{
-          height: '100%',
-          width: `${((slide + 1) / 4) * 100}%`,
-          background: COLOURS[slide],
-          transition: 'width 0.5s ease, background 0.5s ease',
-        }} />
-      </div>
-
-      {/* Ambient glowing orb representing slide color */}
-      <div style={{
-        position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)',
-        width: 300, height: 300, borderRadius: '50%',
-        opacity: 0.08,
-        background: `radial-gradient(circle, ${COLOURS[slide]} 0%, transparent 70%)`,
-        transition: 'background 0.5s ease',
-        pointerEvents: 'none', zIndex: 1
-      }} />
-
-      {/* Slides container */}
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1, position: 'relative' }}>
-          {slidesData.map((s, i) => {
-            const isActive = slide === i
-            const isPrev = slide > i
-            const isNext = slide < i
-            return (
-              <div key={i} style={{
-                position: 'absolute', inset: 0,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                padding: '40px 24px',
-                opacity: isActive ? 1 : 0,
-                pointerEvents: isActive ? 'auto' : 'none',
-                transform: `translateX(${isActive ? 0 : isPrev ? -40 : 40}px) scale(${isActive ? 1 : 0.97})`,
-                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                zIndex: isActive ? 5 : 0
-              }}>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                  {s.renderIllustration()}
-                </div>
-                <div style={{ textAlign: 'center', height: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                  <div style={{ display: 'inline-block', padding: '4px 12px', background: `${s.color}10`, border: `1px solid ${s.color}30`, borderRadius: 100, color: s.color, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, marginBottom: 16 }}>
-                    {s.chip}
-                  </div>
-                  <h2 style={{ fontSize: 32, fontFamily: "'Syne', sans-serif", fontWeight: 900, color: '#fff', letterSpacing: -1, lineHeight: 1.1, marginBottom: 12 }}>
-                    {s.title1} <span style={{ color: s.color }}>{s.title2}</span>
-                  </h2>
-                  <p style={{ fontSize: 15, color: '#a0a0a0', lineHeight: 1.5, maxWidth: 320, margin: '0 auto', fontWeight: 500 }}>
-                    {s.desc}
-                  </p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        
-        {/* Footer Area */}
-        <div style={{ padding: '0 24px 40px', position: 'relative', zIndex: 10 }}>
-          {/* Progress dots */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 32 }}>
-            {[0, 1, 2, 3].map(i => (
-              <div key={i} style={{
-                height: 6, borderRadius: 3,
-                width: slide === i ? 24 : 6,
-                background: slide === i ? COLOURS[slide] : '#111',
-                transition: 'all 0.4s cubic-bezier(0.34, 1.2, 0.64, 1)'
-              }} />
-            ))}
-          </div>
-
-          <button onClick={nextSlide} style={{
-            width: '100%', height: 54, borderRadius: 27,
-            background: COLOURS[slide], color: BTN_TEXT[slide],
-            fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 800,
-            border: 'none', cursor: 'pointer',
-            boxShadow: `0 0 28px ${COLOURS[slide]}20`,
-            transition: 'background 0.5s ease, box-shadow 0.5s ease, color 0.5s ease',
-            marginBottom: 20
-          }}>
-            {slide === 3 ? 'Get Started 🚀' : 'Continue'}
-          </button>
-
-          <button onClick={onComplete} style={{
-            width: '100%', border: 'none', background: 'transparent',
-            color: '#444', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase',
-            fontWeight: 700, cursor: 'pointer',
-          }}>
-            Skip
-          </button>
-        </div>
-      </div>
-    </div>
+    <Slide
+      slide={slide} total={TOTAL}
+      onSkip={onComplete} onNext={next}
+      btnLabel={isLast ? 'Start My Journey 🚀' : 'Continue →'}
+      gradient={isLast}
+    >
+      <SlideContent />
+    </Slide>
   )
 }

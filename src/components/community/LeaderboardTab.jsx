@@ -42,41 +42,31 @@ export default function LeaderboardTab({ user, profile }) {
 
   const loadLeaders = async (f) => {
     setLoading(true)
+    try {
+      // Use profiles + gravity_score for the leaderboard (no zyron_wallet needed)
+      let profileQuery = supabase
+        .from('profiles')
+        .select('id, username, friend_tag, rank_id, gravity_score')
+        .order('gravity_score', { ascending: false })
+        .limit(100)
 
-    // Query zyron_wallet for balance (the real source of Zyrons)
-    let walletQuery = supabase
-      .from('zyron_wallet')
-      .select('user_id, balance')
-      .order('balance', { ascending: false })
-      .limit(100)
+      const { data: profiles } = await profileQuery
+      if (!profiles || profiles.length === 0) { setLoading(false); setLeaders([]); return }
 
-    const { data: wallets } = await walletQuery
-    if (!wallets || wallets.length === 0) { setLoading(false); setLeaders([]); return }
+      let filtered = profiles
+      if (f === 'friends' && friends.length > 0) {
+        filtered = profiles.filter(p => [...friends, user.id].includes(p.id))
+      } else if (f === 'element') {
+        filtered = profiles.filter(p => p.rank_id === (profile?.rank_id || 0))
+      }
 
-    // Filter by friends if needed
-    let userIds = wallets.map(w => w.user_id)
-    if (f === 'friends' && friends.length > 0) {
-      userIds = userIds.filter(id => [...friends, user.id].includes(id))
+      const enriched = filtered.map(p => ({ ...p, zyrons: p.gravity_score || 0 }))
+      setLeaders(enriched)
+      const myPosition = enriched.findIndex(l => l.id === user.id)
+      setMyRank(myPosition >= 0 ? myPosition + 1 : null)
+    } catch (e) {
+      setLeaders([])
     }
-
-    if (userIds.length === 0) { setLoading(false); setLeaders([]); return }
-
-    // Fetch matching profiles
-    let profileQuery = supabase.from('profiles').select('id, username, friend_tag, rank_id').in('id', userIds)
-    if (f === 'element') profileQuery = profileQuery.eq('rank_id', profile?.rank_id || 0)
-
-    const { data: profiles } = await profileQuery
-    if (!profiles) { setLoading(false); return }
-
-    // Merge wallet balances into profiles and sort
-    const walletMap = Object.fromEntries(wallets.map(w => [w.user_id, w.balance]))
-    const enriched = profiles
-      .map(p => ({ ...p, zyrons: walletMap[p.id] || 0 }))
-      .sort((a, b) => b.zyrons - a.zyrons)
-
-    setLeaders(enriched)
-    const myPosition = enriched.findIndex(l => l.id === user.id)
-    setMyRank(myPosition >= 0 ? myPosition + 1 : null)
     setLoading(false)
   }
 
@@ -117,7 +107,7 @@ export default function LeaderboardTab({ user, profile }) {
   return (
     <div style={{ paddingBottom: 100 }}>
       {/* Filter Pills */}
-      <div style={{ padding: '0 20px', overflowX: 'auto', display: 'flex', gap: 10, marginBottom: 32, scrollbarWidth: 'none', background: '#000' }}>
+      <div style={{ padding: '0 20px', display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: 32, background: '#000' }}>
         {FILTERS.map(f => {
           const isActive = filter === f.id
           return (
@@ -125,8 +115,8 @@ export default function LeaderboardTab({ user, profile }) {
               key={f.id} 
               onClick={() => setFilter(f.id)} 
               style={{ 
-                flexShrink: 0, 
-                padding: '10px 20px', 
+                flex: '1 1 calc(33% - 8px)',
+                padding: '10px 12px', 
                 borderRadius: 100, 
                 border: isActive ? '1px solid #FFF' : '1px solid #1A1A24', 
                 background: isActive ? '#FFF' : '#0A0A12', 
@@ -137,7 +127,8 @@ export default function LeaderboardTab({ user, profile }) {
                 transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
                 whiteSpace: 'nowrap',
                 letterSpacing: '-0.3px',
-                boxShadow: isActive ? '0 4px 12px rgba(255,255,255,0.1)' : 'none'
+                boxShadow: isActive ? '0 4px 12px rgba(255,255,255,0.1)' : 'none',
+                textAlign: 'center'
               }}
             >
               {f.label}

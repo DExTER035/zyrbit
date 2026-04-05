@@ -149,17 +149,17 @@ export default function JournalTabMoney({ user }) {
     <div style={{ padding: '0 16px', paddingBottom: 80, marginTop: 16 }}>
       
       {/* INNER TAB NAV */}
-      <div style={{ overflowX: 'auto', display: 'flex', gap: 10, paddingBottom: 20, scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingBottom: 20 }}>
         {['Overview', 'Expenses', 'Budget', 'Savings'].map(t => {
           const isActive = activeTab === t
           return (
             <button key={t} onClick={() => setActiveTab(t)}
               style={{
-                flexShrink: 0, padding: '8px 18px', borderRadius: 100, cursor: 'pointer',
+                flex: '1 1 calc(50% - 8px)', padding: '8px 18px', borderRadius: 100, cursor: 'pointer',
                 border: isActive ? '1px solid #FFF' : '1px solid #1A1A24',
                 background: isActive ? '#FFF' : '#0A0A12',
                 color: isActive ? '#000' : '#444',
-                fontWeight: 900, fontSize: 11, transition: 'all 0.2s', whiteSpace: 'nowrap'
+                fontWeight: 900, fontSize: 11, transition: 'all 0.2s', textAlign: 'center'
               }}>
               {t}
             </button>
@@ -251,10 +251,10 @@ export default function JournalTabMoney({ user }) {
 
       {activeTab === 'Expenses' && (
          <div>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 16, paddingBottom: 4 }}>
-               <button onClick={() => setExpFilter('All')} style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 100, border: expFilter === 'All' ? '1px solid #00FFFF' : '1px solid #1A1A24', background: expFilter === 'All' ? '#00FFFF15' : '#1A1A24', color: expFilter === 'All' ? '#00FFFF' : '#888', fontWeight: 800, fontSize: 11 }}>All</button>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: 16, paddingBottom: 4 }}>
+               <button onClick={() => setExpFilter('All')} style={{ flex: '1 1 auto', padding: '6px 14px', borderRadius: 100, border: expFilter === 'All' ? '1px solid #00FFFF' : '1px solid #1A1A24', background: expFilter === 'All' ? '#00FFFF15' : '#1A1A24', color: expFilter === 'All' ? '#00FFFF' : '#888', fontWeight: 800, fontSize: 11, textAlign: 'center' }}>All</button>
                {Object.entries(cats).map(([k,v]) => (
-                 <button key={k} onClick={() => setExpFilter(k)} style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 100, border: expFilter === k ? `1px solid ${v.col}` : '1px solid #1A1A24', background: expFilter === k ? `${v.col}15` : '#1A1A24', color: expFilter === k ? v.col : '#888', fontWeight: 800, fontSize: 11, display: 'flex', gap: 6 }}>
+                 <button key={k} onClick={() => setExpFilter(k)} style={{ flex: '1 1 auto', padding: '6px 14px', borderRadius: 100, border: expFilter === k ? `1px solid ${v.col}` : '1px solid #1A1A24', background: expFilter === k ? `${v.col}15` : '#1A1A24', color: expFilter === k ? v.col : '#888', fontWeight: 800, fontSize: 11, display: 'flex', justifyContent: 'center', gap: 6 }}>
                    <span>{v.ico}</span>{k}
                  </button>
                ))}

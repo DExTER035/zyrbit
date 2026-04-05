@@ -3,12 +3,13 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import SplashScreen from './screens/SplashScreen.jsx'
 import OnboardingScreen from './screens/OnboardingScreen.jsx'
 import LoginScreen from './screens/LoginScreen.jsx'
+import WelcomeAnimation from './screens/WelcomeAnimation.jsx'
 import supabase from './lib/supabase.js'
-import { getWallet } from './lib/zyrons.js'
 import { ensureProfile } from './lib/friendTag.js'
 import AppLayout from './components/AppLayout.jsx'
 import Logo from './components/Logo.jsx'
 import InstallBanner from './components/InstallBanner.jsx'
+import GoalSetupScreen from './screens/GoalSetupScreen.jsx'
 
 const Orbit = lazy(() => import('./pages/Orbit.jsx'))
 const Journal = lazy(() => import('./pages/Journal.jsx'))
@@ -16,6 +17,7 @@ const Stats = lazy(() => import('./pages/Stats.jsx'))
 const AICoach = lazy(() => import('./pages/AICoach.jsx'))
 const Community = lazy(() => import('./pages/Community.jsx'))
 const Profile = lazy(() => import('./pages/Profile.jsx'))
+const Challenge = lazy(() => import('./pages/Challenge.jsx'))
 
 const requestNotificationPermission = async () => {
   if (!('Notification' in window)) return
@@ -49,31 +51,7 @@ function ProtectedRoute({ children, onSignOut }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  useEffect(() => {
-    const checkDailyReset = async () => {
-      if (!session?.user) return
-      try {
-        const wallet = await getWallet(session.user.id)
-        if (!wallet) return
-        const today = new Date().toDateString()
-        const lastReset = new Date(wallet.last_reset_date || new Date()).toDateString()
-        
-        if (lastReset !== today) {
-          await supabase
-            .from('zyron_wallet')
-            .update({
-              daily_spent: 0,
-              daily_earned: 0,
-              last_reset_date: new Date().toISOString().split('T')[0]
-            })
-            .eq('user_id', session.user.id)
-        }
-      } catch (err) {
-        console.error('Reset error:', err)
-      }
-    }
-    checkDailyReset()
-  }, [session])
+
 
   if (session === undefined) return <LoadingScreen />
   // If no session, the App logic handles routing them to LoginScreen, but just in case:
@@ -92,6 +70,7 @@ function MainApp({ handleSignOut }) {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/challenge" element={<ProtectedRoute onSignOut={handleSignOut}><Challenge /></ProtectedRoute>} />
         <Route path="/orbit" element={<ProtectedRoute onSignOut={handleSignOut}><Orbit /></ProtectedRoute>} />
         <Route path="/journal" element={<ProtectedRoute onSignOut={handleSignOut}><Journal /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute onSignOut={handleSignOut}><Stats /></ProtectedRoute>} />
@@ -106,32 +85,54 @@ function MainApp({ handleSignOut }) {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState('splash') // 'splash' | 'onboarding' | 'login' | 'app'
+  const [screen, setScreen] = useState('splash') // 'splash' | 'onboarding' | 'login' | 'welcome' | 'goal-setup' | 'app'
   const [isInitializing, setIsInitializing] = useState(true)
+  const [currentUserId, setCurrentUserId] = useState(null)
+  const [currentUserName, setCurrentUserName] = useState('Astronaut')
 
   useEffect(() => {
     const checkAuthStatus = async () => {
       const launched = localStorage.getItem('zyrbit_launched')
-      const { data: { session } } = await supabase.auth.getSession()
+
+      // Add a 5s timeout — if Supabase hangs, fall through gracefully
+      let session = null
+      try {
+        const result = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+        ])
+        session = result?.data?.session ?? null
+      } catch (_) {
+        // Supabase timed out or failed — treat as logged out
+      }
 
       if (session) {
-        // Already logged in
         localStorage.setItem('zyrbit_launched', 'true')
+        setCurrentUserId(session.user.id)
         setScreen('app')
       } else if (launched) {
-        // Returning user, not logged in
         setScreen('login')
       } else {
-        // First time launch
         setScreen('splash')
       }
       setIsInitializing(false)
     }
     checkAuthStatus()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
         localStorage.setItem('zyrbit_launched', 'true')
+        setCurrentUserId(session.user.id)
+        // For Google OAuth new users, also check habit count
+        if (_event === 'SIGNED_IN') {
+          try {
+            const { data } = await supabase.from('habits').select('id').eq('user_id', session.user.id).limit(1)
+            if (!data || data.length === 0) {
+              setScreen('goal-setup')
+              return
+            }
+          } catch (_) {}
+        }
         setScreen('app')
       }
     })
@@ -139,13 +140,22 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  const handleSplashComplete = () => setScreen('onboarding')
   const handleOnboardingComplete = () => {
-    localStorage.setItem('zyrbit_launched', 'true') // Mark as launched here if they skip/finish onboarding
+    localStorage.setItem('zyrbit_launched', 'true')
     setScreen('login')
   }
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = async (userId, userName) => {
     localStorage.setItem('zyrbit_launched', 'true')
+    setCurrentUserId(userId)
+    setCurrentUserName(userName || 'Astronaut')
+    // Check if new user (0 habits) → show welcome animation then goal setup
+    try {
+      const { data } = await supabase.from('habits').select('id').eq('user_id', userId).limit(1)
+      if (!data || data.length === 0) {
+        setScreen('welcome')
+        return
+      }
+    } catch (_) {}
     setScreen('app')
   }
   const handleSignOut = () => {
@@ -156,10 +166,12 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {screen !== 'splash' && <InstallBanner />}
-      {screen === 'splash' && <SplashScreen onComplete={handleSplashComplete} />}
+      {screen !== 'splash' && screen !== 'welcome' && <InstallBanner />}
+      {screen === 'splash' && <SplashScreen onGetStarted={() => setScreen('onboarding')} onLogin={() => setScreen('login')} />}
       {screen === 'onboarding' && <OnboardingScreen onComplete={handleOnboardingComplete} />}
       {screen === 'login' && <LoginScreen onSuccess={handleLoginSuccess} />}
+      {screen === 'welcome' && <WelcomeAnimation userName={currentUserName} onComplete={() => setScreen('goal-setup')} />}
+      {screen === 'goal-setup' && <GoalSetupScreen userId={currentUserId} onComplete={() => setScreen('app')} />}
       {screen === 'app' && <MainApp handleSignOut={handleSignOut} />}
     </div>
   )

@@ -1,134 +1,144 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 
-export default function SplashScreen({ onComplete }) {
-  const [stars, setStars] = useState([])
-  const [phase, setPhase] = useState(0) // 0=loading, 1=complete (fade out)
+const generateStars = () =>
+  Array.from({ length: 28 }, (_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    top: Math.random() * 100,
+    size: Math.random() * 1.6 + 0.5,
+    lo: 0.08 + Math.random() * 0.12,
+    hi: 0.28 + Math.random() * 0.3,
+    dur: 2 + Math.random() * 2,
+    delay: Math.random() * 4,
+    cyan: Math.random() > 0.72,
+  }))
 
-  useEffect(() => {
-    const s = Array.from({ length: 80 }, (_, i) => ({
-      id: i,
-      size: Math.random() * 1.8 + 0.4,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      duration: 2 + Math.random() * 4,
-      delay: Math.random() * 4,
-      lo: 0.04 + Math.random() * 0.08,
-      hi: 0.3 + Math.random() * 0.5,
-    }))
-    setStars(s)
-
-    // Start fade-out at 4.8s, call onComplete at 5.6s
-    const t1 = setTimeout(() => setPhase(1), 4800)
-    const t2 = setTimeout(() => onComplete?.(), 5600)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [])
+export default function SplashScreen({ onGetStarted, onLogin }) {
+  const [stars] = useState(generateStars)
 
   return (
     <div style={{
       position: 'fixed', inset: 0, background: '#000',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       overflow: 'hidden', zIndex: 9999,
-      opacity: phase === 1 ? 0 : 1,
-      transition: 'opacity 0.8s ease',
+      fontFamily: "'Inter', system-ui, sans-serif",
     }}>
+      <style>{`
+        @keyframes twinkleStar {
+          0%, 100% { opacity: var(--lo); transform: scale(1); }
+          50% { opacity: var(--hi); transform: scale(1.35); }
+        }
+        @keyframes splashBtnHover {
+          from { box-shadow: 0 0 40px rgba(0,245,212,0.4), 0 8px 24px rgba(0,245,212,0.2); }
+          to   { box-shadow: 0 0 56px rgba(0,245,212,0.55), 0 8px 32px rgba(0,245,212,0.3); }
+        }
+      `}</style>
+
       {/* Stars */}
       {stars.map(s => (
         <div key={s.id} style={{
           position: 'absolute',
-          width: s.size, height: s.size,
           left: `${s.left}%`, top: `${s.top}%`,
-          borderRadius: '50%', background: '#fff',
+          width: `${s.size}px`, height: `${s.size}px`,
+          borderRadius: '50%',
+          background: s.cyan ? '#00f5d4' : '#fff',
           '--lo': s.lo, '--hi': s.hi,
-          animation: `twinkle ${s.duration}s ${s.delay}s infinite ease-in-out alternate`,
+          animation: `twinkleStar ${s.dur}s ${s.delay}s infinite ease-in-out`,
+          pointerEvents: 'none',
         }} />
       ))}
 
-      {/* Ambient glow */}
+      {/* Orbit rings SVG — centered at 38% from top */}
       <div style={{
-        position: 'absolute', width: 220, height: 220, borderRadius: '50%',
-        background: 'radial-gradient(circle, #00e5cc14 0%, transparent 70%)',
-        opacity: 0,
-        animation: 'ambientIn 1.2s 0.2s forwards ease',
-        pointerEvents: 'none',
-      }} />
-
-      {/* Logo SVG — animated build */}
-      <svg width="108" height="108" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg"
-        style={{ position: 'relative' }}>
-
-        {/* Ghost rings */}
-        <ellipse cx="48" cy="48" rx="31" ry="12" stroke="#00e5cc" strokeWidth="0.6" fill="none" opacity="0.08"/>
-        <ellipse cx="48" cy="48" rx="12" ry="31" stroke="#00e5cc" strokeWidth="0.6" fill="none" opacity="0.08"/>
-
-        {/* Step 1: Horizontal arc draws */}
-        <path d="M17 48 A31 12 0 0 1 79 48"
-          stroke="#00e5cc" strokeWidth="2.2" strokeLinecap="round" fill="none"
-          strokeDasharray="200" strokeDashoffset="200"
-          style={{ animation: 'drawRing 0.9s 0.4s ease forwards' }}/>
-
-        {/* Step 2: Vertical arc draws */}
-        <path d="M48 17 A12 31 0 0 1 48 79"
-          stroke="#00e5cc" strokeWidth="2.2" strokeLinecap="round" fill="none"
-          strokeDasharray="200" strokeDashoffset="200"
-          style={{ animation: 'drawRing 0.9s 0.7s ease forwards' }}/>
-
-        {/* Step 3: Three dots pop in */}
-        <circle cx="48" cy="17" r="4.5" fill="#ffffff"
-          style={{ transformOrigin:'48px 17px', transform:'scale(0)', opacity:0,
-            animation: 'popDot 0.4s cubic-bezier(0.34,1.56,0.64,1) 1.3s forwards' }}/>
-        <circle cx="17" cy="48" r="3.8" fill="#ffffff"
-          style={{ transformOrigin:'17px 48px', transform:'scale(0)', opacity:0,
-            animation: 'popDot 0.4s cubic-bezier(0.34,1.56,0.64,1) 1.45s forwards' }}/>
-        <circle cx="48" cy="79" r="3.8" fill="#ffffff"
-          style={{ transformOrigin:'48px 79px', transform:'scale(0)', opacity:0,
-            animation: 'popDot 0.4s cubic-bezier(0.34,1.56,0.64,1) 1.6s forwards' }}/>
-
-        {/* Step 4: Z letterform strokes */}
-        <line x1="37" y1="41" x2="59" y2="41" stroke="#fff" strokeWidth="5.5" strokeLinecap="round"
-          strokeDasharray="30" strokeDashoffset="30"
-          style={{ animation: 'drawZ 0.35s 1.8s ease forwards' }}/>
-        <line x1="59" y1="41" x2="37" y2="55" stroke="#fff" strokeWidth="4.5" strokeLinecap="round"
-          strokeDasharray="26" strokeDashoffset="26"
-          style={{ animation: 'drawZ 0.35s 2.05s ease forwards' }}/>
-        <line x1="37" y1="55" x2="59" y2="55" stroke="#fff" strokeWidth="5.5" strokeLinecap="round"
-          strokeDasharray="30" strokeDashoffset="30"
-          style={{ animation: 'drawZ 0.35s 2.35s ease forwards' }}/>
-      </svg>
-
-      {/* Step 5: Wordmark */}
-      <div style={{
-        opacity: 0, transform: 'translateY(12px)',
-        animation: 'fadeSlideUp 0.7s 2.6s ease forwards',
-        marginTop: 8,
+        position: 'absolute', top: '38%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 320, height: 130, pointerEvents: 'none', zIndex: 1,
       }}>
-        <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 34, fontWeight: 900, color: '#fff', letterSpacing: -1 }}>
-          Zyr<span style={{ color: '#00e5cc' }}>bit</span>
-        </span>
+        <svg width="320" height="130" viewBox="0 0 320 130" overflow="visible">
+          <defs>
+            <filter id="sdg" x="-200%" y="-200%" width="500%" height="500%">
+              <feGaussianBlur stdDeviation="4" result="b" />
+              <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+            <path id="sop" d="M 315 65 A 155 62 0 1 0 5 65 A 155 62 0 1 0 315 65" />
+          </defs>
+          <ellipse cx="160" cy="65" rx="155" ry="62" stroke="#00f5d4" strokeWidth="0.7" fill="none" opacity="0.07" />
+          <ellipse cx="160" cy="65" rx="113" ry="45" stroke="#00f5d4" strokeWidth="0.8" fill="none" opacity="0.11" />
+          <ellipse cx="160" cy="65" rx="72"  ry="29" stroke="#00f5d4" strokeWidth="1"   fill="none" opacity="0.17" />
+          <circle r="4.5" fill="#00f5d4" filter="url(#sdg)">
+            <animateMotion dur="10s" repeatCount="indefinite">
+              <mpath href="#sop" />
+            </animateMotion>
+          </circle>
+        </svg>
       </div>
 
-      {/* Step 6: Tagline */}
+      {/* Logo — sits on top of rings, same center point */}
       <div style={{
-        opacity: 0, transform: 'translateY(12px)',
-        animation: 'fadeSlideUp 0.7s 2.9s ease forwards',
-        marginTop: 10, fontSize: 10, color: '#222',
-        letterSpacing: 4, textTransform: 'uppercase',
-        fontFamily: "'DM Sans', sans-serif",
+        position: 'absolute', top: '38%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 10, zIndex: 2,
       }}>
-        Build habits · Break gravity
-      </div>
-
-      {/* Step 7: Loading bar */}
-      <div style={{
-        opacity: 0, animation: 'ambientIn 0.4s 3s ease forwards',
-        marginTop: 48, width: 140, height: 2, background: '#0a0a0a',
-        borderRadius: 2, overflow: 'hidden',
-      }}>
+        {/* Z icon */}
         <div style={{
-          height: '100%',
-          background: 'linear-gradient(90deg, #00e5cc, #9c27b0, #ff9800)',
-          width: 0,
-          animation: 'fillBar 1.8s 3.1s cubic-bezier(0.4,0,0.2,1) forwards',
-        }} />
+          width: 62, height: 62, borderRadius: '50%',
+          border: '1.5px solid rgba(0,245,212,0.35)',
+          background: 'radial-gradient(circle, rgba(0,245,212,0.06) 0%, transparent 70%)',
+          boxShadow: '0 0 28px rgba(0,245,212,0.08), inset 0 0 18px rgba(0,245,212,0.05)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span style={{
+            fontSize: 30, fontWeight: 900, color: '#00f5d4', lineHeight: 1,
+            textShadow: '0 0 18px rgba(0,245,212,0.9), 0 0 40px rgba(0,245,212,0.45)',
+            userSelect: 'none',
+          }}>Z</span>
+        </div>
+
+        {/* Wordmark */}
+        <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
+          <span style={{ color: '#fff' }}>Zyr</span>
+          <span style={{ color: '#00f5d4' }}>bit</span>
+        </div>
+
+        {/* Tagline */}
+        <div style={{
+          fontSize: 7, letterSpacing: '3px', textTransform: 'uppercase',
+          color: 'rgba(0,245,212,0.35)', fontWeight: 600,
+          textAlign: 'center', whiteSpace: 'nowrap',
+        }}>
+          BUILD HABITS THAT BREAK GRAVITY
+        </div>
+      </div>
+
+      {/* Bottom buttons */}
+      <div style={{
+        position: 'absolute', bottom: 28, left: 22, right: 22,
+        display: 'flex', flexDirection: 'column', gap: 10, zIndex: 2,
+      }}>
+        <button onClick={onGetStarted} style={{
+          width: '100%', background: '#00f5d4', color: '#000',
+          border: 'none', borderRadius: 14, padding: '14px',
+          fontSize: 14, fontWeight: 800, letterSpacing: '2px', cursor: 'pointer',
+          boxShadow: '0 0 40px rgba(0,245,212,0.4), 0 8px 24px rgba(0,245,212,0.22)',
+          transition: 'transform 0.15s, box-shadow 0.15s',
+          fontFamily: 'inherit',
+        }}
+          onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+          onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+          onTouchStart={e => e.currentTarget.style.transform = 'scale(0.97)'}
+          onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          🚀 GET STARTED
+        </button>
+        <button onClick={onLogin} style={{
+          width: '100%', background: 'transparent', color: '#fff',
+          border: '1.5px solid #1e1e1e', borderRadius: 14, padding: '13px',
+          fontSize: 11, fontWeight: 700, cursor: 'pointer',
+          transition: 'border-color 0.2s',
+          fontFamily: 'inherit',
+        }}>
+          I already have an account
+        </button>
       </div>
     </div>
   )

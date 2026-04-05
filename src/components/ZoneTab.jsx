@@ -13,11 +13,9 @@ export default function ZoneTab({ active, onChange }) {
     <div 
       style={{ 
         padding: '0 0 12px', 
-        overflowX: 'auto', 
-        display: 'flex', 
-        gap: '10px', 
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '8px',
         background: '#000'
       }}
     >
@@ -32,18 +30,19 @@ export default function ZoneTab({ active, onChange }) {
             key={t.id}
             onClick={() => onChange(t.id)}
             style={{
-              padding: '10px 20px',
+              flex: '1 1 calc(33% - 8px)',
+              padding: '10px 12px',
               borderRadius: '100px',
               fontSize: '12px',
               fontWeight: 800,
               background: bg,
               color: color,
               border: border,
-              whiteSpace: 'nowrap',
               transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
               cursor: 'pointer',
               letterSpacing: '-0.3px',
-              boxShadow: isActive ? '0 4px 12px rgba(255,255,255,0.1)' : 'none'
+              boxShadow: isActive ? '0 4px 12px rgba(255,255,255,0.1)' : 'none',
+              textAlign: 'center'
             }}
           >
             {t.label}

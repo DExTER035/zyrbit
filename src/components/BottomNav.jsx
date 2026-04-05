@@ -5,8 +5,7 @@ export default function BottomNav({ activeTab, onTabChange }) {
     { id: 'orbit', icon: '🪐', label: 'ORBIT' },
     { id: 'journal', icon: '🌌', label: 'JOURNAL' },
     { id: 'stats', icon: '📊', label: 'STATS' },
-    { id: 'community', icon: '🌍', label: 'COMMUNITY' },
-    { id: 'coach', icon: '🎯', label: 'QUIZ' }
+    { id: 'community', icon: '🌍', label: 'COMMUNITY' }
   ]
 
   return (
@@ -23,12 +22,13 @@ export default function BottomNav({ activeTab, onTabChange }) {
       WebkitBackdropFilter: 'blur(20px)',
       zIndex: 50
     }}>
-      {tabs.map(tab => {
+      {tabs.map((tab, index) => {
         const isActive = activeTab === tab.id
         return (
-          <div
-            key={tab.id}
-            onClick={() => onTabChange(tab.id)}
+          <React.Fragment key={tab.id}>
+            {index === 2 && <div style={{ flex: 0.5, pointerEvents: 'none' }} />}
+            <div
+              onClick={() => onTabChange(tab.id)}
             style={{
               flex: 1,
               display: 'flex',
@@ -73,6 +73,7 @@ export default function BottomNav({ activeTab, onTabChange }) {
               {tab.label}
             </span>
           </div>
+          </React.Fragment>
         )
       })}
     </div>
