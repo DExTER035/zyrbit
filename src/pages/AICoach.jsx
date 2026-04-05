@@ -196,10 +196,10 @@ function ZyraTab({ userContext, earn }) {
       </div>
 
       {/* Quick Pills */}
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 12, paddingBottom: 4 }}>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: 12, paddingBottom: 4 }}>
         {['🔥 Roast me', '🚀 Check-in', '🧠 Why failing?', '💡 New habit', '🎯 Focus now'].map(p => (
           <button key={p} onClick={() => handleSend(p)} disabled={loading}
-            style={{ flexShrink: 0, padding: '6px 12px', background: '#1e1e2a', border: 'none', borderRadius: 100, color: '#aaaabc', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            style={{ flex: '1 1 auto', padding: '6px 12px', background: '#1e1e2a', border: 'none', borderRadius: 100, color: '#aaaabc', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', textAlign: 'center' }}>
             {p}
           </button>
         ))}

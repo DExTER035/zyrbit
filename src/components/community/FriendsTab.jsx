@@ -117,6 +117,18 @@ export default function FriendsTab({ user, profile }) {
     }
   }
 
+  const removeFriend = async (friendId, e) => {
+    e.stopPropagation()
+    if (!window.confirm('Are you sure you want to remove this friend?')) return
+    const { error } = await supabase.from('friendships').delete().or(`and(requester_id.eq.${user.id},addressee_id.eq.${friendId}),and(requester_id.eq.${friendId},addressee_id.eq.${user.id})`)
+    if (!error) {
+       showToast('👋 Friend removed', 'info')
+       loadFriends()
+    } else {
+       showToast('❌ Failed to remove friend', 'error')
+    }
+  }
+
   return (
     <div style={{ padding: '0 20px 100px', background: '#000' }}>
       
@@ -232,7 +244,10 @@ export default function FriendsTab({ user, profile }) {
                   <div style={{ fontSize: 16, fontWeight: 900, color: '#FFF' }}>{f.friend.username}</div>
                   <div style={{ fontSize: 11, color: rank.color, fontWeight: 800 }}>{rank.emoji} {rank.name}</div>
                 </div>
-                <div style={{ fontSize: 20 }}>💬</div>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <button onClick={(e) => removeFriend(f.friend.id, e)} style={{ background: 'none', border: 'none', color: '#EF4444', fontSize: 20, cursor: 'pointer', opacity: 0.7 }}>🗑️</button>
+                  <div style={{ fontSize: 20 }}>💬</div>
+                </div>
               </div>
             )
           })

@@ -102,11 +102,11 @@ export default function OrbitsTab({ user, profile }) {
       </div>
 
       {/* TAG FILTERS */}
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: 24 }}>
         {['all', 'Fitness', 'Coding', 'Mindfulness', 'Study'].map(t => (
           <button 
             key={t} onClick={() => setFilter(t)}
-            style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 100, border: '1px solid #1A1A24', background: filter === t ? '#001A1A' : '#000', color: filter === t ? '#00BCD4' : '#444', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+            style={{ flex: '1 1 auto', padding: '8px 16px', borderRadius: 100, border: '1px solid #1A1A24', background: filter === t ? '#001A1A' : '#000', color: filter === t ? '#00BCD4' : '#444', fontSize: 13, fontWeight: 800, cursor: 'pointer', textAlign: 'center' }}
           >
             #{t}
           </button>
@@ -114,11 +114,11 @@ export default function OrbitsTab({ user, profile }) {
       </div>
 
       {/* TAB SUB-BAR */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: 32 }}>
         {[['discover', 'Discover'], ['mine', 'My Orbits'], ['create', '+ Create']].map(([k, l]) => (
           <button 
             key={k} onClick={() => k === 'create' ? setView('create') : setView(k)}
-            style={{ padding: '8px 20px', borderRadius: 100, border: view === k ? 'none' : '1px solid #1A1A24', background: view === k ? '#FFF' : '#000', color: view === k ? '#000' : '#444', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+            style={{ flex: '1 1 calc(33% - 8px)', padding: '8px 12px', borderRadius: 100, border: view === k ? 'none' : '1px solid #1A1A24', background: view === k ? '#FFF' : '#000', color: view === k ? '#000' : '#444', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
           >
             {l}
           </button>

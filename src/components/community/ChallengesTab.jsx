@@ -183,9 +183,9 @@ export default function ChallengesTab({ user, profile }) {
       {subTab === 'challenges' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
               {[['all','All'],['joined','Joined'],['popular','Popular']].map(([k,l]) => (
-                <button key={k} onClick={() => setFilter(k)} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 100, border: filter === k ? 'none' : '1px solid #1A1A24', background: filter === k ? '#9C27B0' : '#0A0A12', color: filter === k ? '#FFF' : '#555', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
+                <button key={k} onClick={() => setFilter(k)} style={{ flex: '1 1 auto', padding: '6px 12px', borderRadius: 100, border: filter === k ? 'none' : '1px solid #1A1A24', background: filter === k ? '#9C27B0' : '#0A0A12', color: filter === k ? '#FFF' : '#555', fontWeight: 700, fontSize: 11, cursor: 'pointer', textAlign: 'center' }}>
                   {l}
                 </button>
               ))}

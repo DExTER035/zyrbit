@@ -53,7 +53,7 @@ export default function Community() {
       </div>
 
       {/* INNER TAB BAR */}
-      <div style={{ padding: '0 20px 12px', overflowX: 'auto', display: 'flex', gap: '10px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', position: 'sticky', top: 0, background: '#000', zIndex: 40, borderBottom: '1px solid #0A0A12', paddingBottom: 16 }}>
+      <div style={{ padding: '0 20px 12px', display: 'flex', flexWrap: 'wrap', gap: '8px', position: 'sticky', top: 0, background: '#000', zIndex: 40, borderBottom: '1px solid #0A0A12', paddingBottom: 16 }}>
         {INNER_TABS.map(tab => {
           const isActive = activeTab === tab.id
           return (
@@ -61,8 +61,8 @@ export default function Community() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               style={{
-                flexShrink: 0,
-                padding: '10px 20px',
+                flex: '1 1 calc(50% - 8px)',
+                padding: '10px 12px',
                 borderRadius: 100,
                 border: isActive ? '1px solid #FFF' : '1px solid #1A1A24',
                 background: isActive ? '#FFF' : '#0A0A12',

@@ -137,7 +137,7 @@ export default function Profile() {
       </div>
 
       {/* TABS */}
-      <div style={{ padding: '0 0 32px', overflowX: 'auto', display: 'flex', gap: 10, scrollbarWidth: 'none' }}>
+      <div style={{ padding: '0 0 32px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
         {[
           { id: 'profile', label: 'Identity', icon: '👤' },
           { id: 'wallet', label: 'Assets', icon: '⚡' },
@@ -148,7 +148,7 @@ export default function Profile() {
           return (
             <button key={t.id} onClick={() => setActiveSection(t.id)}
               style={{
-                flexShrink: 0, padding: '10px 20px', borderRadius: 100, cursor: 'pointer',
+                flex: '1 1 calc(50% - 8px)', padding: '10px 12px', borderRadius: 100, cursor: 'pointer',
                 border: isActive ? '1px solid #FFF' : '1px solid #1A1A24',
                 background: isActive ? '#FFF' : '#0A0A12',
                 color: isActive ? '#000' : '#444',

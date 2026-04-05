@@ -2,7 +2,8 @@ import { supabase } from './supabase.js'
 
 export async function earnZyrons(userId, amount, reason, category = 'general', source = 'app') {
   try {
-    const { data: wallet } = await supabase.from('zyron_wallet').select('*').eq('user_id', userId).single()
+    const { data: wallet, error: walletError } = await supabase.from('zyron_wallet').select('*').eq('user_id', userId).maybeSingle()
+    if (walletError) throw walletError
     
     const today = new Date().toISOString().split('T')[0]
     let currentDailyEarned = wallet?.daily_earned || 0
@@ -40,7 +41,7 @@ export async function earnZyrons(userId, amount, reason, category = 'general', s
       user_id: userId, amount, reason, category, source
     })
 
-    const { data: updated } = await supabase.from('zyron_wallet').select('*').eq('user_id', userId).single()
+    const { data: updated } = await supabase.from('zyron_wallet').select('*').eq('user_id', userId).maybeSingle()
     return updated
   } catch (err) {
     console.error('Zyrons err:', err)
@@ -50,7 +51,8 @@ export async function earnZyrons(userId, amount, reason, category = 'general', s
 
 export async function spendZyrons(userId, amount, category = 'general', itemName = 'purchase', ignoreBudget = false) {
   try {
-    const { data: wallet } = await supabase.from('zyron_wallet').select('*').eq('user_id', userId).single()
+    const { data: wallet, error: walletError } = await supabase.from('zyron_wallet').select('*').eq('user_id', userId).maybeSingle()
+    if (walletError) throw walletError
     const available = (wallet?.balance || 0) - (wallet?.escrowed || 0)
     
     if (!wallet || available < amount) return { success: false, reason: 'insufficient' }
@@ -88,7 +90,7 @@ export async function spendZyrons(userId, amount, category = 'general', itemName
 }
 
 export async function getWallet(userId) {
-  const { data } = await supabase.from('zyron_wallet').select('*').eq('user_id', userId).single()
+  const { data } = await supabase.from('zyron_wallet').select('*').eq('user_id', userId).maybeSingle()
   if (!data) {
     const { data: created } = await supabase.from('zyron_wallet')
       .insert({ user_id: userId, balance: 0, total_earned: 0, rank_id: 0, gravity_score: 0 })

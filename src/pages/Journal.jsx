@@ -55,13 +55,13 @@ export default function Journal() {
         <p style={{ fontSize: 13, color: '#444', fontWeight: 600, marginBottom: 24 }}>System logs and records</p>
         
         {/* TABS */}
-        <div style={{ overflowX: 'auto', display: 'flex', gap: 10, paddingBottom: 24, scrollbarWidth: 'none' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingBottom: 24 }}>
           {['Diary', 'Study', 'Move', 'Money'].map(t => {
             const isActive = activeMainTab === t
             return (
               <button key={t} onClick={() => setActiveMainTab(t)}
                 style={{
-                  flexShrink: 0, padding: '10px 20px', borderRadius: 100, cursor: 'pointer',
+                  flex: '1 1 calc(50% - 8px)', padding: '10px 12px', borderRadius: 100, cursor: 'pointer',
                   border: isActive ? '1px solid #FFF' : '1px solid #1A1A24',
                   background: isActive ? '#FFF' : '#0A0A12',
                   color: isActive ? '#000' : '#444',
