@@ -6,7 +6,6 @@ import BottomNav from '../components/BottomNav'
 // Import Tab Components
 import JournalTabDiary from '../components/JournalTabDiary'
 import JournalTabStudy from '../components/JournalTabStudy'
-import JournalTabMove from '../components/JournalTabMove'
 import JournalTabMoney from '../components/JournalTabMoney'
 
 export default function Journal() {
@@ -38,13 +37,12 @@ export default function Journal() {
     switch (activeMainTab) {
       case 'Diary': return <JournalTabDiary user={user} navigate={navigate} />
       case 'Study': return <JournalTabStudy user={user} />
-      case 'Move': return <JournalTabMove user={user} />
       case 'Money': return <JournalTabMoney user={user} />
       default: return null
     }
   }
 
-  const tabIcons = { Diary: '📖', Study: '📚', Move: '🏃', Money: '💰' }
+  const tabIcons = { Diary: '📖', Study: '📚', Money: '💰' }
 
   return (
     <div style={{ background: '#000', minHeight: '100vh', color: '#FFF' }}>
@@ -56,7 +54,7 @@ export default function Journal() {
         
         {/* TABS */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingBottom: 24 }}>
-          {['Diary', 'Study', 'Move', 'Money'].map(t => {
+          {['Diary', 'Study', 'Money'].map(t => {
             const isActive = activeMainTab === t
             return (
               <button key={t} onClick={() => setActiveMainTab(t)}

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase.js'
 
 export default function LoginScreen({ onSuccess }) {
   const [loading, setLoading] = useState(false)
+  const [guestLoading, setGuestLoading] = useState(false)
   const [error, setError] = useState('')
   const [visible, setVisible] = useState(false)
   const [email, setEmail] = useState('')
@@ -63,16 +64,18 @@ export default function LoginScreen({ onSuccess }) {
   }
 
   const handleGuestLogin = async () => {
-    setLoading(true)
+    setGuestLoading(true)
     setError('')
     const { data, error } = await supabase.auth.signInAnonymously()
     if (error) {
-      setError(error.message.includes('provider is not enabled') 
-        ? 'Please enable "Anonymous" sign-ins in Supabase Auth.'
-        : error.message)
-      setLoading(false)
+      setError(
+        error.message.includes('not enabled') || error.message.includes('provider')
+          ? '⚠️ Guest login is disabled. Enable Anonymous sign-ins in your Supabase Auth settings.'
+          : error.message
+      )
+      setGuestLoading(false)
     } else if (data?.user) {
-      const name = data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Astronaut'
+      const name = 'Astronaut'
       onSuccess(data.user.id, name)
     }
   }
@@ -162,14 +165,17 @@ export default function LoginScreen({ onSuccess }) {
               <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.17 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
             </svg>
           </button>
-          <button onClick={handleGuestLogin} disabled={loading} style={{
+          <button onClick={handleGuestLogin} disabled={guestLoading || loading} style={{
             flex: 1, height: 50, borderRadius: 14, background: '#060606', border: '1px solid #0d0d0d',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', transition: 'border-color 0.2s', color: '#e8e8f0', fontSize: 13, fontWeight: 600
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: guestLoading ? 'wait' : 'pointer', transition: 'border-color 0.2s', color: '#e8e8f0', fontSize: 13, fontWeight: 600
           }} onMouseOver={e=>e.currentTarget.style.borderColor='#1e1e1e'} onMouseOut={e=>e.currentTarget.style.borderColor='#0d0d0d'} title="Explore as Guest">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.1 14.5c-.6.3-1.4.5-2.2.5-2.8 0-4.6-1.9-4.6-4.8 0-2.8 1.8-4.8 4.6-4.8.8 0 1.5.2 2.1.5l-.6 1.4c-.4-.2-1-.4-1.5-.4-1.8 0-2.9 1.3-2.9 3.2 0 1.9 1.1 3.2 3 3.2.6 0 1.2-.2 1.6-.4l.5 1.6z"/>
-            </svg>
-            Guest
+            {guestLoading
+              ? <div style={{ width: 16, height: 16, border: '2px solid #555', borderTopColor: '#00e5cc', borderRadius: '50%', animation: 'local-spin 0.6s linear infinite' }} />
+              : <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.1 14.5c-.6.3-1.4.5-2.2.5-2.8 0-4.6-1.9-4.6-4.8 0-2.8 1.8-4.8 4.6-4.8.8 0 1.5.2 2.1.5l-.6 1.4c-.4-.2-1-.4-1.5-.4-1.8 0-2.9 1.3-2.9 3.2 0 1.9 1.1 3.2 3 3.2.6 0 1.2-.2 1.6-.4l.5 1.6z"/>
+                </svg>
+            }
+            {guestLoading ? 'Entering...' : 'Guest'}
           </button>
         </div>
 

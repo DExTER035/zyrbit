@@ -1,11 +1,15 @@
 import React from 'react'
+import { useBlackout } from '../lib/BlackoutContext'
 
 export default function BottomNav({ activeTab, onTabChange }) {
+  const blackout = useBlackout?.()
+  const isBlackout = blackout?.isActive || false
+  const blackoutRemaining = blackout?.formatMMSS?.(blackout.remaining) || ''
+
   const tabs = [
     { id: 'orbit', icon: '🪐', label: 'ORBIT' },
     { id: 'journal', icon: '🌌', label: 'JOURNAL' },
-    { id: 'stats', icon: '📊', label: 'STATS' },
-    { id: 'community', icon: '🌍', label: 'COMMUNITY' }
+    { id: 'stats', icon: '📊', label: 'STATS' }
   ]
 
   return (
@@ -24,11 +28,19 @@ export default function BottomNav({ activeTab, onTabChange }) {
     }}>
       {tabs.map((tab, index) => {
         const isActive = activeTab === tab.id
+        // In blackout, only study (journal tab) is accessible
+        const isLocked = isBlackout && tab.id !== 'journal'
         return (
           <React.Fragment key={tab.id}>
             {index === 2 && <div style={{ flex: 0.5, pointerEvents: 'none' }} />}
             <div
-              onClick={() => onTabChange(tab.id)}
+              onClick={() => {
+                if (isLocked) {
+                  import('./Toast').then(m => m.showToast(`🔒 Blackout active — ${blackoutRemaining} remaining`, 'warning'))
+                  return
+                }
+                onTabChange(tab.id)
+              }}
             style={{
               flex: 1,
               display: 'flex',
@@ -59,18 +71,18 @@ export default function BottomNav({ activeTab, onTabChange }) {
               fontSize: '20px',
               transition: 'all 0.2s',
               filter: isActive ? 'drop-shadow(0 0 8px rgba(0, 255, 255, 0.8))' : 'none',
-              opacity: isActive ? 1 : 0.6
+              opacity: isLocked ? 0.2 : isActive ? 1 : 0.6
             }}>
               {tab.icon}
             </span>
             <span style={{
               fontSize: '10px',
               fontWeight: 700,
-              color: isActive ? 'var(--color-cyan)' : 'var(--color-hint)',
+              color: isLocked ? '#333344' : isActive ? 'var(--color-cyan)' : 'var(--color-hint)',
               transition: 'color 0.2s',
               letterSpacing: '0.05em'
             }}>
-              {tab.label}
+              {isLocked ? '🔒' : tab.label}
             </span>
           </div>
           </React.Fragment>

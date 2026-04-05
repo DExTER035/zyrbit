@@ -4,6 +4,7 @@ import { earnZyrons } from '../lib/zyrons'
 import { showToast } from './Toast'
 import StudyNotesTab from './StudyNotesTab'
 import StudyTasksTab from './StudyTasksTab'
+import BlackoutMode from './BlackoutMode'
 
 const getLocalYMD = (dateObj = new Date()) => {
   const d = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000)
@@ -255,6 +256,8 @@ export default function JournalTabStudy({ user }) {
       {/* POMODORO TAB */}
       {activeStudyTab === 'pomodoro' && (
         <>
+        {/* BLACKOUT MODE ELITE CARD */}
+        <BlackoutMode user={user} />
 
         <div style={{ 
           background: 'linear-gradient(145deg, #13131A 0%, #0A0A12 100%)', 

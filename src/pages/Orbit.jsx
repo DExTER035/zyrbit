@@ -10,6 +10,12 @@ import GravityRing from '../components/GravityRing'
 import HabitCard from '../components/HabitCard'
 import RankBanner from '../components/RankBanner'
 import { showToast } from '../components/Toast'
+import EnergyMap from '../components/EnergyMap'
+import Jarvis from '../components/Jarvis'
+import PhantomSelf from '../components/PhantomSelf'
+import StreakShield from '../components/StreakShield'
+import ShadowMode from '../components/ShadowMode'
+import AlterEgo from '../components/AlterEgo'
 
 const REFLECTION_QUESTIONS = [
   'What was the hardest habit to complete today?',
@@ -17,13 +23,6 @@ const REFLECTION_QUESTIONS = [
   'What would you do differently tomorrow?',
   'Which habit gave you the most energy?',
   'What\u2019s one thing you learned about yourself today?',
-]
-
-const WEEKLY_INSIGHTS = [
-  'Consistency beats intensity. Every orbit counts. 🪐',
-  'You\u2019re building gravity with every habit logged. Keep burning! 🔥',
-  'The stars don\u2019t take days off \u2014 neither do you. 🌟',
-  'Small habits, massive trajectory. Stay in orbit! 🚀',
 ]
 
 // Utility mapping
@@ -315,15 +314,12 @@ export default function Orbit() {
     <div className="app-container animate-fadeSlideUp" style={{ background: '#000' }}>
       {offline && <div className="offline-banner">📵 Offline mode</div>}
       {rankBanner && <RankBanner rank={rankBanner} onDone={() => setRankBanner(null)} />}
+      <StreakShield user={user} habits={habits} activity={activity} streaks={streaks} />
 
       <div className="page-content" style={{ padding: '24px 20px 100px' }}>
         
-        {/* HEADER SECTION */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 40 }}>
-          <div>
-            <div style={{ fontSize: 16, color: 'var(--color-muted)', fontWeight: 500 }}>Good evening,</div>
-            <h1 style={{ fontSize: 28, fontWeight: 900, color: '#FFF', letterSpacing: -1 }}>{user?.user_metadata?.full_name?.split(' ')[0] || 'Orbiter'}</h1>
-          </div>
+        {/* HEADER SECTION (Avatars Only) */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 40 }}>
           <div style={{ display: 'flex', gap: 12 }}>
             <div onClick={() => navigate('/profile')} style={{ width: 44, height: 44, borderRadius: '50%', background: '#111', border: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-cyan)', boxShadow: '0 0 10px var(--color-cyan)' }} />
@@ -357,27 +353,64 @@ export default function Orbit() {
           </div>
         ) : (
           <>
-            {/* STATS TILES */}
-            <div style={{ display: 'flex', gap: 12, marginBottom: 40 }}>
-              {[
-                { label: 'Streak', value: bestStreak, sub: 'DAY STREAK', color: 'var(--color-orange)' },
-                { label: 'Done', value: `${doneCount}/${totalCount}`, sub: 'HABITS', color: doneCount === totalCount && totalCount >0 ? 'var(--color-zone-body)' : 'var(--color-text)' },
-                { label: 'Today', value: `${completionPct}%`, sub: 'COMPLETE', color: completionPct === 100 ? 'var(--color-zone-body)' : 'var(--color-cyan)' },
-              ].map((s, i) => (
-                <div key={i} style={{ flex: 1, height: 120, background: '#0A0A12', border: '1px solid #1A1A24', borderRadius: 24, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{ display: 'inline-block', padding: '3px 8px', background: `${s.color}15`, borderRadius: 8, width: 'fit-content', marginBottom: 12 }}>
-                    <span style={{ fontSize: 9, fontWeight: 800, color: s.color, textTransform: 'uppercase' }}>{s.label}</span>
+            {/* MIRROR BAR */}
+            <div style={{ background: '#141418', border: '1px solid #1e1e24', borderRadius: 12, padding: 16, marginBottom: 32 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: '#1D9E75', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>Mirror</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                
+                {/* Screen vs Study */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: 3.5 > 2 ? '#D85A30' : '#FFF' }}>3.5h</span>
+                    <span style={{ fontSize: 9, color: '#666', fontWeight: 800 }}>vs</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D9E75' }}>2h</span>
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 900, color: '#FFF', marginBottom: 2 }}>{s.value}</div>
-                  <div style={{ fontSize: 10, color: 'var(--color-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>{s.sub}</div>
+                  <div style={{ fontSize: 8, color: '#666', fontWeight: 800, textTransform: 'uppercase', marginTop: 6, letterSpacing: 0.5 }}>Screen/Study</div>
                 </div>
-              ))}
+                
+                <div style={{ width: 1, height: 28, background: '#1e1e24' }} />
+
+                {/* Money Spent vs Budget */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: 180 > 200 ? '#D85A30' : '#FFF' }}>₹180</span>
+                    <span style={{ fontSize: 9, color: '#666', fontWeight: 800 }}>vs</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D9E75' }}>₹200</span>
+                  </div>
+                  <div style={{ fontSize: 8, color: '#666', fontWeight: 800, textTransform: 'uppercase', marginTop: 6, letterSpacing: 0.5 }}>Spent/Budget</div>
+                </div>
+
+                <div style={{ width: 1, height: 28, background: '#1e1e24' }} />
+
+                {/* Habits vs Planned */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: doneCount > totalCount ? '#D85A30' : '#FFF' }}>{doneCount}</span>
+                    <span style={{ fontSize: 9, color: '#666', fontWeight: 800 }}>vs</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D9E75' }}>{totalCount}</span>
+                  </div>
+                  <div style={{ fontSize: 8, color: '#666', fontWeight: 800, textTransform: 'uppercase', marginTop: 6, letterSpacing: 0.5 }}>Done/Plan</div>
+                </div>
+
+              </div>
             </div>
+
+            {/* ENERGY MAP (Elite Feature) */}
+            <EnergyMap user={user} />
 
             {/* ZONE FILTERS */}
             <div style={{ marginBottom: 32 }}>
                <ZoneTab active={activeZone} onChange={setActiveZone} />
             </div>
+
+            {/* PHANTOM SELF (Elite Feature) */}
+            <PhantomSelf user={user} habits={habits} />
+            
+            {/* SHADOW MODE (Elite Feature) */}
+            <ShadowMode user={user} />
+
+            {/* ALTER EGO (Elite Feature) */}
+            <AlterEgo user={user} gravityScore={gravityScore} />
 
             {/* HABITS LIST */}
             <h3 style={{ fontSize: 11, color: 'var(--color-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 20 }}>TODAY'S HABITS</h3>
@@ -612,11 +645,6 @@ export default function Orbit() {
               ))}
             </div>
 
-            <div style={{ background: '#000', borderRadius: '16px', padding: '14px', marginBottom: '20px', border: '1px solid #111' }}>
-              <div style={{ fontSize: '12px', color: '#666', lineHeight: 1.6, fontStyle: 'italic' }}>
-                "{WEEKLY_INSIGHTS[new Date().getDay() % WEEKLY_INSIGHTS.length]}"
-              </div>
-            </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
@@ -701,6 +729,8 @@ export default function Orbit() {
           </div>
         </div>
       )}
+      {/* JARVIS AI PLANNER */}
+      <Jarvis user={user} />
 
     </div>
   )

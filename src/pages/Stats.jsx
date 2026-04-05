@@ -10,6 +10,7 @@ import BottomNav from '../components/BottomNav.jsx'
 import { showToast } from '../components/Toast.jsx'
 import { supabase } from '../lib/supabase.js'
 import { askZyra } from '../lib/gemini.js'
+import PhantomSelfExpansion from '../components/PhantomSelfExpansion.jsx'
 
 // ─── Helpers ───────────────────────────────────────
 const thirtyDaysAgo = () => {
@@ -226,8 +227,8 @@ const ZONE_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 const FILTERS = [
   { id: 'all', label: 'All' }, { id: 'habits', label: '🪐' },
   { id: 'money', label: '💰' },
-  { id: 'move', label: '🏃' }, { id: 'study', label: '📚' },
-  { id: 'diary', label: '📖' }, { id: 'community', label: '🌍' },
+  { id: 'study', label: '📚' },
+  { id: 'diary', label: '📖' }
 ]
 
 // ═══════════════════════════════════════════════════
@@ -247,8 +248,6 @@ export default function Stats() {
   const [transactions, setTransactions] = useState([])
   const [expenses, setExpenses] = useState([])
   const [moneySettings, setMoneySettings] = useState(null)
-  const [moveLogs, setMoveLogs] = useState([])
-  const [moveStreaks, setMoveStreaks] = useState(null)
   const [studySessions, setStudySessions] = useState([])
   const [studyExams, setStudyExams] = useState([])
   const [diaryEntries, setDiaryEntries] = useState([])
@@ -281,8 +280,6 @@ export default function Stats() {
       supabase.from('zyron_transactions').select('*').eq('user_id', uid).gte('created_at', since30),
       supabase.from('money_expenses').select('*').eq('user_id', uid).gte('expense_date', firstMonth),
       supabase.from('money_settings').select('*').eq('user_id', uid).maybeSingle(),
-      supabase.from('move_logs').select('*').eq('user_id', uid).gte('log_date', since30),
-      supabase.from('move_streaks').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('study_sessions').select('*, study_subjects(name, color)').eq('user_id', uid).gte('session_date', firstMonth),
       supabase.from('study_exams').select('*').eq('user_id', uid).gte('exam_date', todayStr),
       supabase.from('diary_entries').select('entry_date, mood').eq('user_id', uid).gte('entry_date', since30),
@@ -301,14 +298,12 @@ export default function Stats() {
     const txData = safeData(4, [])
     const expData= safeData(5, [])
     const msData = safeData(6)
-    const mlData = safeData(7, [])
-    const mstData= safeData(8)
-    const ssData = safeData(9, [])
-    const seData = safeData(10, [])
-    const deData = safeData(11, [])
-    const dsData = safeData(12)
-    const profData=safeData(13)
-    const btData = safeData(14, [])
+    const ssData = safeData(7, [])
+    const seData = safeData(8, [])
+    const deData = safeData(9, [])
+    const dsData = safeData(10)
+    const profData=safeData(11)
+    const btData = safeData(12, [])
 
     setHabits(hData)
     setActivityLog(alData)
@@ -317,8 +312,6 @@ export default function Stats() {
     setTransactions(txData)
     setExpenses(expData)
     setMoneySettings(msData)
-    setMoveLogs(mlData)
-    setMoveStreaks(mstData)
     setStudySessions(ssData)
     setStudyExams(seData)
     setDiaryEntries(deData)
@@ -470,22 +463,6 @@ export default function Stats() {
   const avgWD = weekdaySpend.reduce((s,d) => s + d.value, 0) / (weekdaySpend.length || 1)
   const peaksOnWeekend = avgWE > avgWD * 1.5
 
-  // --- Move ---
-  const totalKm = moveLogs.reduce((s, l) => s + (l.distance_km || 0), 0)
-  const moveStreak = moveStreaks?.current_streak || 0
-  const moveZyrons = moveLogs.reduce((s, l) => s + (l.zyrons_earned || 0), 0)
-  const activeDays = new Set(moveLogs.map(l => l.log_date)).size
-
-  const kmByDay = buildDailyMap(moveLogs, 'log_date', 'distance_km', 30)
-
-  const kmByActivity = (() => {
-    const acts = {}
-    moveLogs.forEach(l => { acts[l.activity_type] = (acts[l.activity_type] || 0) + (l.distance_km || 0) })
-    return Object.entries(acts).map(([name, value]) => ({
-      name, value: parseFloat(value.toFixed(1)), label: name, color: ACT_COLORS[name] || '#888'
-    }))
-  })()
-
   // --- Study ---
   const studyHoursMonth = studySessions.reduce((s, ss) => s + (ss.duration_minutes || 0) / 60, 0)
   const studyStreak = 0 // no streak column – placeholder
@@ -618,6 +595,9 @@ export default function Stats() {
         {/* HABITS */}
         <div id="habits">
           <SectionHeader emoji="🪐" title="Habits" />
+          
+          <PhantomSelfExpansion user={user} habits={habits} />
+
           {loading ? <Skeleton height={200} /> : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
@@ -669,23 +649,6 @@ export default function Stats() {
               <Card>
                 <CardHeader title="Categories" chartType="PIE" />
                 <MiniPie data={spendByCategory} height={150} />
-              </Card>
-            </>
-          )}
-        </div>
-
-        {/* MOVE */}
-        <div id="move">
-          <SectionHeader emoji="🏃" title="Move" />
-          {loading ? <Skeleton height={200} /> : (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <StatBox label="Total KM" value={`${totalKm.toFixed(1)}`} color="#4CAF50" />
-                <StatBox label="Move Streak" value={`${moveStreak}d`} color="#FF9800" />
-              </div>
-              <Card>
-                <CardHeader title="Distance Trend" chartType="LINE" />
-                <MiniLine data={kmByDay} color="#4CAF50" height={120} />
               </Card>
             </>
           )}

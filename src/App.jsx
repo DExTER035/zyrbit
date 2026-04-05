@@ -10,12 +10,12 @@ import AppLayout from './components/AppLayout.jsx'
 import Logo from './components/Logo.jsx'
 import InstallBanner from './components/InstallBanner.jsx'
 import GoalSetupScreen from './screens/GoalSetupScreen.jsx'
+import { BlackoutProvider } from './lib/BlackoutContext.jsx'
 
 const Orbit = lazy(() => import('./pages/Orbit.jsx'))
 const Journal = lazy(() => import('./pages/Journal.jsx'))
 const Stats = lazy(() => import('./pages/Stats.jsx'))
 const AICoach = lazy(() => import('./pages/AICoach.jsx'))
-const Community = lazy(() => import('./pages/Community.jsx'))
 const Profile = lazy(() => import('./pages/Profile.jsx'))
 const Challenge = lazy(() => import('./pages/Challenge.jsx'))
 
@@ -68,6 +68,7 @@ function ProtectedRoute({ children, onSignOut }) {
 
 function MainApp({ handleSignOut }) {
   return (
+    <BlackoutProvider>
     <BrowserRouter>
       <Routes>
         <Route path="/challenge" element={<ProtectedRoute onSignOut={handleSignOut}><Challenge /></ProtectedRoute>} />
@@ -75,12 +76,12 @@ function MainApp({ handleSignOut }) {
         <Route path="/journal" element={<ProtectedRoute onSignOut={handleSignOut}><Journal /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute onSignOut={handleSignOut}><Stats /></ProtectedRoute>} />
         <Route path="/coach" element={<ProtectedRoute onSignOut={handleSignOut}><AICoach /></ProtectedRoute>} />
-        <Route path="/community" element={<ProtectedRoute onSignOut={handleSignOut}><Community /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute onSignOut={handleSignOut}><Profile /></ProtectedRoute>} />
         <Route path="/" element={<Navigate to="/orbit" replace />} />
         <Route path="*" element={<Navigate to="/orbit" replace />} />
       </Routes>
     </BrowserRouter>
+    </BlackoutProvider>
   )
 }
 

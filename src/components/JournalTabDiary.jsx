@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabase'
 import { deriveKey, encryptText, decryptText, verifyPin, hashPin } from '../lib/diaryEncryption'
 import { earnZyrons } from '../lib/zyrons'
 import { showToast } from './Toast'
+import DailyPrompt from './DailyPrompt'
+import VoidJournalAi from './VoidJournalAi'
+import BrutalWeeklyReport from './BrutalWeeklyReport'
 
 // Utility for formatting dates consistently (YYYY-MM-DD local)
 const getLocalYMD = (dateObj = new Date()) => {
@@ -364,21 +367,19 @@ export default function JournalTabDiary({ user, navigate }) {
           </div>
         </div>
 
-        {/* Recent Entries */}
+        {/* BRUTAL WEEKLY REPORT */}
         <div style={{ padding: '0 16px' }}>
-          <div style={{ fontSize: 9, color: '#333', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10, fontWeight: 800 }}>RECENT ENTRIES</div>
-          {entries.slice(0, 7).map(e => (
-            <div key={e.entry_date} onClick={() => openEntry(e.entry_date)} style={{ background: '#0A0A12', borderLeft: `3px solid ${moodColors[e.mood||2]}`, borderRadius: '0 12px 12px 0', border: '1px solid #1A1A24', padding: '10px 12px', marginBottom: 6, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: moodColors[e.mood||2] }}>{new Date(e.entry_date).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'})}</div>
-                <div style={{ fontSize: 16 }}>{moodEmojis[e.mood||2]}</div>
-              </div>
-              <div style={{ fontSize: 12, color: e.is_locked ? '#444' : '#888', fontStyle: 'italic', filter: e.is_locked ? 'blur(3px)' : 'none' }}>
-                {e.is_locked ? 'Locked Encrypted Content' : (e.preview || 'No preview available')}
-              </div>
-            </div>
-          ))}
-          {entries.length === 0 && <div style={{ fontSize: 12, color: '#555566' }}>No entries found.</div>}
+          <BrutalWeeklyReport user={user} />
+        </div>
+
+        {/* VOID JOURNAL AI */}
+        <div style={{ padding: '0 16px' }}>
+          <VoidJournalAi user={user} />
+        </div>
+
+        {/* DAILY PROMPT SYSTEM (Replaces Recent Entries) */}
+        <div style={{ padding: '0 16px' }}>
+          <DailyPrompt user={user} onEntrySaved={() => loadCalendarData(encryptionKey)} />
         </div>
       </div>
     )
@@ -416,9 +417,9 @@ export default function JournalTabDiary({ user, navigate }) {
 
           <div style={{ fontSize: 9, color: '#333', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 800, marginBottom: 8 }}>DEAR DIARY...</div>
           
-          <textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} placeholder="Write freely. This is your space. Nobody else can read this..." 
-            style={{ width: '100%', minHeight: 400, border: 'none', background: 'transparent', color: '#AAAABC', fontFamily: '"Crimson Pro", Georgia, serif', fontSize: 16, lineHeight: 2, resize: 'none', outline: 'none', backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, #101018 31px, #101018 32px)', backgroundAttachment: 'local' }} 
-          />
+          <div style={{ fontSize: 12, color: '#666', fontStyle: 'italic', marginBottom: 16 }}>
+            (Manual typing has been moved to the Daily Prompt system on the main calendar page. You can still set Mood and Gratitude here.)
+          </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #1A1A24', paddingTop: 12, marginTop: 12 }}>
             <div style={{ fontSize: 10, color: '#333344', fontWeight: 700 }}>✍️ {wordCount} words · ~{Math.ceil(wordCount/200)} min read</div>
