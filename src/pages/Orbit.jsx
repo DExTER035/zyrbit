@@ -11,7 +11,7 @@ import HabitCard from '../components/HabitCard'
 import RankBanner from '../components/RankBanner'
 import { showToast } from '../components/Toast'
 import EnergyMap from '../components/EnergyMap'
-import Jarvis from '../components/Jarvis'
+import Detrox from '../components/Detrox'
 import StreakShield from '../components/StreakShield'
 import ShadowMode from '../components/ShadowMode'
 import AlterEgo from '../components/AlterEgo'
@@ -62,9 +62,6 @@ export default function Orbit() {
 
   // Weekly Review
   const [showWeeklyReview, setShowWeeklyReview] = useState(false)
-
-  // Share Card
-  const [showShareCard, setShowShareCard] = useState(false)
 
   // Form
   const [form, setForm] = useState({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' })
@@ -273,24 +270,6 @@ export default function Orbit() {
   const completionPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
 
   const saveReflection = async () => {
-    if (!user) return
-    try {
-      await supabase.from('diary_entries').insert({
-        user_id: user.id,
-        entry_date: today,
-        entry_type: 'reflection',
-        content: reflectionText || '(No response)',
-        prompt: reflectionQuestion,
-        mood: 'neutral'
-      })
-    } catch (_) { /* silent fail if column not found */ }
-    setShowReflection(false)
-    setTimeout(() => setShowCelebration(true), 300)
-  }
-
-  const generateShareCard = () => setShowShareCard(true)
-
-  const dismissWeeklyReview = () => {
     const now = new Date()
     const weekKey = `${now.getFullYear()}-W${Math.ceil(now.getDate() / 7)}`
     localStorage.setItem(`zyrbit_weekly_review_${weekKey}`, 'seen')
@@ -444,20 +423,8 @@ export default function Orbit() {
 
       <BottomNav activeTab="orbit" onTabChange={(t) => navigate(t === 'orbit' ? '/orbit' : `/${t}`)} />
 
-      {/* FAB + SHARE */}
+      {/* FAB */}
       <button className="fab" onClick={() => { setEditHabit(null); setForm({ name:'', zone:'mind', icon:'🌱', frequency:'daily', reminder_enabled: false, reminder_time: '' }); setShowModal(true); }}>+</button>
-      <button
-        onClick={generateShareCard}
-        style={{
-          position: 'fixed', bottom: 85, left: 20, zIndex: 40,
-          background: 'linear-gradient(135deg, #9C27B0, #00FFFF)',
-          border: 'none', borderRadius: '50px', padding: '10px 16px',
-          fontSize: '11px', fontWeight: 800, color: '#fff', cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(0,255,255,0.25)', letterSpacing: '0.5px'
-        }}
-      >
-        📸 Share
-      </button>
 
       {/* DAILY REFLECTION POPUP */}
       {showReflection && (
@@ -664,69 +631,8 @@ export default function Orbit() {
         </div>
       )}
 
-      {/* ANONYMOUS SHARE CARD MODAL */}
-      {showShareCard && (
-        <div className="modal-overlay" style={{ background: '#00000095', zIndex: 220, alignItems: 'center' }} onClick={() => setShowShareCard(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ maxWidth: '340px', width: '92%', animation: 'scaleIn 0.4s ease' }}>
-            {/* The shareable card itself */}
-            <div id="share-card" style={{
-              background: 'linear-gradient(135deg, #000005 0%, #0A0020 50%, #000010 100%)',
-              border: '1px solid #00FFFF20',
-              borderRadius: '28px', padding: '32px 28px', marginBottom: '16px',
-              textAlign: 'center', position: 'relative', overflow: 'hidden'
-            }}>
-              {/* bg glow */}
-              <div style={{ position: 'absolute', top: -40, left: '50%', transform: 'translateX(-50%)', width: 200, height: 200, background: 'radial-gradient(circle, #00FFFF08, transparent 70%)', borderRadius: '50%' }} />
-              <div style={{ fontSize: '36px', marginBottom: '8px' }}>🪐</div>
-              <div style={{ fontSize: '11px', fontWeight: 800, color: '#444', textTransform: 'uppercase', letterSpacing: 3, marginBottom: '16px' }}>ZYRBIT · ORBIT STATS</div>
-
-              <div style={{ fontSize: '72px', fontWeight: 900, color: '#FFF', letterSpacing: -3, lineHeight: 1, marginBottom: '4px' }}>{gravityScore}</div>
-              <div style={{ fontSize: '11px', color: 'var(--color-cyan)', fontWeight: 800, marginBottom: '24px' }}>GRAVITY SCORE</div>
-
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginBottom: '20px' }}>
-                <div>
-                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#FF9800' }}>🔥 {bestStreak}</div>
-                  <div style={{ fontSize: '9px', color: '#333', fontWeight: 700, textTransform: 'uppercase' }}>DAY STREAK</div>
-                </div>
-                <div style={{ width: 1, background: '#1A1A24' }} />
-                <div>
-                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#4CAF50' }}>{completionPct}%</div>
-                  <div style={{ fontSize: '9px', color: '#333', fontWeight: 700, textTransform: 'uppercase' }}>TODAY</div>
-                </div>
-                <div style={{ width: 1, background: '#1A1A24' }} />
-                <div>
-                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#9C27B0' }}>{doneCount}/{totalCount}</div>
-                  <div style={{ fontSize: '9px', color: '#333', fontWeight: 700, textTransform: 'uppercase' }}>HABITS</div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: '10px', color: '#222', fontWeight: 700, letterSpacing: 1 }}>zyrbit.app · stay in orbit</div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={() => {
-                  const text = `🪐 My Zyrbit Orbit Stats!\n⚡ Gravity Score: ${gravityScore}\n🔥 Streak: ${bestStreak} days\n✅ Today: ${completionPct}% complete\n\nBuilding better habits, one orbit at a time. 🚀`
-                  if (navigator.share) navigator.share({ text, title: 'My Zyrbit Stats' }).catch(() => {})
-                  else { navigator.clipboard.writeText(text); showToast('📋 Stats copied!', 'success') }
-                  setShowShareCard(false)
-                }}
-                style={{ flex: 1, background: 'linear-gradient(135deg, #9C27B0, #00FFFF)', color: '#fff', border: 'none', borderRadius: '14px', padding: '14px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
-              >
-                Share 📤
-              </button>
-              <button
-                onClick={() => setShowShareCard(false)}
-                style={{ flex: 1, background: '#111', color: '#666', border: '1px solid #1A1A24', borderRadius: '14px', padding: '14px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* JARVIS AI PLANNER */}
-      <Jarvis user={user} />
+      {/* DETROX AI PLANNER */}
+      <Detrox user={user} />
 
     </div>
   )

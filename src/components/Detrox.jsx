@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import supabase from '../lib/supabase'
 import { computeGravityScore } from '../lib/gravity'
 
-export default function Jarvis({ user }) {
+export default function Detrox({ user }) {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [contextData, setContextData] = useState(null)
@@ -89,7 +89,7 @@ export default function Jarvis({ user }) {
 
         // If no messages yet, auto-trigger first greeting
         if (messages.length === 0) {
-           handleSend("Hi Jarvis. Give me my brutally honest daily briefing based on my data. Keep it under 60 words.", ctx)
+           handleSend("Hi Detrox. Give me my brutally honest daily briefing based on my data. Keep it under 60 words.", ctx)
         }
 
       } catch (e) {
@@ -112,7 +112,7 @@ export default function Jarvis({ user }) {
     const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
     const useCtx = forcedContext || contextData
 
-    const sysPrompt = `You are Jarvis, the AI built into Zyrbit — a habit and life tracking app for Indian college students. You have full access to this student's data. 
+    const sysPrompt = `You are Detrox, the AI built into Zyrbit — a habit and life tracking app for Indian college students. You have full access to this student's data. 
 Context Data: ${JSON.stringify(useCtx)}
 
 You speak like a brutally honest, sharp senior who genuinely wants the student to win — not a motivational poster, not a corporate assistant. You use casual Indian English where natural. You reference their actual data in every response. You never give generic advice. If their data looks bad, you say so directly.
@@ -172,7 +172,7 @@ Keep responses under 120 words. Be specific, be real.`
             transition: 'all 0.5s ease', cursor: 'pointer'
           }}
         >
-          <span style={{ color: '#FFF', fontSize: 24, fontWeight: 900 }}>J</span>
+          <span style={{ color: '#FFF', fontSize: 24, fontWeight: 900 }}>D</span>
         </div>
       )}
 
@@ -188,7 +188,7 @@ Keep responses under 120 words. Be specific, be real.`
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderBottom: '1px solid #1a1a24' }}>
             <div>
-              <h2 style={{ color: '#7F77DD', fontSize: 24, fontWeight: 900, margin: 0, letterSpacing: -1 }}>Jarvis</h2>
+              <h2 style={{ color: '#7F77DD', fontSize: 24, fontWeight: 900, margin: 0, letterSpacing: -1 }}>Detrox</h2>
               <div style={{ fontSize: 11, color: '#666', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5 }}>AI Planner</div>
             </div>
             <button onClick={() => { setIsOpen(false); setMessages([]) }} style={{ background: 'transparent', border: 'none', color: '#666', fontSize: 24, cursor: 'pointer' }}>✕</button>
@@ -209,7 +209,7 @@ Keep responses under 120 words. Be specific, be real.`
             ))}
             {isLoading && (
               <div style={{ alignSelf: 'flex-start', color: '#7F77DD', fontSize: 12, fontWeight: 700, padding: 8 }}>
-                Jarvis is analyzing...
+                Detrox is analyzing...
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -222,7 +222,7 @@ Keep responses under 120 words. Be specific, be real.`
               value={inputVal}
               onChange={e => setInputVal(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSend()}
-              placeholder="Ask Jarvis anything..."
+              placeholder="Ask Detrox anything..."
               style={{ flex: 1, background: '#141418', border: '1px solid #1e1e24', borderRadius: 100, padding: '12px 20px', color: '#FFF', fontSize: 14, outline: 'none' }}
               disabled={isLoading}
             />
