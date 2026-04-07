@@ -59,7 +59,7 @@ export default function PhantomSelf({ user }) {
       }
     }
     fetchHistory()
-  }, [user, habits])
+  }, [user])
 
   if (loading) return <div className="skeleton" style={{ height: 180, borderRadius: 20, marginBottom: 24 }} />
   if (!hasHabits) return null
