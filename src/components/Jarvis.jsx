@@ -164,7 +164,7 @@ Keep responses under 120 words. Be specific, be real.`
         <div 
           onClick={() => setIsOpen(true)}
           style={{
-            position: 'fixed', bottom: 90, right: 20, zIndex: 100,
+            position: 'fixed', bottom: 155, right: 20, zIndex: 100,
             width: 56, height: 56, borderRadius: '50%',
             background: '#7F77DD', display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: pulse ? '0 0 20px #7F77DD80' : '0 4px 12px rgba(0,0,0,0.5)',

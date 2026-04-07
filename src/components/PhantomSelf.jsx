@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-export default function PhantomSelf({ user, habits = [] }) {
+export default function PhantomSelf({ user }) {
   const [loading, setLoading] = useState(true)
   const [history, setHistory] = useState([])
   const [recentAvg, setRecentAvg] = useState(0)
+  const [hasHabits, setHasHabits] = useState(true)
 
   useEffect(() => {
-    if (!user || habits.length === 0) return
+    if (!user) return
 
     const fetchHistory = async () => {
       try {
@@ -20,6 +21,14 @@ export default function PhantomSelf({ user, habits = [] }) {
           .select('completed_date, status, habit_id')
           .eq('user_id', user.id)
           .gte('completed_date', thirtyDaysAgo)
+
+        const { data: habitsData } = await supabase.from('habits').select('id').eq('user_id', user.id)
+        const totalHabits = habitsData ? habitsData.length : 0
+        if (totalHabits === 0) {
+          setHasHabits(false)
+          setLoading(false)
+          return
+        }
 
         if (!error && data) {
           // Map last 30 days
@@ -34,9 +43,7 @@ export default function PhantomSelf({ user, habits = [] }) {
             const logsForDay = data.filter(l => l.completed_date === dt)
             const completedCount = logsForDay.filter(l => l.status === 'completed').length
             
-            // Assume the user had the same number of habits available, or use current total
-            const totalHabits = habits.length
-            const pct = totalHabits > 0 ? (completedCount / totalHabits) * 100 : 0
+            const pct = (completedCount / totalHabits) * 100
             
             runningSum += pct
             return { date: dt, pct }
@@ -55,6 +62,7 @@ export default function PhantomSelf({ user, habits = [] }) {
   }, [user, habits])
 
   if (loading) return <div className="skeleton" style={{ height: 180, borderRadius: 20, marginBottom: 24 }} />
+  if (!hasHabits) return null
 
   const validDays = history.filter(h => h.pct > 0).length
   if (validDays < 7) {

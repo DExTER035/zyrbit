@@ -9,6 +9,7 @@ export default function BottomNav({ activeTab, onTabChange }) {
   const tabs = [
     { id: 'orbit', icon: '🪐', label: 'ORBIT' },
     { id: 'journal', icon: '🌌', label: 'JOURNAL' },
+    { id: 'study', icon: '📚', label: 'STUDY' },
     { id: 'stats', icon: '📊', label: 'STATS' }
   ]
 
@@ -28,11 +29,10 @@ export default function BottomNav({ activeTab, onTabChange }) {
     }}>
       {tabs.map((tab, index) => {
         const isActive = activeTab === tab.id
-        // In blackout, only study (journal tab) is accessible
-        const isLocked = isBlackout && tab.id !== 'journal'
+        // In blackout, only study tab is accessible
+        const isLocked = isBlackout && tab.id !== 'study'
         return (
           <React.Fragment key={tab.id}>
-            {index === 2 && <div style={{ flex: 0.5, pointerEvents: 'none' }} />}
             <div
               onClick={() => {
                 if (isLocked) {

@@ -12,7 +12,6 @@ import RankBanner from '../components/RankBanner'
 import { showToast } from '../components/Toast'
 import EnergyMap from '../components/EnergyMap'
 import Jarvis from '../components/Jarvis'
-import PhantomSelf from '../components/PhantomSelf'
 import StreakShield from '../components/StreakShield'
 import ShadowMode from '../components/ShadowMode'
 import AlterEgo from '../components/AlterEgo'
@@ -402,9 +401,6 @@ export default function Orbit() {
             <div style={{ marginBottom: 32 }}>
                <ZoneTab active={activeZone} onChange={setActiveZone} />
             </div>
-
-            {/* PHANTOM SELF (Elite Feature) */}
-            <PhantomSelf user={user} habits={habits} />
             
             {/* SHADOW MODE (Elite Feature) */}
             <ShadowMode user={user} />
@@ -453,7 +449,7 @@ export default function Orbit() {
       <button
         onClick={generateShareCard}
         style={{
-          position: 'fixed', bottom: 100, right: 20, zIndex: 40,
+          position: 'fixed', bottom: 85, left: 20, zIndex: 40,
           background: 'linear-gradient(135deg, #9C27B0, #00FFFF)',
           border: 'none', borderRadius: '50px', padding: '10px 16px',
           fontSize: '11px', fontWeight: 800, color: '#fff', cursor: 'pointer',

@@ -14,6 +14,7 @@ import { BlackoutProvider } from './lib/BlackoutContext.jsx'
 
 const Orbit = lazy(() => import('./pages/Orbit.jsx'))
 const Journal = lazy(() => import('./pages/Journal.jsx'))
+const Study = lazy(() => import('./pages/Study.jsx'))
 const Stats = lazy(() => import('./pages/Stats.jsx'))
 const AICoach = lazy(() => import('./pages/AICoach.jsx'))
 const Profile = lazy(() => import('./pages/Profile.jsx'))
@@ -74,6 +75,7 @@ function MainApp({ handleSignOut }) {
         <Route path="/challenge" element={<ProtectedRoute onSignOut={handleSignOut}><Challenge /></ProtectedRoute>} />
         <Route path="/orbit" element={<ProtectedRoute onSignOut={handleSignOut}><Orbit /></ProtectedRoute>} />
         <Route path="/journal" element={<ProtectedRoute onSignOut={handleSignOut}><Journal /></ProtectedRoute>} />
+        <Route path="/study" element={<ProtectedRoute onSignOut={handleSignOut}><Study /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute onSignOut={handleSignOut}><Stats /></ProtectedRoute>} />
         <Route path="/coach" element={<ProtectedRoute onSignOut={handleSignOut}><AICoach /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute onSignOut={handleSignOut}><Profile /></ProtectedRoute>} />

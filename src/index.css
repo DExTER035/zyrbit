@@ -95,9 +95,8 @@ html, body, #root {
 /* Floating Action Button */
 .fab {
   position: fixed;
-  bottom: 18px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 85px;
+  right: 20px;
   width: 56px;
   height: 56px;
   min-width: 56px;
@@ -118,7 +117,7 @@ html, body, #root {
   line-height: 1;
 }
 .fab:active {
-  transform: translateX(-50%) scale(0.92);
+  transform: scale(0.92);
   box-shadow: 0 2px 12px rgba(0, 255, 255, 0.3);
 }
 
@@ -162,7 +161,7 @@ html, body, #root {
   }
 }
 .page-content {
-  padding-bottom: 90px;
+  padding-bottom: 220px;
 }
 .offline-banner {
   background: var(--color-zone-growth);
