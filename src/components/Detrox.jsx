@@ -109,7 +109,7 @@ export default function Detrox({ user }) {
     }
     setIsLoading(true)
 
-    const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
+    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
     const useCtx = forcedContext || contextData
 
     const sysPrompt = `You are Detrox, the AI built into Zyrbit — a habit and life tracking app for Indian college students. You have full access to this student's data. 
@@ -118,36 +118,32 @@ Context Data: ${JSON.stringify(useCtx)}
 You speak like a brutally honest, sharp senior who genuinely wants the student to win — not a motivational poster, not a corporate assistant. You use casual Indian English where natural. You reference their actual data in every response. You never give generic advice. If their data looks bad, you say so directly.
 Keep responses under 120 words. Be specific, be real.`
 
-    const apiMessages = customPrompt 
-        ? [{ role: 'user', content: customPrompt }]
-        : [...messages, { role: 'user', content: textToSend }].map(m => ({ role: m.role, content: m.content }))
+    // Map history to Gemini format
+    const contents = customPrompt 
+        ? [{ role: 'user', parts: [{ text: customPrompt }] }]
+        : [...messages, { role: 'user', content: textToSend }].map(m => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.content }]
+          }))
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerously-allow-browser': 'true'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 300,
-          system: sysPrompt,
-          messages: apiMessages,
-          stream: false // Using full response for stability, can switch to streaming if needed
+          contents: contents,
+          system_instruction: { parts: [{ text: sysPrompt }] }
         })
       })
 
       if (!response.ok) {
         const errBlock = await response.json()
-        console.error("Anthropic error:", errBlock)
-        setMessages(prev => [...prev, { role: 'assistant', content: `[System Error: Unable to reach Anthropic API. Confirm keys and CORS settings.]` }])
+        console.error("Gemini error:", errBlock)
+        setMessages(prev => [...prev, { role: 'assistant', content: `[System Error: Unable to reach Gemini API. Confirm keys and project settings.]` }])
       } else {
         const data = await response.json()
-        const textObj = data.content.find(c => c.type === 'text')
-        setMessages(prev => [...prev, { role: 'assistant', content: textObj.text }])
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "[No response from AI]"
+        setMessages(prev => [...prev, { role: 'assistant', content: text }])
       }
     } catch (e) {
       console.error(e)
@@ -163,6 +159,7 @@ Keep responses under 120 words. Be specific, be real.`
       {!isOpen && (
         <div 
           onClick={() => setIsOpen(true)}
+          className="animate-detroxPulse"
           style={{
             position: 'fixed', bottom: 155, right: 20, zIndex: 100,
             width: 56, height: 56, borderRadius: '50%',
