@@ -589,6 +589,58 @@ export default function Stats() {
         </div>
       </div>
 
+      {/* SMART INSIGHT CHIPS */}
+      {!loading && (() => {
+        const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+        // Best performing day
+        const dayTotals = [0,0,0,0,0,0,0]
+        activityLog.filter(l => l.status === 'completed').forEach(l => {
+          if (l.completed_date) dayTotals[new Date(l.completed_date).getDay()]++
+        })
+        const bestDayIdx = dayTotals.indexOf(Math.max(...dayTotals))
+        const bestDay = dayTotals[bestDayIdx] > 0 ? DAY_NAMES[bestDayIdx] : null
+
+        // Streak drop pattern — find avg streak length from user_streaks
+        const avgStreak = userStreaks.length > 0
+          ? Math.round(userStreaks.reduce((s, r) => s + (r.longest_streak || 0), 0) / userStreaks.length)
+          : null
+
+        // Weakest zone
+        const zoneCounts = { mind: 0, body: 0, growth: 0, soul: 0 }
+        activityLog.filter(l => l.status === 'completed').forEach(l => {
+          const h = habits.find(hb => hb.id === l.habit_id)
+          if (h?.zone && zoneCounts[h.zone] !== undefined) zoneCounts[h.zone]++
+        })
+        const zoneEntries = Object.entries(zoneCounts).filter(([, v]) => v >= 0)
+        const weakestZone = zoneEntries.length > 0
+          ? zoneEntries.sort((a, b) => a[1] - b[1])[0][0]
+          : null
+
+        const chips = [
+          bestDay && { icon: '🔥', text: `Best day: ${bestDay}`, color: '#FF9800' },
+          avgStreak && avgStreak < 7 && { icon: '⚠️', text: `Streak typically drops after ${avgStreak} days`, color: '#EF4444' },
+          weakestZone && { icon: '📉', text: `Weakest zone: ${weakestZone.charAt(0).toUpperCase() + weakestZone.slice(1)}`, color: '#9C27B0' },
+        ].filter(Boolean)
+
+        if (chips.length === 0) return null
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 40 }}>
+            <div style={{ fontSize: 10, color: '#333', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 4 }}>PATTERN INTEL</div>
+            {chips.map((chip, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                background: '#0A0A12', border: `1px solid ${chip.color}20`,
+                borderRadius: 14, padding: '12px 16px'
+              }}>
+                <span style={{ fontSize: 16 }}>{chip.icon}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: chip.color }}>{chip.text}</span>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       {/* SECTIONS */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
         

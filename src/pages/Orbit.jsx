@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { computeGravityScore } from '../lib/gravity'
+import { earnZyrons, getWallet } from '../lib/zyrons'
+import { getRankByZyrons } from '../lib/ranks'
 
 import Logo from '../components/Logo'
 import BottomNav from '../components/BottomNav'
@@ -55,6 +57,10 @@ export default function Orbit() {
   const [celebrationShown, setCelebrationShown] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
 
+  // Zyrons
+  const [wallet, setWallet] = useState(null)
+  const [xpPopup, setXpPopup] = useState(null) // { amount, label }
+
   // Reflection
   const [showReflection, setShowReflection] = useState(false)
   const [reflectionText, setReflectionText] = useState('')
@@ -67,6 +73,12 @@ export default function Orbit() {
   const [form, setForm] = useState({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' })
 
   const today = new Date().toLocaleDateString('en-CA')
+
+  // Show floating XP popup then auto-dismiss
+  const triggerXpPopup = (amount, label) => {
+    setXpPopup({ amount, label })
+    setTimeout(() => setXpPopup(null), 2000)
+  }
 
   useEffect(() => {
     let authListener
@@ -116,6 +128,12 @@ export default function Orbit() {
       if (hData) setHabits(hData)
       if (aData) setActivity(aData)
 
+      // Load wallet for Zyrons display
+      try {
+        const w = await getWallet(userId)
+        if (w) setWallet(w)
+      } catch (_) {}
+
       if (sData) {
         const smap = {}
         sData.forEach(s => smap[s.habit_id] = s.current_streak)
@@ -160,12 +178,19 @@ export default function Orbit() {
   const getHabitLogs = (habitId) => activity.filter(log => log.habit_id === habitId)
 
   const checkAllDone = async (optimisticActivity) => {
+    const currentUser = userRef.current
     const currentCompleted = new Set(optimisticActivity.filter(l => l.completed_date === today && l.status === 'completed').map(l => l.habit_id))
     const allDone = habits.every(h => currentCompleted.has(h.id))
     
     if (allDone && habits.length > 0 && !celebrationShown) {
       setCelebrationShown(true)
       localStorage.setItem('zyrbit_celebration_date', today)
+      // Bonus Zyrons for perfect day
+      if (currentUser) {
+        const updatedWallet = await earnZyrons(currentUser.id, 50, 'Perfect Day — all habits done!', 'habits')
+        if (updatedWallet) setWallet(updatedWallet)
+        triggerXpPopup(50, '+50 ⚡ Perfect Day!')
+      }
       // Show reflection first, then celebration
       const q = REFLECTION_QUESTIONS[Math.floor(Math.random() * REFLECTION_QUESTIONS.length)]
       setReflectionQuestion(q)
@@ -192,6 +217,10 @@ export default function Orbit() {
 
       if (!error) {
         showToast('✅ Habit logged!', 'success')
+        // Award Zyrons
+        const updatedWallet = await earnZyrons(currentUser.id, 10, `Completed: ${habit.name}`, 'habits')
+        if (updatedWallet) setWallet(updatedWallet)
+        triggerXpPopup(10, '+10 ⚡')
         checkAllDone(nextActivity)
         await loadAll(currentUser.id)
       } else {
@@ -294,18 +323,48 @@ export default function Orbit() {
       {rankBanner && <RankBanner rank={rankBanner} onDone={() => setRankBanner(null)} />}
       <StreakShield user={user} habits={habits} activity={activity} streaks={streaks} />
 
+      {/* XP POPUP */}
+      {xpPopup && (
+        <div style={{
+          position: 'fixed', bottom: 170, right: 24, zIndex: 9999,
+          background: '#1a1a1a', border: '1px solid #7F77DD60',
+          borderRadius: 100, padding: '8px 18px',
+          fontSize: 13, fontWeight: 900, color: '#7F77DD',
+          boxShadow: '0 0 20px #7F77DD30',
+          animation: 'fadeUp 0.3s ease both',
+          pointerEvents: 'none'
+        }}>
+          {xpPopup.label}
+        </div>
+      )}
+
       <div className="page-content" style={{ padding: '24px 20px 100px' }}>
         
-        {/* HEADER SECTION (Avatars Only) */}
+        {/* HEADER SECTION — Zyrons Rank Pill */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 40 }}>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div onClick={() => navigate('/profile')} style={{ width: 44, height: 44, borderRadius: '50%', background: '#111', border: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-               <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-cyan)', boxShadow: '0 0 10px var(--color-cyan)' }} />
-            </div>
-            <div onClick={() => navigate('/profile')} style={{ width: 44, height: 44, borderRadius: '50%', background: '#111', border: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-               <div style={{ width: 6, height: 16, background: 'var(--color-orange)', borderRadius: 100, boxShadow: '0 0 10px var(--color-orange)' }} />
-            </div>
-          </div>
+          {(() => {
+            const rankInfo = wallet ? getRankByZyrons(wallet.total_earned || 0) : null
+            const balance = wallet?.balance || 0
+            return (
+              <div
+                onClick={() => navigate('/profile')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: '#111', border: '1px solid #1e1e24',
+                  borderRadius: 100, padding: '8px 14px', cursor: 'pointer',
+                  transition: 'border-color 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = '#7F77DD50'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = '#1e1e24'}
+              >
+                <span style={{ fontSize: 14 }}>{rankInfo?.icon || '⚡'}</span>
+                <span style={{ fontSize: 12, fontWeight: 900, color: '#FFF' }}>{balance.toLocaleString()}</span>
+                <span style={{ fontSize: 9, color: '#444', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  {rankInfo?.name || 'Orbiter'}
+                </span>
+              </div>
+            )
+          })()}
         </div>
 
         {/* GRAVITY SCORE SECTION */}
