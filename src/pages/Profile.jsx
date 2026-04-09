@@ -256,6 +256,31 @@ export default function Profile() {
             })}
           </div>
 
+          <div style={{ background: '#0A0A12', border: '1px solid #1A1A24', borderRadius: 24, padding: 24, marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 14, color: '#FFF', fontWeight: 900, marginBottom: 4 }}>Ayanokoji Mode</div>
+              <div style={{ fontSize: 11, color: '#666', fontWeight: 600 }}>Cold discipline UI. No distractions.</div>
+            </div>
+            <button
+              onClick={() => {
+                const current = localStorage.getItem('ayanokoji_mode') === 'true'
+                localStorage.setItem('ayanokoji_mode', (!current).toString())
+                window.location.reload()
+              }}
+              style={{
+                width: 50, height: 28, borderRadius: 100, border: 'none', cursor: 'pointer',
+                background: localStorage.getItem('ayanokoji_mode') === 'true' ? '#FFF' : '#2A2A38',
+                position: 'relative', transition: 'background 0.3s'
+              }}
+            >
+              <div style={{
+                position: 'absolute', top: 3, left: localStorage.getItem('ayanokoji_mode') === 'true' ? 25 : 3,
+                width: 22, height: 22, borderRadius: '50%', background: localStorage.getItem('ayanokoji_mode') === 'true' ? '#000' : '#888',
+                transition: 'all 0.3s'
+              }} />
+            </button>
+          </div>
+
           {isInstallable && (
             <button onClick={promptInstall} style={{ width: '100%', padding: '16px', borderRadius: 16, background: '#FFF', border: 'none', color: '#000', fontWeight: 900, fontSize: 13, cursor: 'pointer', marginBottom: 12 }}>
               ⬇️ INSTALL APP

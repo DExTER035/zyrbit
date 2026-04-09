@@ -447,29 +447,40 @@ export default function Orbit() {
             <AlterEgo user={user} gravityScore={gravityScore} />
 
             {/* HABITS LIST */}
-            <h3 style={{ fontSize: 11, color: 'var(--color-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 20 }}>TODAY'S HABITS</h3>
+            {localStorage.getItem('ayanokoji_mode') === 'true' ? (
+              <div style={{ textAlign: 'center', marginBottom: 24, padding: 10, borderBottom: '1px solid #222' }}>
+                <span style={{ fontSize: 13, color: '#FFF', fontWeight: 900, letterSpacing: 1, textTransform: 'uppercase' }}>"Emotion is weakness. Execute."</span>
+              </div>
+            ) : (
+              <h3 style={{ fontSize: 11, color: 'var(--color-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 20 }}>TODAY'S HABITS</h3>
+            )}
 
             {filteredHabits.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--color-muted)' }}>
-                <div style={{ fontSize: '40px', marginBottom: '12px' }}>🌱</div>
-                <p style={{ fontSize: '13px' }}>No habits in this orbit yet.<br/>Tap + to begin tracking.</p>
+                {localStorage.getItem('ayanokoji_mode') === 'true' ? null : <div style={{ fontSize: '40px', marginBottom: '12px' }}>🌱</div>}
+                <p style={{ fontSize: '13px' }}>No targets in this cycle.<br/>Initialize sequence.</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {filteredHabits.map(habit => {
+                {filteredHabits.map((habit, index) => {
                   const done = completedToday.has(habit.id)
+                  const ayano = localStorage.getItem('ayanokoji_mode') === 'true'
+                  const displayHabit = ayano ? { ...habit, icon: '', name: `TASK 0${index + 1}` } : habit
                   return (
-                    <div key={habit.id} style={{ opacity: done ? 0.62 : 1, transition: 'opacity 0.3s' }}>
+                    <div key={habit.id} style={{
+                      opacity: done ? (ayano ? 0.3 : 0.62) : 1, transition: 'opacity 0.3s',
+                      filter: ayano && !done ? 'grayscale(100%) brightness(1.2)' : 'none'
+                    }}>
                       <HabitCard
-                        habit={habit}
+                        habit={displayHabit}
                         logs={getHabitLogs(habit.id)}
                         streak={streaks[habit.id] || 0}
                         isCompleted={done}
-                        onToggle={handleToggle}
+                        onToggle={(h) => handleToggle(habit)} // Pass original habit ID logic
                         onLongPress={setSkipTarget}
-                        onDelete={deleteHabit}
+                        onDelete={(h) => deleteHabit(habit)} // Pass original habit
                         onStats={() => showToast('Stats view coming soon!', 'info')}
-                        onEdit={h => { setEditHabit(h); setForm({ name: h.name, zone: h.zone, icon: h.icon||'🌱', frequency: h.frequency||'daily', reminder_enabled: h.reminder_enabled||false, reminder_time: h.reminder_time||'' }); setShowModal(true) }}
+                        onEdit={(h) => { setEditHabit(habit); setForm({ name: habit.name, zone: habit.zone, icon: habit.icon||'🌱', frequency: habit.frequency||'daily', reminder_enabled: habit.reminder_enabled||false, reminder_time: habit.reminder_time||'' }); setShowModal(true) }}
                       />
                     </div>
                   )
