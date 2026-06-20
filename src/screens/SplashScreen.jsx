@@ -18,7 +18,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: '#000',
+      position: 'fixed', inset: 0, background: '#020204',
       overflow: 'hidden', zIndex: 9999,
       fontFamily: "'Inter', system-ui, sans-serif",
     }}>
@@ -95,15 +95,15 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
         </div>
 
         {/* Wordmark */}
-        <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
-          <span style={{ color: '#fff' }}>Zyr</span>
+        <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
+          <span style={{ color: '#F0F0FA' }}>Zyr</span>
           <span style={{ color: '#00f5d4' }}>bit</span>
         </div>
 
         {/* Tagline */}
         <div style={{
-          fontSize: 7, letterSpacing: '3px', textTransform: 'uppercase',
-          color: 'rgba(0,245,212,0.35)', fontWeight: 600,
+          fontSize: 8, letterSpacing: '3.5px', textTransform: 'uppercase',
+          color: 'rgba(0,245,212,0.4)', fontWeight: 700,
           textAlign: 'center', whiteSpace: 'nowrap',
         }}>
           BUILD HABITS THAT BREAK GRAVITY
@@ -116,25 +116,25 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
         display: 'flex', flexDirection: 'column', gap: 10, zIndex: 2,
       }}>
         <button onClick={onGetStarted} style={{
-          width: '100%', background: '#00f5d4', color: '#000',
-          border: 'none', borderRadius: 14, padding: '14px',
+          width: '100%', background: 'linear-gradient(135deg, #00f5d4, #00c4a8)', color: '#000',
+          border: 'none', borderRadius: 16, padding: '16px',
           fontSize: 14, fontWeight: 800, letterSpacing: '2px', cursor: 'pointer',
-          boxShadow: '0 0 40px rgba(0,245,212,0.4), 0 8px 24px rgba(0,245,212,0.22)',
-          transition: 'transform 0.15s, box-shadow 0.15s',
+          boxShadow: '0 0 40px rgba(0,245,212,0.35), 0 8px 32px rgba(0,245,212,0.2)',
+          transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s',
           fontFamily: 'inherit',
         }}
-          onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+          onMouseDown={e => e.currentTarget.style.transform = 'scale(0.96)'}
           onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-          onTouchStart={e => e.currentTarget.style.transform = 'scale(0.97)'}
+          onTouchStart={e => e.currentTarget.style.transform = 'scale(0.96)'}
           onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
         >
           🚀 GET STARTED
         </button>
         <button onClick={onLogin} style={{
-          width: '100%', background: 'transparent', color: '#fff',
-          border: '1.5px solid #1e1e1e', borderRadius: 14, padding: '13px',
-          fontSize: 11, fontWeight: 700, cursor: 'pointer',
-          transition: 'border-color 0.2s',
+          width: '100%', background: 'rgba(255,255,255,0.03)', color: '#9292AA',
+          border: '1.5px solid #1A1A2A', borderRadius: 16, padding: '14px',
+          fontSize: 12, fontWeight: 700, cursor: 'pointer',
+          transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
           fontFamily: 'inherit',
         }}>
           I already have an account

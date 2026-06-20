@@ -111,8 +111,8 @@ export default function GoalSetupScreen({ onComplete, userId }) {
 
   return (
     <div style={{
-      minHeight: '100vh', background: 'linear-gradient(180deg, #000 0%, #05050F 100%)',
-      display: 'flex', flexDirection: 'column', padding: '0 20px 40px', color: '#FFF',
+      minHeight: '100vh', background: 'linear-gradient(180deg, #020204 0%, #080812 100%)',
+      display: 'flex', flexDirection: 'column', padding: '0 20px 40px', color: 'var(--text-primary)',
       fontFamily: 'inherit'
     }}>
       {/* Header */}
@@ -123,7 +123,7 @@ export default function GoalSetupScreen({ onComplete, userId }) {
             <h1 style={{ fontSize: 26, fontWeight: 900, letterSpacing: -0.5, marginBottom: 8 }}>
               What's your main goal?
             </h1>
-            <p style={{ fontSize: 13, color: '#444', fontWeight: 600 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>
               We'll suggest a starter habit pack just for you
             </p>
           </>
@@ -133,7 +133,7 @@ export default function GoalSetupScreen({ onComplete, userId }) {
             <h1 style={{ fontSize: 22, fontWeight: 900, letterSpacing: -0.5, marginBottom: 6 }}>
               {goal.label}
             </h1>
-            <p style={{ fontSize: 13, color: '#444', fontWeight: 600 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>
               Your 5-habit starter pack
             </p>
           </>
@@ -148,11 +148,23 @@ export default function GoalSetupScreen({ onComplete, userId }) {
                 key={g.id}
                 onClick={() => { setSelected(g.id); setStep('pack') }}
                 style={{
-                  background: selected === g.id ? `${g.color}12` : '#0A0A12',
-                  border: `1px solid ${selected === g.id ? g.color + '40' : '#1A1A24'}`,
+                  background: selected === g.id ? `${g.color}15` : 'var(--bg-card)',
+                  border: `1px solid ${selected === g.id ? g.color + '60' : 'var(--border-primary)'}`,
                   borderRadius: 20, padding: '18px 20px',
                   display: 'flex', alignItems: 'center', gap: 16,
                   cursor: 'pointer', transition: 'all 0.2s',
+                }}
+                onMouseOver={e => {
+                  if (selected !== g.id) {
+                    e.currentTarget.style.borderColor = 'var(--border-secondary)';
+                    e.currentTarget.style.background = 'var(--bg-elevated)';
+                  }
+                }}
+                onMouseOut={e => {
+                  if (selected !== g.id) {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.background = 'var(--bg-card)';
+                  }
                 }}
               >
                 <div style={{
@@ -162,10 +174,10 @@ export default function GoalSetupScreen({ onComplete, userId }) {
                   fontSize: 22, flexShrink: 0
                 }}>{g.icon}</div>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#FFF', marginBottom: 3 }}>{g.label}</div>
-                  <div style={{ fontSize: 12, color: '#444', fontWeight: 600 }}>{g.desc}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 3 }}>{g.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>{g.desc}</div>
                 </div>
-                <div style={{ marginLeft: 'auto', color: '#333', fontSize: 18 }}>›</div>
+                <div style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 18 }}>›</div>
               </div>
             ))}
           </div>
@@ -173,7 +185,7 @@ export default function GoalSetupScreen({ onComplete, userId }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {goal.habits.map((h, i) => (
               <div key={i} style={{
-                background: '#0A0A12', border: `1px solid ${ZONE_COLORS[h.zone]}25`,
+                background: 'var(--bg-card)', border: `1px solid ${ZONE_COLORS[h.zone]}25`,
                 borderLeft: `3px solid ${ZONE_COLORS[h.zone]}`,
                 borderRadius: 16, padding: '14px 16px',
                 display: 'flex', alignItems: 'center', gap: 14,
@@ -186,7 +198,7 @@ export default function GoalSetupScreen({ onComplete, userId }) {
                   fontSize: 18, flexShrink: 0
                 }}>{h.icon}</div>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#FFF' }}>{h.name}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{h.name}</div>
                   <div style={{ fontSize: 10, fontWeight: 800, color: ZONE_COLORS[h.zone], textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>{h.zone}</div>
                 </div>
               </div>
@@ -203,17 +215,18 @@ export default function GoalSetupScreen({ onComplete, userId }) {
               onClick={addAllHabits}
               disabled={adding}
               style={{
-                background: goal?.color || 'var(--color-cyan)',
+                background: 'linear-gradient(135deg, #00f5d4, #00c4a8)',
                 color: '#000', border: 'none', borderRadius: 16, padding: '16px',
                 fontSize: 15, fontWeight: 900, cursor: 'pointer',
-                opacity: adding ? 0.7 : 1, transition: 'opacity 0.2s'
+                opacity: adding ? 0.7 : 1, transition: 'all 0.2s',
+                boxShadow: '0 0 32px rgba(0,245,212,0.35)'
               }}
             >
               {adding ? 'Adding Habits...' : `Add All 5 Habits ✓`}
             </button>
             <button
               onClick={() => setStep('pick')}
-              style={{ background: 'transparent', color: '#444', border: 'none', fontSize: 13, cursor: 'pointer', padding: '8px' }}
+              style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', fontSize: 13, cursor: 'pointer', padding: '8px', fontWeight: 600 }}
             >
               ← Change Goal
             </button>
@@ -221,7 +234,7 @@ export default function GoalSetupScreen({ onComplete, userId }) {
         ) : (
           <button
             onClick={onComplete}
-            style={{ background: 'transparent', color: '#333', border: '1px solid #1A1A24', borderRadius: 16, padding: '14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            style={{ background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border-primary)', borderRadius: 16, padding: '14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
             Skip for now
           </button>

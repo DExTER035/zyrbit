@@ -6,6 +6,7 @@ import { showToast } from './Toast'
 import DailyPrompt from './DailyPrompt'
 import VoidJournalAi from './VoidJournalAi'
 import BrutalWeeklyReport from './BrutalWeeklyReport'
+import useSubscription from '../hooks/useSubscription.js'
 
 // Utility for formatting dates consistently (YYYY-MM-DD local)
 const getLocalYMD = (dateObj = new Date()) => {
@@ -14,6 +15,7 @@ const getLocalYMD = (dateObj = new Date()) => {
 }
 
 export default function JournalTabDiary({ user, navigate }) {
+  const { isPremium, triggerPaywall } = useSubscription()
   const [diaryView, setDiaryView] = useState('lock') // lock, calendar, entry
   const [entries, setEntries] = useState([])
   const [encryptionKey, setEncryptionKey] = useState(null)
@@ -423,7 +425,13 @@ export default function JournalTabDiary({ user, navigate }) {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #1A1A24', paddingTop: 12, marginTop: 12 }}>
             <div style={{ fontSize: 10, color: '#333344', fontWeight: 700 }}>✍️ {wordCount} words · ~{Math.ceil(wordCount/200)} min read</div>
-            <button onClick={() => setIsLocked(!isLocked)} style={{ background: 'transparent', border: 'none', color: isLocked ? '#4CAF50' : '#555566', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <button onClick={() => {
+              if (!isPremium) {
+                triggerPaywall('Upgrade to Premium to lock and encrypt individual diary entries.');
+                return;
+              }
+              setIsLocked(!isLocked);
+            }} style={{ background: 'transparent', border: 'none', color: isLocked ? '#4CAF50' : '#555566', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               {isLocked ? '🔒 Locked' : '🔓 Unlocked'}
             </button>
           </div>
@@ -474,9 +482,34 @@ export default function JournalTabDiary({ user, navigate }) {
             🔒 Not even the developer can read this.
           </div>
 
-          <textarea value={secretNotes} onChange={e => setSecretNotes(e.target.value)} placeholder="Passwords, secrets, private thoughts..." style={{ width: '100%', height: 100, background: '#0A0A14', border: '1px solid #1A1A24', borderRadius: 12, color: '#E8E8F0', padding: 12, fontSize: 13, resize: 'none', outline: 'none', marginBottom: 12 }} />
+          <textarea 
+            value={secretNotes} 
+            onChange={e => {
+              if (!isPremium) {
+                triggerPaywall('Upgrade to Premium to write and encrypt notes in the Secret Vault.');
+                return;
+              }
+              setSecretNotes(e.target.value);
+            }} 
+            onFocus={() => {
+              if (!isPremium) {
+                triggerPaywall('Upgrade to Premium to write and encrypt notes in the Secret Vault.');
+              }
+            }}
+            placeholder={isPremium ? "Passwords, secrets, private thoughts..." : "🔒 Secret Vault (Premium feature)"} 
+            style={{ width: '100%', height: 100, background: '#0A0A14', border: '1px solid #1A1A24', borderRadius: 12, color: '#E8E8F0', padding: 12, fontSize: 13, resize: 'none', outline: 'none', marginBottom: 12 }} 
+          />
           
-          <button onClick={saveSecretNotes} style={{ width: '100%', background: 'transparent', border: '1.5px solid #4CAF5030', color: '#4CAF50', padding: 12, borderRadius: 12, fontWeight: 700, cursor: 'pointer' }}>
+          <button 
+            onClick={() => {
+              if (!isPremium) {
+                triggerPaywall('Upgrade to Premium to write and encrypt notes in the Secret Vault.');
+                return;
+              }
+              saveSecretNotes();
+            }} 
+            style={{ width: '100%', background: 'transparent', border: '1.5px solid #4CAF5030', color: '#4CAF50', padding: 12, borderRadius: 12, fontWeight: 700, cursor: 'pointer' }}
+          >
             🔒 Save & Encrypt Secret Notes
           </button>
         </div>

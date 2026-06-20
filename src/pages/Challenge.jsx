@@ -21,7 +21,7 @@ export default function Challenge() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { navigate('/orbit'); return }
+      if (!session) { navigate('/goals'); return }
       setUser(session.user)
       loadData(session.user.id)
     })
@@ -217,7 +217,7 @@ export default function Challenge() {
         </div>
       )}
 
-      <BottomNav activeTab="orbit" onTabChange={(t) => navigate(t === 'orbit' ? '/orbit' : `/${t}`)} />
+      <BottomNav activeTab="growth" onTabChange={(t) => navigate(t === 'zenith' ? '/' : `/${t}`)} />
 
       {/* NEW CHALLENGE MODAL */}
       {showNew && (

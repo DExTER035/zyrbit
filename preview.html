@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zyrbit v2 Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#050508;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:'DM Sans',sans-serif;gap:12px;flex-wrap:wrap;padding:24px}
+.phone{width:360px;height:740px;background:#0A0A0F;border-radius:40px;border:2px solid #1E1E2E;overflow:hidden;position:relative;box-shadow:0 0 60px rgba(0,255,204,0.05)}
+.screen{padding:20px;height:100%;display:flex;flex-direction:column}
+.status-bar{display:flex;justify-content:space-between;padding:4px 0 12px;color:#555;font-size:12px;font-weight:500}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.header h1{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;color:#F0F0FF}
+.badge{background:#00FFCC;color:#000;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:0.5px}
+.score-section{display:flex;flex-direction:column;align-items:center;padding:20px 0;position:relative}
+.orbit-ring{width:140px;height:140px;border-radius:50%;border:3px solid #1E1E2E;position:relative;display:flex;align-items:center;justify-content:center}
+.orbit-ring::before{content:'';position:absolute;inset:-3px;border-radius:50%;background:conic-gradient(#00FFCC 0deg 266deg,#1E1E2E 266deg 360deg);mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px))}
+.orbit-ring .inner{text-align:center}
+.orbit-ring .score{font-family:'Space Grotesk',sans-serif;font-size:36px;font-weight:700;color:#F0F0FF}
+.orbit-ring .label{font-size:11px;color:#8888AA;letter-spacing:2px;text-transform:uppercase}
+.delta{display:flex;align-items:center;gap:4px;margin-top:8px;font-size:13px;color:#00FF88;font-weight:500}
+.subtitle{font-size:14px;color:#00FFCC;margin-top:4px;font-family:'Space Grotesk',sans-serif;font-weight:500}
+.progress-grid{display:flex;flex-direction:column;gap:12px;margin-top:16px;flex:1}
+.progress-item{display:flex;flex-direction:column;gap:4px}
+.progress-header{display:flex;justify-content:space-between;font-size:13px;color:#8888AA}
+.progress-header span:last-child{color:#F0F0FF;font-weight:500}
+.bar{height:6px;background:#1E1E2E;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width 0.5s}
+.pact-card{background:#111118;border:1px solid #1E1E2E;border-radius:16px;padding:14px;margin-top:auto;margin-bottom:8px}
+.pact-card .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pact-card .title{font-size:13px;font-weight:600;color:#F0F0FF;display:flex;align-items:center;gap:6px}
+.pact-card .badge-pact{font-size:10px;background:#7C3AED;color:#fff;padding:2px 8px;border-radius:10px}
+.pact-card .vs{display:flex;justify-content:space-between;font-size:13px;color:#aaa}
+.pact-card .vs .win{color:#00FF88}
+.bottom-nav{display:flex;justify-content:space-around;padding:10px 0 0;border-top:1px solid #1E1E2E;margin-top:auto}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:#555;cursor:pointer}
+.nav-item.active{color:#00FFCC}
+.nav-item svg{width:20px;height:20px}
+
+/* Pact screen */
+.pact-screen .pact-hero{text-align:center;padding:30px 0}
+.pact-screen .pact-hero h2{font-family:'Space Grotesk',sans-serif;font-size:22px;color:#F0F0FF;margin-bottom:4px}
+.pact-screen .pact-hero p{color:#8888AA;font-size:13px}
+.pact-stake{background:#111118;border:1px solid #1E1E2E;border-radius:16px;padding:16px;margin-bottom:12px}
+.pact-stake .row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;color:#F0F0FF}
+.pact-stake .row span:last-child{font-weight:600}
+.pact-stake .divider{height:1px;background:#1E1E2E;margin:6px 0}
+.pact-stake .row.green{color:#00FF88}
+.pact-stake .row.green span:last-child{color:#00FF88}
+.pact-stake .row.purple{color:#7C3AED}
+.pact-avatars{display:flex;justify-content:center;gap:40px;padding:20px 0}
+.pact-avatar{display:flex;flex-direction:column;align-items:center;gap:6px}
+.pact-avatar .circle{width:48px;height:48px;border-radius:50%;background:#1E1E2E;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid #333}
+.pact-avatar .circle.winner{border-color:#00FFCC}
+.pact-avatar .name{font-size:12px;color:#8888AA}
+.pact-avatar .status{font-size:11px;color:#00FF88}
+
+/* LB screen */
+.lb-screen .lb-header{text-align:center;padding:16px 0}
+.lb-screen .lb-header h2{font-family:'Space Grotesk',sans-serif;font-size:18px;color:#F0F0FF}
+.lb-screen .lb-header p{font-size:12px;color:#8888AA;margin-top:2px}
+.lb-item{display:flex;align-items:center;gap:10px;padding:10px;background:#111118;border-radius:12px;margin-bottom:6px}
+.lb-item .rank{width:24px;font-weight:700;color:#555;font-size:14px}
+.lb-item .rank.gold{color:#FFD700}
+.lb-item .rank.silver{color:#C0C0C0}
+.lb-item .rank.bronze{color:#CD7F32}
+.lb-item .info{flex:1}
+.lb-item .info .name{font-size:14px;color:#F0F0FF;font-weight:500}
+.lb-item .info .college{font-size:11px;color:#8888AA}
+.lb-item .lb-score{font-size:14px;color:#00FFCC;font-weight:600}
+
+/* Journal screen */
+.journal-screen .pin-dot{width:12px;height:12px;border-radius:50%;background:#1E1E2E;display:inline-block;margin:0 6px}
+.journal-screen .pin-dot.active{background:#00FFCC;box-shadow:0 0 8px rgba(0,255,204,0.3)}
+
+.screen-label{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase}
+.btn-primary{background:#00FFCC;color:#000;border:none;padding:12px;border-radius:12px;font-weight:600;font-size:14px;cursor:pointer;width:100%;font-family:'DM Sans',sans-serif}
+.btn-outline{background:transparent;color:#00FFCC;border:1px solid #00FFCC;padding:12px;border-radius:12px;font-weight:500;font-size:14px;cursor:pointer;width:100%;font-family:'DM Sans',sans-serif}
+.founder-badge{display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#7C3AED,#00FFCC);color:#fff;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- Screen 1: Dashboard -->
+<div class="phone" style="position:relative">
+  <div class="screen-label">DASHBOARD</div>
+  <div class="screen">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>📶 🔋</span>
+    </div>
+    <div class="header">
+      <h1>Zyrbit</h1>
+      <span class="badge">74 ⬆️</span>
+    </div>
+    <div class="score-section">
+      <div class="orbit-ring">
+        <div class="inner">
+          <div class="score">74</div>
+          <div class="label">GRAVITY</div>
+        </div>
+      </div>
+      <div class="delta">+3 today</div>
+      <div class="subtitle">Gaining momentum ⚡</div>
+    </div>
+    <div class="progress-grid">
+      <div class="progress-item">
+        <div class="progress-header"><span>🧘 Habits</span><span>3/5</span></div>
+        <div class="bar"><div class="bar-fill" style="width:60%;background:#00FFCC"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-header"><span>📚 Study</span><span>2.5 hrs ✅</span></div>
+        <div class="bar"><div class="bar-fill" style="width:100%;background:#00FF88"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-header"><span>📱 Screen</span><span>38/60 min</span></div>
+        <div class="bar"><div class="bar-fill" style="width:63%;background:#7C3AED"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-header"><span>💰 Budget</span><span>₹340/₹500</span></div>
+        <div class="bar"><div class="bar-fill" style="width:68%;background:#FFD700"></div></div>
+      </div>
+    </div>
+    <div class="pact-card">
+      <div class="top">
+        <div class="title">🤝 Active Pact</div>
+        <span class="badge-pact">Day 3/7</span>
+      </div>
+      <div class="vs">
+        <span>You: ✅</span>
+        <span style="color:#8888AA">vs</span>
+        <span class="win">Rahul: ✅</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0">
+      <button class="btn-primary" style="padding:10px;font-size:12px">+ Log Habit</button>
+      <button class="btn-outline" style="padding:10px;font-size:12px">📝 Journal</button>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <span>Home</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+        <span>Habits</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Pact</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Leaderboard</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Profile</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 2: Habits -->
+<div class="phone" style="position:relative">
+  <div class="screen-label">HABITS</div>
+  <div class="screen">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="header"><h1>Habits</h1><span style="color:#8888AA;font-size:13px">🔥 12 day streak</span></div>
+    <div style="display:flex;flex-direction:column;gap:10px;flex:1;margin-top:8px">
+      <div style="display:flex;align-items:center;gap:12px;background:#111118;padding:14px;border-radius:14px">
+        <div style="font-size:24px">🏋️</div>
+        <div style="flex:1"><div style="font-size:14px;color:#F0F0FF;font-weight:500">Workout</div><div style="font-size:11px;color:#8888AA">6 day streak</div></div>
+        <div style="width:24px;height:24px;border-radius:50%;background:#00FFCC;display:flex;align-items:center;justify-content:center">✓</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:#111118;padding:14px;border-radius:14px">
+        <div style="font-size:24px">📖</div>
+        <div style="flex:1"><div style="font-size:14px;color:#F0F0FF;font-weight:500">Read 20 min</div><div style="font-size:11px;color:#8888AA">3 day streak</div></div>
+        <div style="width:24px;height:24px;border-radius:50%;border:2px solid #333;background:transparent"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:#111118;padding:14px;border-radius:14px">
+        <div style="font-size:24px">🧘</div>
+        <div style="flex:1"><div style="font-size:14px;color:#F0F0FF;font-weight:500">Meditate</div><div style="font-size:11px;color:#8888AA">12 day streak</div></div>
+        <div style="width:24px;height:24px;border-radius:50%;background:#00FFCC;display:flex;align-items:center;justify-content:center">✓</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:#111118;padding:14px;border-radius:14px">
+        <div style="font-size:24px">💧</div>
+        <div style="flex:1"><div style="font-size:14px;color:#F0F0FF;font-weight:500">3L Water</div><div style="font-size:11px;color:#8888AA;color:#FF6B6B">Missed yesterday</div></div>
+        <div style="width:24px;height:24px;border-radius:50%;background:#00FFCC;display:flex;align-items:center;justify-content:center">✓</div>
+      </div>
+    </div>
+    <div style="margin-top:auto;padding:8px 0">
+      <button class="btn-primary">+ Add Habit</button>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span></div>
+      <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg><span>Habits</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>Pact</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Leaderboard</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 3: Pact -->
+<div class="phone" style="position:relative">
+  <div class="screen-label">GRAVITY PACT</div>
+  <div class="screen pact-screen">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="pact-hero">
+      <h2>🤝 Discipline Pact</h2>
+      <p>Stay under 45 min screen time today</p>
+      <div style="margin-top:12px"><span class="founder-badge">⚡ Active</span></div>
+    </div>
+    <div class="pact-avatars">
+      <div class="pact-avatar">
+        <div class="circle winner">😎</div>
+        <div class="name">You</div>
+        <div class="status">✅ Done</div>
+      </div>
+      <div style="display:flex;align-items:center;color:#8888AA;font-size:20px">⚔️</div>
+      <div class="pact-avatar">
+        <div class="circle">😤</div>
+        <div class="name">Rahul</div>
+        <div class="status" style="color:#8888AA">⏳ Pending</div>
+      </div>
+    </div>
+    <div class="pact-stake">
+      <div class="row"><span>💰 Your stake</span><span>₹100</span></div>
+      <div class="row"><span>🤝 Rahul's stake</span><span>₹100</span></div>
+      <div class="divider"></div>
+      <div class="row green"><span>🏆 If you win</span><span>+₹80</span></div>
+      <div class="row purple"><span>🪐 Zyrbit fee</span><span>₹20</span></div>
+      <div class="divider"></div>
+      <div class="row"><span>📱 Time used</span><span style="color:#00FFCC">32/45 min</span></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:auto">
+      <button class="btn-outline" style="flex:1">⏸️ Forgive</button>
+      <button class="btn-primary" style="flex:1">📸 Proof</button>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg><span>Habits</span></div>
+      <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>Pact</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Leaderboard</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 4: Leaderboard -->
+<div class="phone" style="position:relative">
+  <div class="screen-label">LEADERBOARD</div>
+  <div class="screen lb-screen">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="lb-header">
+      <h2>🏆 Gravity Championship</h2>
+      <p>May 2026 • 1,247 participants</p>
+    </div>
+    <div style="display:flex;justify-content:center;gap:16px;padding:12px 0">
+      <div style="text-align:center">
+        <div style="font-size:11px;color:#8888AA">Your Rank</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:#00FFCC">#47</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:11px;color:#8888AA">Your College</div>
+        <div style="font-size:13px;color:#F0F0FF;font-weight:500">IIT Bombay</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:11px;color:#8888AA">Reward Tier</div>
+        <div style="font-size:13px;color:#FFD700;font-weight:500">Top 100 🎁</div>
+      </div>
+    </div>
+    <div class="lb-item">
+      <div class="rank gold">1</div>
+      <div class="info"><div class="name">Arjun S.</div><div class="college">IIT Delhi</div></div>
+      <div class="lb-score">98</div>
+    </div>
+    <div class="lb-item">
+      <div class="rank silver">2</div>
+      <div class="info"><div class="name">Priya M.</div><div class="college">BITS Pilani</div></div>
+      <div class="lb-score">95</div>
+    </div>
+    <div class="lb-item">
+      <div class="rank bronze">3</div>
+      <div class="info"><div class="name">Rahul K.</div><div class="college">IIT Bombay</div></div>
+      <div class="lb-score">92</div>
+    </div>
+    <div class="lb-item" style="background:#111118;border:1px solid #00FFCC33">
+      <div class="rank" style="color:#00FFCC">47</div>
+      <div class="info"><div class="name">Dexter</div><div class="college">IIT Bombay</div></div>
+      <div class="lb-score">74</div>
+    </div>
+    <div class="lb-item">
+      <div class="rank" style="color:#555">48</div>
+      <div class="info"><div class="name">Ananya R.</div><div class="college">VIT Vellore</div></div>
+      <div class="lb-score">73</div>
+    </div>
+    <div style="margin-top:auto;text-align:center;padding:12px 0;color:#8888AA;font-size:12px">
+      🏅 Top 100 get rewards this month
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg><span>Habits</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>Pact</span></div>
+      <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Leaderboard</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 5: Journal (Locked) -->
+<div class="phone" style="position:relative">
+  <div class="screen-label">JOURNAL</div>
+  <div class="screen" style="align-items:center;justify-content:center">
+    <div class="status-bar" style="width:100%"><span>9:41</span><span>📶 🔋</span></div>
+    <div style="text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">🔐</div>
+      <h2 style="font-family:'Space Grotesk',sans-serif;color:#F0F0FF;margin-bottom:8px">Journal Locked</h2>
+      <p style="color:#8888AA;font-size:13px;margin-bottom:20px">Enter your PIN to access private entries</p>
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:24px">
+        <div class="pin-dot active"></div>
+        <div class="pin-dot active"></div>
+        <div class="pin-dot active"></div>
+        <div class="pin-dot"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:200px;margin:0 auto">
+        <div style="width:56px;height:56px;border-radius:50%;background:#111118;display:flex;align-items:center;justify-content:center;color:#F0F0FF;font-size:20px;font-weight:600;cursor:pointer">1</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:#111118;display:flex;align-items:center;justify-content:center;color:#F0F0FF;font-size:20px;font-weight:600;cursor:pointer">2</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:#111118;display:flex;align-items:center;justify-content:center;color:#F0F0FF;font-size:20px;font-weight:600;cursor:pointer">3</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:#111118;display:flex;align-items:center;justify-content:center;color:#F0F0FF;font-size:20px;font-weight:600;cursor:pointer">4</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:#111118;display:flex;align-items:center;justify-content:center;color:#F0F0FF;font-size:20px;font-weight:600;cursor:pointer">5</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:#111118;display:flex;align-items:center;justify-content:center;color:#F0F0FF;font-size:20px;font-weight:600;cursor:pointer">6</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:#111118;display:flex;align-items:center;justify-content:center;color:#F0F0FF;font-size:20px;font-weight:600;cursor:pointer">7</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:#111118;display:flex;align-items:center;justify-content:center;color:#F0F0FF;font-size:20px;font-weight:600;cursor:pointer">8</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:#111118;display:flex;align-items:center;justify-content:center;color:#F0F0FF;font-size:20px;font-weight:600;cursor:pointer">9</div>
+      </div>
+      <div style="font-size:11px;color:#8888AA;margin-top:20px">AES-256 Encrypted 🔒</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

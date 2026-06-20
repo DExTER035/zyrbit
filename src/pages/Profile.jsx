@@ -9,6 +9,7 @@ import { earnZyrons, spendZyrons, getWallet, getDailyStats, getWeeklyStats } fro
 import { getRankByZyrons, getNextRank, getProgressToNext, getVisibleRanks, RANKS } from '../lib/ranks.js'
 import { computeGravityScore } from '../lib/gravity.js'
 import { useInstallPrompt } from '../hooks/useInstallPrompt.js'
+import useSubscription from '../hooks/useSubscription.js'
 
 const SHOP_ITEMS = [
   { id: 'cosmos_themes', name: 'Cosmos Themes', icon: '🎨', cost: 400, desc: 'Custom orbit color themes' },
@@ -26,6 +27,7 @@ const ZONE_COLORS = { mind: '#00BCD4', body: '#4CAF50', growth: '#FF9800', soul:
 export default function Profile() {
   const navigate = useNavigate()
   const { isInstallable, promptInstall } = useInstallPrompt()
+  const { tier, triggerPaywall } = useSubscription()
   const [user, setUser] = useState(null)
   const [wallet, setWallet] = useState({ balance: 0, total_earned: 0 })
   const [rank, setRank] = useState(RANKS[0])
@@ -217,6 +219,60 @@ export default function Profile() {
             </div>
           </div>
 
+          {/* Subscription Tier Status & Upgrade CTA */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.05) 0%, rgba(156, 39, 176, 0.05) 100%)',
+            border: '1px solid rgba(0, 255, 255, 0.15)',
+            borderRadius: 24,
+            padding: '20px 24px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 4px 20px rgba(0, 255, 255, 0.05)'
+          }}>
+            <div>
+              <div style={{ fontSize: '10px', color: '#00FFFF', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>MEMBERSHIP STATUS</div>
+              <div style={{ fontSize: '16px', fontWeight: 900, color: '#FFF', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>{tier === 'free' ? 'Free Plan' : tier === 'premium' ? 'Premium 🌟' : 'Elite 👑'}</span>
+              </div>
+            </div>
+            {tier === 'free' ? (
+              <button
+                onClick={() => triggerPaywall('Upgrade your plan to unlock elite features')}
+                style={{
+                  background: 'linear-gradient(to right, #00FFFF, #9C27B0)',
+                  color: '#000',
+                  fontWeight: 900,
+                  fontSize: '11px',
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 0 10px rgba(0, 255, 255, 0.3)'
+                }}
+              >
+                UPGRADE
+              </button>
+            ) : (
+              <button
+                onClick={() => triggerPaywall('Manage your subscription settings')}
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  color: '#AAAABC',
+                  fontWeight: 800,
+                  fontSize: '11px',
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  cursor: 'pointer'
+                }}
+              >
+                MANAGE
+              </button>
+            )}
+          </div>
+
           <div style={{ background: '#0A0A12', border: '1px solid #1A1A24', borderRadius: 24, marginBottom: 20, padding: 24, display: 'flex', alignItems: 'center', gap: 24 }}>
             <div style={{ flexShrink: 0 }}>
               <GravityRing score={gravityScore} size={90} />
@@ -397,7 +453,7 @@ export default function Profile() {
         </div>
       )}
 
-      <BottomNav activeTab="profile" onTabChange={(t) => window.location.href = `/${t}`} />
+      <BottomNav activeTab="profile" onTabChange={(t) => navigate(t === 'zenith' ? '/' : `/${t}`)} />
     </div>
   )
 }

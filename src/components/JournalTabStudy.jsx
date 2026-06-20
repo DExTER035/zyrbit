@@ -148,7 +148,8 @@ export default function JournalTabStudy({ user }) {
     loadData()
   }
 
-  const saveLog = async () => {
+  const saveLog = async (e) => {
+    e?.preventDefault()
     if (logForm.hours <= 0) return
     await supabase.from('study_sessions').insert({
       user_id: user.id,
@@ -164,7 +165,8 @@ export default function JournalTabStudy({ user }) {
     loadData()
   }
 
-  const saveCd = async () => {
+  const saveCd = async (e) => {
+    e?.preventDefault()
     if (!cdForm.name) return
     const payload = { user_id: user.id, name: cdForm.name, exam_date: cdForm.date, type: cdForm.type, show_countdown_only: true }
     if (cdForm.id) {
@@ -488,7 +490,7 @@ export default function JournalTabStudy({ user }) {
       {/* MODALS */}
       {showLogModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-           <div style={{ background: '#111118', borderTop: '1px solid #2A2A3A', width: '100%', borderRadius: '32px 32px 0 0', padding: 28, paddingBottom: 48, animation: 'fadeIn 0.2s ease-out' }}>
+           <form onSubmit={saveLog} style={{ background: '#111118', borderTop: '1px solid #2A2A3A', width: '100%', borderRadius: '32px 32px 0 0', padding: 28, paddingBottom: 48, animation: 'fadeIn 0.2s ease-out' }}>
               <div style={{ fontSize: 20, fontWeight: 900, color: '#E8E8F0', marginBottom: 24, letterSpacing: -0.5 }}>Log Study Session</div>
               
               <div style={{ marginBottom: 16 }}>
@@ -502,51 +504,51 @@ export default function JournalTabStudy({ user }) {
               <div style={{ display: 'flex', gap: 16, marginBottom: 32 }}>
                  <div style={{ flex: 1 }}>
                    <div style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', fontWeight: 800, marginBottom: 8, letterSpacing: 1 }}>Hours</div>
-                   <input type="number" step="0.5" placeholder="Hours" value={logForm.hours} onChange={e => setLogForm({...logForm, hours: e.target.value})} style={{ width: '100%', background: '#1A1A24', border: '1px solid #2A2A3A', color: '#fff', padding: 16, borderRadius: 16, outline: 'none', fontWeight: 600 }} />
+                   <input type="number" step="0.5" min="0.1" max="24" required placeholder="Hours" className="input" value={logForm.hours} onChange={e => setLogForm({...logForm, hours: e.target.value})} style={{ width: '100%', background: '#1A1A24', border: '1px solid #2A2A3A', color: '#fff', padding: 16, borderRadius: 16, outline: 'none', fontWeight: 600, height: 50 }} />
                  </div>
                  <div style={{ flex: 1 }}>
                    <div style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', fontWeight: 800, marginBottom: 8, letterSpacing: 1 }}>Date</div>
-                   <input type="date" value={logForm.date} onChange={e => setLogForm({...logForm, date: e.target.value})} style={{ width: '100%', background: '#1A1A24', border: '1px solid #2A2A3A', color: '#fff', padding: 16, borderRadius: 16, outline: 'none', fontWeight: 600 }} />
+                   <input type="date" required className="input" value={logForm.date} onChange={e => setLogForm({...logForm, date: e.target.value})} style={{ width: '100%', background: '#1A1A24', border: '1px solid #2A2A3A', color: '#fff', padding: 16, borderRadius: 16, outline: 'none', fontWeight: 600, height: 50 }} />
                  </div>
               </div>
 
               <div style={{ display: 'flex', gap: 12 }}>
-                <button onClick={() => setShowLogModal(false)} style={{ flex: 1, padding: 16, background: '#1A1A24', border: 'none', borderRadius: 16, color: '#E8E8F0', fontWeight: 800, cursor: 'pointer' }}>Cancel</button>
-                <button onClick={saveLog} style={{ flex: 2, padding: 16, background: 'linear-gradient(180deg, #E879F9 0%, #C026D3 100%)', border: 'none', borderRadius: 16, color: '#FFF', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(192, 38, 211, 0.3)' }}>Save Log</button>
+                <button type="button" onClick={() => setShowLogModal(false)} style={{ flex: 1, padding: 16, background: '#1A1A24', border: 'none', borderRadius: 16, color: '#E8E8F0', fontWeight: 800, cursor: 'pointer' }}>Cancel</button>
+                <button type="submit" style={{ flex: 2, padding: 16, background: 'linear-gradient(180deg, #E879F9 0%, #C026D3 100%)', border: 'none', borderRadius: 16, color: '#FFF', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(192, 38, 211, 0.3)' }}>Save Log</button>
               </div>
-           </div>
+           </form>
         </div>
       )}
 
       {showCdModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-           <div style={{ background: '#111118', borderTop: '1px solid #2A2A3A', width: '100%', borderRadius: '32px 32px 0 0', padding: 28, paddingBottom: 48, animation: 'fadeIn 0.2s ease-out' }}>
+           <form onSubmit={saveCd} style={{ background: '#111118', borderTop: '1px solid #2A2A3A', width: '100%', borderRadius: '32px 32px 0 0', padding: 28, paddingBottom: 48, animation: 'fadeIn 0.2s ease-out' }}>
               <div style={{ fontSize: 20, fontWeight: 900, color: '#E8E8F0', marginBottom: 24, letterSpacing: -0.5 }}>{cdForm.id ? 'Edit' : 'Add'} Countdown</div>
               
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', fontWeight: 800, marginBottom: 8, letterSpacing: 1 }}>Event Type</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingBottom: 4 }}>
                    {['exam', 'event', 'deadline', 'other'].map(t => (
-                      <button key={t} onClick={() => setCdForm({...cdForm, type: t})} style={{ flex: '1 1 auto', padding: '10px 18px', borderRadius: 100, background: cdForm.type === t ? '#00BCD415' : '#1A1A24', border: cdForm.type === t ? '1px solid #00BCD4' : '1px solid transparent', color: cdForm.type === t ? '#00BCD4' : '#888', fontWeight: 800, textTransform: 'capitalize', fontSize: 13, cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center' }}>{t}</button>
+                      <button key={t} type="button" onClick={() => setCdForm({...cdForm, type: t})} style={{ flex: '1 1 auto', padding: '10px 18px', borderRadius: 100, background: cdForm.type === t ? '#00BCD415' : '#1A1A24', border: cdForm.type === t ? '1px solid #00BCD4' : '1px solid transparent', color: cdForm.type === t ? '#00BCD4' : '#888', fontWeight: 800, textTransform: 'capitalize', fontSize: 13, cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center' }}>{t}</button>
                    ))}
                 </div>
               </div>
 
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', fontWeight: 800, marginBottom: 8, letterSpacing: 1 }}>Event Name</div>
-                <input type="text" placeholder="e.g. Math Final" value={cdForm.name} onChange={e => setCdForm({...cdForm, name: e.target.value})} style={{ width: '100%', background: '#1A1A24', border: '1px solid #2A2A3A', color: '#fff', padding: 16, borderRadius: 16, fontSize: 16, outline: 'none', fontWeight: 600 }} />
+                <input type="text" required placeholder="e.g. Math Final" className="input" value={cdForm.name} onChange={e => setCdForm({...cdForm, name: e.target.value})} style={{ width: '100%', background: '#1A1A24', border: '1px solid #2A2A3A', color: '#fff', padding: 16, borderRadius: 16, fontSize: 16, outline: 'none', fontWeight: 600, height: 50 }} />
               </div>
               
               <div style={{ marginBottom: 32 }}>
                 <div style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', fontWeight: 800, marginBottom: 8, letterSpacing: 1 }}>Date</div>
-                <input type="date" value={cdForm.date} onChange={e => setCdForm({...cdForm, date: e.target.value})} style={{ width: '100%', background: '#1A1A24', border: '1px solid #2A2A3A', color: '#fff', padding: 16, borderRadius: 16, fontSize: 16, outline: 'none', fontWeight: 600 }} />
+                <input type="date" required className="input" value={cdForm.date} onChange={e => setCdForm({...cdForm, date: e.target.value})} style={{ width: '100%', background: '#1A1A24', border: '1px solid #2A2A3A', color: '#fff', padding: 16, borderRadius: 16, fontSize: 16, outline: 'none', fontWeight: 600, height: 50 }} />
               </div>
 
               <div style={{ display: 'flex', gap: 12 }}>
-                <button onClick={() => setShowCdModal(false)} style={{ flex: 1, padding: 16, background: '#1A1A24', border: 'none', borderRadius: 16, color: '#E8E8F0', fontWeight: 800, cursor: 'pointer' }}>Cancel</button>
-                <button onClick={saveCd} style={{ flex: 2, padding: 16, background: 'linear-gradient(180deg, #67E8F9 0%, #06B6D4 100%)', border: 'none', borderRadius: 16, color: '#083344', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(6, 182, 212, 0.3)' }}>Save Countdown</button>
+                <button type="button" onClick={() => setShowCdModal(false)} style={{ flex: 1, padding: 16, background: '#1A1A24', border: 'none', borderRadius: 16, color: '#E8E8F0', fontWeight: 800, cursor: 'pointer' }}>Cancel</button>
+                <button type="submit" style={{ flex: 2, padding: 16, background: 'linear-gradient(180deg, #67E8F9 0%, #06B6D4 100%)', border: 'none', borderRadius: 16, color: '#083344', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(6, 182, 212, 0.3)' }}>Save Countdown</button>
               </div>
-           </div>
+           </form>
         </div>
       )}
     </div>

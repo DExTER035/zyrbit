@@ -7,10 +7,11 @@ export default function BottomNav({ activeTab, onTabChange }) {
   const blackoutRemaining = blackout?.formatMMSS?.(blackout.remaining) || ''
 
   const tabs = [
-    { id: 'orbit', icon: '🪐', label: 'ORBIT' },
-    { id: 'journal', icon: '🌌', label: 'JOURNAL' },
-    { id: 'study', icon: '📚', label: 'STUDY' },
-    { id: 'stats', icon: '📊', label: 'STATS' }
+    { id: 'zenith', icon: '🌌', label: 'ZENITH' },
+    { id: 'growth', icon: '🌱', label: 'GROWTH' },
+    { id: 'health', icon: '💪', label: 'HEALTH' },
+    { id: 'wealth', icon: '💰', label: 'WEALTH' },
+    { id: 'jarvis', icon: '🤖', label: 'JARVIS' }
   ]
 
   return (
@@ -19,8 +20,8 @@ export default function BottomNav({ activeTab, onTabChange }) {
       bottom: 0,
       left: 0,
       right: 0,
-      background: 'rgba(8, 8, 12, 0.85)',
-      borderTop: '1px solid var(--color-border)',
+      background: 'var(--bg-nav)',
+      borderTop: '1px solid var(--border-primary)',
       padding: '10px 0 24px',
       display: 'flex',
       backdropFilter: 'blur(20px)',
@@ -29,8 +30,8 @@ export default function BottomNav({ activeTab, onTabChange }) {
     }}>
       {tabs.map((tab, index) => {
         const isActive = activeTab === tab.id
-        // In blackout, only study tab is accessible
-        const isLocked = isBlackout && tab.id !== 'study'
+        // In blackout, only log tab is accessible
+        const isLocked = isBlackout && tab.id !== 'log'
         return (
           <React.Fragment key={tab.id}>
             <div
@@ -58,12 +59,12 @@ export default function BottomNav({ activeTab, onTabChange }) {
               <div style={{
                 position: 'absolute',
                 top: '-10px',
-                width: '20px',
-                height: '2px',
+                width: '32px',
+                height: '3px',
                 background: 'var(--color-cyan)',
-                borderRadius: '2px',
-                boxShadow: '0 0 8px rgba(0,255,255,0.5)',
-                animation: 'fadeSlideUp 0.2s ease forwards'
+                borderRadius: '0 0 4px 4px',
+                boxShadow: '0 4px 12px rgba(0, 229, 255, 0.6)',
+                animation: 'fadeSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards'
               }} />
             )}
 
@@ -78,7 +79,7 @@ export default function BottomNav({ activeTab, onTabChange }) {
             <span style={{
               fontSize: '10px',
               fontWeight: 700,
-              color: isLocked ? '#333344' : isActive ? 'var(--color-cyan)' : 'var(--color-hint)',
+              color: isLocked ? '#333344' : isActive ? 'var(--color-cyan)' : 'var(--text-hint)',
               transition: 'color 0.2s',
               letterSpacing: '0.05em'
             }}>
