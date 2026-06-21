@@ -94,7 +94,7 @@ export default function Growth() {
       ] = await Promise.all([
         supabase.from('growth_projects').select('*').eq('user_id', uid).neq('status', 'archived').order('created_at', { ascending: false }),
         supabase.from('growth_tasks').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
-        supabase.from('dexos_goals').select('*').eq('user_id', uid).eq('pillar', 'growth').order('created_at', { ascending: false }),
+        supabase.from('study_goals').select('*').eq('user_id', uid).eq('pillar', 'growth').order('created_at', { ascending: false }),
         supabase.from('growth_sprints').select('*').eq('user_id', uid).eq('status', 'active').limit(1),
         supabase.from('growth_skills').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
         supabase.from('growth_focus_sessions').select('*').eq('user_id', uid).order('session_date', { ascending: false }).limit(50),
@@ -369,7 +369,7 @@ export default function Growth() {
   const createGoal = async (goalForm) => {
     if (!goalForm.name.trim() || !goalForm.project_id || !user) return;
     try {
-      await supabase.from('dexos_goals').insert([{
+      await supabase.from('study_goals').insert([{
         name: goalForm.name,
         target_value: Number(goalForm.target_value) || 1,
         current_value: 0,
@@ -379,13 +379,6 @@ export default function Growth() {
         project_id: goalForm.project_id,
         pillar: 'growth'
       }]);
-      await supabase.from('timeline_events').insert({
-        user_id: user.id,
-        event_date: todayStr(),
-        pillar: 'growth',
-        event_type: 'task',
-        message: `Created Goal: ${goalForm.name}`
-      });
       showToast('🎯 Goal set!', 'success');
       loadData(user.id);
     } catch { showToast('Error creating goal', 'error'); }
@@ -403,17 +396,8 @@ export default function Growth() {
     const isComplete = v >= Number(goal.target_value);
     setGoals(prev => prev.map(g => g.id === goal.id ? { ...g, current_value: v, is_complete: isComplete } : g));
     try {
-      await supabase.from('dexos_goals').update({ current_value: v, is_complete: isComplete }).eq('id', goal.id);
-      if (isComplete) {
-        showToast('🏁 Goal complete!', 'success');
-        await supabase.from('timeline_events').insert({
-          user_id: user.id,
-          event_date: todayStr(),
-          pillar: 'growth',
-          event_type: 'task',
-          message: `Completed Goal: ${goal.name}`
-        });
-      }
+      await supabase.from('study_goals').update({ current_value: v, is_complete: isComplete }).eq('id', goal.id);
+      if (isComplete) showToast('🏁 Goal complete!', 'success');
     } catch { showToast('Error updating goal', 'error'); }
   };
 
@@ -431,13 +415,6 @@ export default function Growth() {
         user_id: user.id,
       }]);
       if (error) throw error;
-      await supabase.from('timeline_events').insert({
-        user_id: user.id,
-        event_date: todayStr(),
-        pillar: 'growth',
-        event_type: 'focus',
-        message: `Started Sprint: ${formSprint.name}`
-      });
       showToast('⚡ Sprint started!', 'success');
       setModalSprint(false);
       setFormSprint({ name: '', duration_days: 21, daily_focus_minutes: 90, project_ids: [] });
@@ -449,14 +426,6 @@ export default function Growth() {
     if (!activeSprint) return;
     try {
       await supabase.from('growth_sprints').update({ status: 'completed' }).eq('id', activeSprint.id);
-      const pct = sprintProgress.focusPct;
-      await supabase.from('timeline_events').insert({
-        user_id: user.id,
-        event_date: todayStr(),
-        pillar: 'growth',
-        event_type: 'focus',
-        message: `Completed Sprint: ${activeSprint.name} (${pct}% target met)`
-      });
       showToast('Sprint completed.', 'success');
       setModalEndSprint(false);
       loadData(user.id);
@@ -617,9 +586,9 @@ export default function Growth() {
             setTab={setTab}
             completeTask={completeTask}
             setModalProject={setModalProject}
-            setModalSprint={setModalSprint}
             projectMap={projectMap}
             heatmapData={heatmapData}
+            navigate={navigate}
           />
         )}
         {tab === 'projects' && (

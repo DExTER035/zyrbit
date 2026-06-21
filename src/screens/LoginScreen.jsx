@@ -55,7 +55,7 @@ export default function LoginScreen({ onSuccess }) {
     setError('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/goals` }
+      options: { redirectTo: `${window.location.origin}/zenith` }
     })
     if (error) {
       setError(error.message)

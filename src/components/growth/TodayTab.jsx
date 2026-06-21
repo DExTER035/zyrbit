@@ -19,14 +19,35 @@ export default function TodayTab({
   setTab,
   completeTask,
   setModalProject,
-  setModalSprint,
   projectMap,
-  heatmapData = {}
+  heatmapData = {},
+  navigate
 }) {
   const sp = sprintProgress;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* Cold start onboarding project CTA */}
+      {Object.keys(projectMap).length === 0 && (
+        <div onClick={() => setModalProject(true)}
+          style={{
+            background: `linear-gradient(135deg, ${C.growth}15, ${C.focus}08)`,
+            border: `1.5px dashed ${C.growth}40`,
+            borderRadius: '20px',
+            padding: '24px 20px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'border-color 0.2s'
+          }}
+        >
+          <div style={{ fontSize: '32px', marginBottom: '8px' }}>🌱</div>
+          <div style={{ fontSize: '15px', fontWeight: 800, color: C.text, marginBottom: '6px' }}>Create Your First Project</div>
+          <p style={{ fontSize: '12px', color: C.muted, lineHeight: 1.5, margin: '0 auto', maxWidth: '320px' }}>
+            Growth tracking requires projects. Define a skill, area, or focus to start logging tasks and focus sessions.
+          </p>
+        </div>
+      )}
+
       {/* Sprint focus target */}
       {activeSprint && sp && (
         <div onClick={() => setTab('sprints')}
@@ -106,17 +127,23 @@ export default function TodayTab({
         <HeatmapGrid color={C.growth} dataMap={heatmapData} label="Consistency Grid (90 Days)" />
       </div>
 
-      {/* Empty state */}
-      {todayView.overdue.length === 0 && todayView.doToday.length === 0 && todayView.deadlines.length === 0 && !activeSprint && (
-        <EmptyState
-          icon={projectMap ? '🎯' : '📁'}
-          title={Object.keys(projectMap).length === 0 ? 'No projects yet' : 'Nothing urgent today'}
-          sub={Object.keys(projectMap).length === 0
-            ? 'Create your first project and add tasks to get started.'
-            : 'Start a sprint to define your daily focus, or add tasks with deadlines.'}
-          action={Object.keys(projectMap).length === 0 ? () => setModalProject(true) : () => setModalSprint(true)}
-          actionLabel={Object.keys(projectMap).length === 0 ? 'Create Project' : 'Start Sprint'}
-        />
+      {/* Challenge Mode discovery card */}
+      {!activeSprint && navigate && (
+        <div
+          onClick={() => navigate('/challenge')}
+          style={{
+            background: `${C.focus}08`, border: `1px solid ${C.focus}30`,
+            borderRadius: '16px', padding: '14px 16px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            cursor: 'pointer'
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '9px', color: C.focus, fontWeight: 800, letterSpacing: '1.5px', marginBottom: '4px' }}>CHALLENGE MODE</div>
+            <div style={{ fontSize: '13px', color: C.sub }}>Commit to a 7, 21, or 30-day streak</div>
+          </div>
+          <span style={{ fontSize: '18px', opacity: 0.7 }}>🎯</span>
+        </div>
       )}
     </div>
   );

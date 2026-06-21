@@ -47,11 +47,7 @@ const isTodayLocal = (timestampStr, todayVal) => {
   return new Date(timestampStr).toLocaleDateString('en-CA') === todayVal;
 };
 
-const formatLocalTime = (timestampStr) => {
-  if (!timestampStr) return '';
-  const d = new Date(timestampStr);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-};
+
 
 const compileCyberneticDirectives = (os, recovery, sleepHrs, debt, water, tasksDone, tasksTotal, spent, limit, focusMins, runwayMonths) => {
   let p1 = "";
@@ -252,7 +248,8 @@ export default function Zenith() {
         expensesRes,
         billsRes,
         goalsRes,
-        timelineRes,
+        habitsRes,
+        activityRes,
         streaksRes
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', uid).single(),
@@ -260,14 +257,15 @@ export default function Zenith() {
         supabase.from('health_sleep_logs').select('*').eq('user_id', uid).gte('sleep_date', startOfWeekStr).order('sleep_date', { ascending: false }),
         supabase.from('health_water_logs').select('*').eq('user_id', uid).eq('log_date', today),
         supabase.from('health_move_logs').select('*').eq('user_id', uid).gte('log_date', startOfWeekStr).order('log_date', { ascending: false }),
-        supabase.from('growth_focus_sessions').select('duration_minutes').eq('user_id', uid).eq('session_date', today),
+        supabase.from('growth_focus_sessions').select('started_at, duration_minutes, session_date').eq('user_id', uid).eq('session_date', today),
         supabase.from('growth_sprints').select('*').eq('user_id', uid).eq('status', 'active').limit(1),
-        supabase.from('wealth_settings').select('monthly_budget').eq('id', uid).maybeSingle(),
+        supabase.from('wealth_settings').select('monthly_budget').eq('user_id', uid).maybeSingle(),
         supabase.from('wealth_income').select('amount').eq('user_id', uid),
-        supabase.from('wealth_expenses').select('amount, expense_date').eq('user_id', uid),
+        supabase.from('money_expenses').select('amount, created_at, note, category, expense_date').eq('user_id', uid),
         supabase.from('wealth_bills').select('*').eq('user_id', uid),
-        supabase.from('dexos_goals').select('*').eq('user_id', uid),
-        supabase.from('timeline_events').select('*').eq('user_id', uid).eq('event_date', today).order('event_time', { ascending: true }),
+        supabase.from('study_goals').select('*').eq('user_id', uid),
+        supabase.from('habits').select('id, name, icon').eq('user_id', uid),
+        supabase.from('activity_log').select('*').eq('user_id', uid).eq('completed_date', today),
         supabase.from('user_streaks').select('*').eq('user_id', uid)
       ]);
       console.log('Zenith.jsx: all parallel queries completed.');
@@ -296,7 +294,7 @@ export default function Zenith() {
       if (sprintRes.error) console.warn('Zenith.jsx: sprints query warning:', sprintRes.error);
 
       const expSettings = settingsRes.data;
-      if (settingsRes.error) console.warn('Zenith.jsx: settings query warning:', settingsRes.error);
+      if (settingsRes.error && settingsRes.error.code !== 'PGRST116') console.warn('Zenith.jsx: settings query warning:', settingsRes.error);
 
       const allIncome = incomeRes.data || [];
       if (incomeRes.error) console.warn('Zenith.jsx: income query warning:', incomeRes.error);
@@ -310,8 +308,8 @@ export default function Zenith() {
       const allGoals = goalsRes.data || [];
       if (goalsRes.error) console.warn('Zenith.jsx: goals query warning:', goalsRes.error);
 
-      const tlEvents = timelineRes.data || [];
-      if (timelineRes.error) console.warn('Zenith.jsx: timeline query warning:', timelineRes.error);
+      const habits = habitsRes.data || [];
+      const activityLog = activityRes.data || [];
 
       const streaks = streaksRes.data || [];
       const streakVal = streaks.reduce((max, s) => Math.max(max, s.current_streak || 0), 0) || 0;
@@ -378,8 +376,8 @@ export default function Zenith() {
       const upcomingUnpaidBills = allBills.filter(b => b.status === 'unpaid').sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
       const nextBill = upcomingUnpaidBills[0] || null;
 
-      const goalsCount = allGoals.filter(g => g.pillar === 'growth').length;
-      const completedGoals = allGoals.filter(g => g.pillar === 'growth' && g.is_complete).length;
+      const goalsCount = allGoals.length;
+      const completedGoals = allGoals.filter(g => g.is_complete).length;
 
       const overdueTasksCount = tasks.filter(t => t.status === 'todo' && t.due_date && t.due_date < today).length;
 
@@ -450,12 +448,80 @@ export default function Zenith() {
       );
       setPriorities(computedPriorities);
 
-      const formattedTimeline = tlEvents.map(event => ({
-        time: formatLocalTime(event.event_time),
-        type: event.event_type,
-        text: event.message
-      }));
-      setTimeline(formattedTimeline);
+      // Build timeline from today's real events — no extra queries needed
+      const rawEvents = [];
+
+      // Orbit habit completions
+      activityLog.filter(l => l.status === 'completed').forEach(log => {
+        const h = habits.find(x => x.id === log.habit_id);
+        rawEvents.push({
+          ts: new Date(log.created_at || today + 'T07:00:00').getTime(),
+          type: 'task',
+          text: `${h ? h.icon : '✅'} Habit done: ${h ? h.name : 'Unknown'}`
+        });
+      });
+
+      // Growth task completions
+      tasks.filter(t => t.status === 'done' && isTodayLocal(t.completed_at, today)).forEach(t => {
+        rawEvents.push({
+          ts: new Date(t.completed_at || today + 'T11:00:00').getTime(),
+          type: 'task',
+          text: `Task done: ${t.name}`
+        });
+      });
+
+      // Sleep (logged for today or the most recent log)
+      if (lastSleep && lastSleep.sleep_date === today) {
+        rawEvents.push({
+          ts: new Date(today + 'T06:00:00').getTime(),
+          type: 'sleep',
+          text: `Slept ${Number(lastSleep.duration_hours).toFixed(1)}h — Quality ${lastSleep.quality}/5`
+        });
+      }
+
+      // Water logs
+      waterLogs.forEach(w => {
+        rawEvents.push({
+          ts: new Date(w.created_at || today + 'T08:00:00').getTime(),
+          type: 'water',
+          text: `Hydration +${w.amount_ml}ml`
+        });
+      });
+
+      // Workouts
+      moveLogs.filter(m => m.log_date === today).forEach(m => {
+        rawEvents.push({
+          ts: new Date(m.created_at || today + 'T09:00:00').getTime(),
+          type: 'workout',
+          text: `${m.activity_type} — ${m.active_minutes}min (RPE ${m.rpe})`
+        });
+      });
+
+      // Focus sessions
+      focusSessions.filter(f => f.session_date === today).forEach(f => {
+        rawEvents.push({
+          ts: new Date(f.started_at || today + 'T10:00:00').getTime(),
+          type: 'focus',
+          text: `Focus session — ${f.duration_minutes}min`
+        });
+      });
+
+      // Expenses
+      todayExps.forEach(e => {
+        rawEvents.push({
+          ts: new Date(e.created_at || today + 'T12:00:00').getTime(),
+          type: 'expense',
+          text: `₹${Number(e.amount).toFixed(0)} — ${e.note || e.category || 'Expense'}`
+        });
+      });
+
+      rawEvents.sort((a, b) => a.ts - b.ts);
+      setTimeline(rawEvents.map(e => ({
+        time: new Date(e.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        type: e.type,
+        text: e.text
+      })));
+
       console.log('Zenith.jsx: loadData successful!');
     } catch (e) {
       console.error('Zenith load error:', e);

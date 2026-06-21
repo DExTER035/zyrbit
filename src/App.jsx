@@ -13,8 +13,10 @@ import GoalSetupScreen from './screens/GoalSetupScreen.jsx'
 import { BlackoutProvider } from './lib/BlackoutContext.jsx'
 import { SubscriptionProvider } from './context/SubscriptionContext.jsx'
 import PaywallOverlay from './components/PaywallOverlay.jsx'
+import { useHabitReminders } from './hooks/useHabitReminders.js'
 
 const Zenith = lazy(() => import('./pages/Zenith.jsx'))
+const Orbit = lazy(() => import('./pages/Orbit.jsx'))
 const Growth = lazy(() => import('./pages/Growth.jsx'))
 const Health = lazy(() => import('./pages/Health.jsx'))
 const Wealth = lazy(() => import('./pages/Wealth.jsx'))
@@ -52,7 +54,7 @@ function ProtectedRoute({ children, onSignOut }) {
     
     requestNotificationPermission()
     return () => subscription.unsubscribe()
-  }, [])
+  }, [onSignOut])
 
 
 
@@ -75,12 +77,15 @@ function MainApp({ handleSignOut }) {
     <BrowserRouter>
       <Routes>
         <Route path="/zenith" element={<ProtectedRoute onSignOut={handleSignOut}><Zenith /></ProtectedRoute>} />
+        <Route path="/orbit" element={<ProtectedRoute onSignOut={handleSignOut}><Orbit /></ProtectedRoute>} />
         <Route path="/growth" element={<ProtectedRoute onSignOut={handleSignOut}><Growth /></ProtectedRoute>} />
         <Route path="/health" element={<ProtectedRoute onSignOut={handleSignOut}><Health /></ProtectedRoute>} />
         <Route path="/wealth" element={<ProtectedRoute onSignOut={handleSignOut}><Wealth /></ProtectedRoute>} />
         <Route path="/jarvis" element={<ProtectedRoute onSignOut={handleSignOut}><Jarvis /></ProtectedRoute>} />
         <Route path="/challenge" element={<ProtectedRoute onSignOut={handleSignOut}><Challenge /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute onSignOut={handleSignOut}><Profile /></ProtectedRoute>} />
+        {/* Legacy route redirects */}
+        <Route path="/goals" element={<Navigate to="/orbit" replace />} />
         <Route path="/" element={<Navigate to="/zenith" replace />} />
         <Route path="*" element={<Navigate to="/zenith" replace />} />
       </Routes>
@@ -94,6 +99,8 @@ export default function App() {
   const [isInitializing, setIsInitializing] = useState(true)
   const [currentUserId, setCurrentUserId] = useState(null)
   const [currentUserName, setCurrentUserName] = useState('Astronaut')
+
+  useHabitReminders(currentUserId)
 
   useEffect(() => {
     const checkAuthStatus = async () => {

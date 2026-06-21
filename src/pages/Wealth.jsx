@@ -39,7 +39,7 @@ export default function Wealth() {
   const loadData = async (uid) => {
     const [{ data: sDocs }, { data: eDocs }, { data: iDocs }, { data: bDocs }, { data: vDocs }] = await Promise.all([
       supabase.from('wealth_settings').select('*').eq('user_id', uid).single(),
-      supabase.from('wealth_expenses').select('*').eq('user_id', uid).order('expense_date', { ascending: false }),
+      supabase.from('money_expenses').select('*').eq('user_id', uid).order('expense_date', { ascending: false }),
       supabase.from('wealth_income').select('*').eq('user_id', uid).order('income_date', { ascending: false }),
       supabase.from('wealth_bills').select('*').eq('user_id', uid).order('due_date', { ascending: true }),
       supabase.from('wealth_vault').select('*').eq('user_id', uid).order('created_at', { ascending: false })
@@ -69,10 +69,10 @@ export default function Wealth() {
     e.preventDefault();
     if (!user) return;
     const { data } = await supabase.from('wealth_settings').upsert({
-      id: user.id,
+      user_id: user.id,
       currency: setupForm.currency === '₹' ? 'INR' : setupForm.currency === '$' ? 'USD' : 'EUR',
       monthly_budget: setupForm.budget
-    }).select().single();
+    }, { onConflict: 'user_id' }).select().single();
     
     if (data) {
       setSettings(data);
@@ -85,7 +85,7 @@ export default function Wealth() {
     const amt = parseFloat(expForm.amount);
     if (!amt || amt <= 0 || !expForm.note || !user) return;
     
-    const { error } = await supabase.from('wealth_expenses').insert({
+    const { error } = await supabase.from('money_expenses').insert({
       user_id: user.id,
       amount: amt,
       category: expForm.category,
@@ -141,13 +141,6 @@ export default function Wealth() {
     });
 
     if (!error) {
-      await supabase.from('timeline_events').insert({
-        user_id: user.id,
-        event_date: todayDate,
-        pillar: 'wealth',
-        event_type: 'expense',
-        message: `Logged bill: ${billForm.name} (${amt})`
-      });
       showToast('📅 Bill added!', 'success');
       setBillForm({ name: '', amount: '', due_date: todayDate, frequency: 'monthly' });
       loadData(user.id);
@@ -160,18 +153,6 @@ export default function Wealth() {
     const newStatus = currentStatus === 'paid' ? 'unpaid' : 'paid';
     const { error } = await supabase.from('wealth_bills').update({ status: newStatus }).eq('id', id);
     if (!error) {
-      if (newStatus === 'paid') {
-        const billObj = bills.find(b => b.id === id);
-        const name = billObj ? billObj.name : 'Bill';
-        const amount = billObj ? billObj.amount : '0';
-        await supabase.from('timeline_events').insert({
-          user_id: user.id,
-          event_date: todayDate,
-          pillar: 'wealth',
-          event_type: 'expense',
-          message: `Paid bill: ${name} (${amount})`
-        });
-      }
       showToast(newStatus === 'paid' ? '✅ Bill marked as Paid!' : '⏳ Bill marked as Unpaid', 'success');
       loadData(user.id);
     } else {
@@ -239,7 +220,7 @@ export default function Wealth() {
 
   const deleteExpense = async (id) => {
     if (window.confirm('Delete this expense?')) {
-      await supabase.from('wealth_expenses').delete().eq('id', id);
+      await supabase.from('money_expenses').delete().eq('id', id);
       loadData(user.id);
     }
   };

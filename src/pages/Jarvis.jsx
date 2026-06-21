@@ -7,49 +7,10 @@ import { earnZyrons, getWallet } from '../lib/zyrons.js'
 import { getRankByZyrons } from '../lib/ranks.js'
 import { computeGravityScore } from '../lib/gravity.js'
 import useSubscription from '../hooks/useSubscription.js'
+import { askZyra, generateContent } from '../lib/gemini.js'
 
-// --- GEMINI API HELPERS ---
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`
+// Quiz and summary functions use generateContent from gemini.js
 
-const sendToZyra = async (messages, systemPrompt) => {
-  try {
-    const res = await fetch(GEMINI_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          { role: 'user', parts: [{ text: systemPrompt }] },
-          { role: 'model', parts: [{ text: 'Understood. I am Jarvis (Zyra), ready to help.' }] },
-          ...messages.map(m => ({
-            role: m.role === 'user' ? 'user' : 'model',
-            parts: [{ text: m.text }]
-          }))
-        ]
-      })
-    })
-    const data = await res.json()
-    if (data.error) throw new Error(`API error ${data.error.code}: ${data.error.message}`)
-    if (!data.candidates) throw new Error(`No candidates. Status: ${data.promptFeedback?.blockReason || 'unknown'}`)
-    return data.candidates[0].content.parts[0].text
-  } catch (err) {
-    console.error('Zyra error:', err)
-    throw err
-  }
-}
-
-const generateCardContent = async (prompt) => {
-  try {
-    const res = await fetch(GEMINI_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    })
-    const data = await res.json()
-    return data.candidates[0].content.parts[0].text.trim()
-  } catch (e) {
-    return null
-  }
-}
 
 // --- QUIZ DATA ---
 const getFallbackQuestions = () => [
@@ -150,7 +111,7 @@ function ChatTab({ userContext, earn, habits, fetchLatest, userRef }) {
     setLoading(true)
 
     try {
-      const reply = await sendToZyra(updated, personalities[personality].prompt)
+      const reply = await askZyra(updated, personalities[personality].prompt)
       const replyMsg = { role: 'model', text: reply, id: Date.now() + 1 }
       setHistory(prev => [...prev, replyMsg])
       setLoading(false)
@@ -186,7 +147,7 @@ function ChatTab({ userContext, earn, habits, fetchLatest, userRef }) {
     if (waterMatch) {
       const amt = parseInt(waterMatch[1] || waterMatch[2])
       if (amt > 0) {
-        const { error } = await supabase.from('water_logs').insert({
+        const { error } = await supabase.from('health_water_logs').insert({
           user_id: userRef.current.id,
           log_date: todayStr,
           amount_ml: amt
@@ -230,17 +191,31 @@ function ChatTab({ userContext, earn, habits, fetchLatest, userRef }) {
     if (moneyMatch) {
       const type = moneyMatch[1]
       const amt = parseFloat(moneyMatch[2])
-      const note = moneyMatch[3] || 'Voice Log'
+      const note = (moneyMatch[3] || 'Voice Log').trim()
       if (amt > 0) {
         const isIncome = type === 'income'
-        const finalAmt = isIncome ? -amt : amt
-        const { error } = await supabase.from('money_expenses').insert({
-          user_id: userRef.current.id,
-          amount: finalAmt,
-          category: isIncome ? 'Income' : 'Other',
-          note: note,
-          expense_date: todayStr
-        })
+        let error
+        if (isIncome) {
+          // Route income to wealth_income table
+          const res = await supabase.from('wealth_income').insert({
+            user_id: userRef.current.id,
+            amount: amt,
+            source: note,
+            note: 'Voice Log',
+            income_date: todayStr
+          })
+          error = res.error
+        } else {
+          // Route expense to money_expenses table
+          const res = await supabase.from('money_expenses').insert({
+            user_id: userRef.current.id,
+            amount: amt,
+            category: 'Other',
+            note: note,
+            expense_date: todayStr
+          })
+          error = res.error
+        }
         if (!error) {
           showToast(`🎙️ Logged ${isIncome ? 'Income' : 'Expense'} of ₹${amt}!`, 'success')
           await earnZyrons(userRef.current.id, 5, 'Money logged (Voice)')
@@ -370,16 +345,18 @@ function SummaryTab({ userContext, uid }) {
   const handleRefreshSummary = async () => {
     setLoading(p => ({ ...p, summary: true }))
     const prompt = `Synthesize a professional Daily Summary of metrics under 100 words for user ${userContext.name}. Context: Completed ${userContext.done}/${userContext.total} habits. Streak: ${userContext.streak} days. Gravity: ${userContext.gravity}. Water: ${userContext.waterTotal || 0}ml. Sleep: ${userContext.sleepHours || 0}h. Money Spent: ${userContext.spentTotal || 0}. Make it feel personal and analytical.`
-    const res = await generateCardContent(prompt)
-    if (res) setSummary(res)
+    try {
+      const res = await generateContent(prompt)
+      if (res) setSummary(res)
+    } catch (_) {}
     setLoading(p => ({ ...p, summary: false }))
   }
 
   const handleRefreshSuggs = async () => {
     setLoading(p => ({ ...p, suggs: true }))
     const prompt = `Provide 3 smart suggestions based on user context. Total habits completed ${userContext.done}/${userContext.total}. Weakest zone is ${userContext.weakestZone || 'Growth'}. Sleep: ${userContext.sleepHours} hours. Return JSON array format: [{"dot":"#00bcd4","tip":"..."}]`
-    const res = await generateCardContent(prompt)
     try {
+      const res = await generateContent(prompt)
       const parsed = JSON.parse(res.replace(/```json|```/g,'').trim())
       setSuggs(parsed)
     } catch (_) {}
@@ -466,7 +443,7 @@ function QuizTab({ earn, userContext }) {
     } else {
       const prompt = `Generate exactly 10 unique riddles, math teasers, logic puzzles and habit wellness questions. Return ONLY raw JSON array: [{"q":"...","opts":["A","B","C","D"],"ans":0,"cat":"Logic","explanation":"..."}]`
       try {
-        const res = await generateCardContent(prompt)
+        const res = await generateContent(prompt)
         qs = JSON.parse(res.replace(/```json|```/g,'').trim())
         if (qs.length > 10) qs = qs.slice(0, 10)
         localStorage.setItem(cacheKey, JSON.stringify(qs))
@@ -634,8 +611,8 @@ export default function Jarvis() {
       supabase.from('user_streaks').select('current_streak,longest_streak').eq('user_id', u.id),
       getWallet(u.id),
       computeGravityScore(supabase, u.id),
-      supabase.from('sleep_logs').select('duration_hours').eq('user_id', u.id).eq('sleep_date', today).single(),
-      supabase.from('water_logs').select('amount_ml').eq('user_id', u.id).eq('log_date', today),
+      supabase.from('health_sleep_logs').select('duration_hours').eq('user_id', u.id).eq('sleep_date', today).single(),
+      supabase.from('health_water_logs').select('amount_ml').eq('user_id', u.id).eq('log_date', today),
       supabase.from('money_expenses').select('amount').eq('user_id', u.id).eq('expense_date', today)
     ])
 

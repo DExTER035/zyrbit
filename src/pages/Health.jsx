@@ -93,6 +93,7 @@ export default function Health() {
       if (mData) setMoveLogs(mData);
       if (wData) setWeightLogs(wData);
       if (sprintData) setActiveSprint(sprintData);
+      if (summaryData) setDailySummaries(summaryData);
 
     } catch (e) {
       console.warn('Error loading health telemetry:', e.message);

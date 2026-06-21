@@ -8,6 +8,7 @@ export default function BottomNav({ activeTab, onTabChange }) {
 
   const tabs = [
     { id: 'zenith', icon: '🌌', label: 'ZENITH' },
+    { id: 'orbit', icon: '🪐', label: 'ORBIT' },
     { id: 'growth', icon: '🌱', label: 'GROWTH' },
     { id: 'health', icon: '💪', label: 'HEALTH' },
     { id: 'wealth', icon: '💰', label: 'WEALTH' },
@@ -28,7 +29,7 @@ export default function BottomNav({ activeTab, onTabChange }) {
       WebkitBackdropFilter: 'blur(20px)',
       zIndex: 50
     }}>
-      {tabs.map((tab, index) => {
+      {tabs.map((tab) => {
         const isActive = activeTab === tab.id
         // In blackout, only log tab is accessible
         const isLocked = isBlackout && tab.id !== 'log'

@@ -24,7 +24,7 @@ const Dots = ({ current, total }) => (
 // ── CTA Button ─────────────────────────────────────────────────────────────────
 const CyanBtn = ({ onClick, children, gradient }) => (
   <button onClick={onClick} style={{
-    width: '100%', border: 'none', borderRadius: 16,
+    width: '100%', borderRadius: 16,
     padding: '16px', fontSize: 13, fontWeight: 800,
     cursor: 'pointer', letterSpacing: '1.5px',
     background: gradient ? 'linear-gradient(135deg, #00f5d4, #00c4a8)' : 'rgba(255,255,255,0.03)',

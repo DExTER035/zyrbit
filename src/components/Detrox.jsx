@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { computeGravityScore } from '../lib/gravity'
+import { askZyra } from '../lib/gemini'
 
 export default function Detrox({ user }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -35,7 +36,6 @@ export default function Detrox({ user }) {
     }
     setIsLoading(true)
 
-    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
     const useCtx = ctx || forcedContext || contextData
 
     const sysPrompt = `You are Detrox, the AI built into Zyrbit — a habit and life tracking app for Indian college students. You have full access to this student's data.
@@ -44,44 +44,23 @@ Context Data: ${JSON.stringify(useCtx)}
 You speak like a brutally honest, sharp senior who genuinely wants the student to win — not a motivational poster, not a corporate assistant. You use casual Indian English where natural. You reference their actual data in every response. Never give generic advice. If their data looks bad, say so directly.
 Keep responses under 120 words. Be specific, be real.`
 
-    // Build message history in Gemini format
+    // Build message history for askZyra
     const historyMessages = customPrompt
-      ? []
-      : messages.map(m => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }]
-        }))
-
-    const contents = [
-      ...historyMessages,
-      { role: 'user', parts: [{ text: textToSend }] }
-    ]
+      ? [{ role: 'user', text: textToSend }]
+      : [
+          ...messages.map(m => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            text: m.content
+          })),
+          { role: 'user', text: textToSend }
+        ]
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents,
-            system_instruction: { parts: [{ text: sysPrompt }] }
-          })
-        }
-      )
-
-      if (!response.ok) {
-        const errBlock = await response.json()
-        console.error('Gemini error:', errBlock)
-        setMessages(prev => [...prev, { role: 'assistant', content: `[Error: ${errBlock?.error?.message || 'Unable to reach AI. Check API key.'}]` }])
-      } else {
-        const data = await response.json()
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[No response from AI]'
-        setMessages(prev => [...prev, { role: 'assistant', content: text }])
-      }
+      const text = await askZyra(historyMessages, sysPrompt)
+      setMessages(prev => [...prev, { role: 'assistant', content: text }])
     } catch (e) {
       console.error(e)
-      setMessages(prev => [...prev, { role: 'assistant', content: '[Network Error: Failed to connect to AI. Check your connection.]' }])
+      setMessages(prev => [...prev, { role: 'assistant', content: `[Error: ${e.message || 'Unable to reach AI. Check API key.'}]` }])
     } finally {
       setIsLoading(false)
     }
@@ -131,13 +110,13 @@ Keep responses under 120 words. Be specific, be real.`
         }
 
         const { data: expenses } = await supabase
-          .from('expense_logs')
-          .select('amount, date')
+          .from('money_expenses')
+          .select('amount, expense_date')
           .eq('user_id', user.id)
         let spentToday = 0
         if (expenses) {
           expenses.forEach(e => {
-            if (e.date && e.date.startsWith(todayStr)) spentToday += Number(e.amount || 0)
+            if (e.expense_date && e.expense_date.startsWith(todayStr)) spentToday += Number(e.amount || 0)
           })
         }
 

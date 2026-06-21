@@ -61,6 +61,9 @@ export default function Orbit() {
   const [wallet, setWallet] = useState(null)
   const [xpPopup, setXpPopup] = useState(null) // { amount, label }
 
+  // Mirror Bar — real data
+  const [mirrorData, setMirrorData] = useState({ spentToday: 0, dailyBudget: 0, studyHoursToday: 0 })
+
   // Reflection
   const [showReflection, setShowReflection] = useState(false)
   const [reflectionText, setReflectionText] = useState('')
@@ -118,15 +121,26 @@ export default function Orbit() {
   const loadAll = async (userId) => {
     try {
       setLoading(true)
+      const today = new Date().toLocaleDateString('en-CA')
 
-      const [{ data: hData }, { data: aData }, { data: sData }] = await Promise.all([
+      const [{ data: hData }, { data: aData }, { data: sData }, { data: expData }, { data: settingsData }, { data: focusData }] = await Promise.all([
         supabase.from('habits').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
         supabase.from('activity_log').select('*').eq('user_id', userId),
-        supabase.from('user_streaks').select('*').eq('user_id', userId)
+        supabase.from('user_streaks').select('*').eq('user_id', userId),
+        supabase.from('money_expenses').select('amount').eq('user_id', userId).eq('expense_date', today),
+        supabase.from('wealth_settings').select('monthly_budget').eq('user_id', userId).maybeSingle(),
+        supabase.from('growth_focus_sessions').select('duration_minutes').eq('user_id', userId).eq('session_date', today),
       ])
 
       if (hData) setHabits(hData)
       if (aData) setActivity(aData)
+
+      // Mirror bar real data
+      const spentToday = (expData || []).reduce((s, e) => s + Number(e.amount || 0), 0)
+      const monthlyBudget = settingsData?.monthly_budget || 0
+      const dailyBudget = monthlyBudget > 0 ? Math.round(monthlyBudget / 30) : 0
+      const studyMins = (focusData || []).reduce((s, f) => s + (f.duration_minutes || 0), 0)
+      setMirrorData({ spentToday, dailyBudget, studyHoursToday: +(studyMins / 60).toFixed(1) })
 
       // Load wallet for Zyrons display
       try {
@@ -142,7 +156,6 @@ export default function Orbit() {
 
       const gs = await computeGravityScore(supabase, userId)
       setGravityScore(gs)
-
 
     } catch (e) {
       console.error(e)
@@ -394,27 +407,28 @@ export default function Orbit() {
             <div style={{ background: '#141418', border: '1px solid #1e1e24', borderRadius: 12, padding: 16, marginBottom: 32 }}>
               <div style={{ fontSize: 10, fontWeight: 800, color: '#1D9E75', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>Mirror</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                
-                {/* Screen vs Study */}
+
+                {/* Focus Hours Today */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    <span style={{ fontSize: 16, fontWeight: 900, color: 3.5 > 2 ? '#D85A30' : '#FFF' }}>3.5h</span>
-                    <span style={{ fontSize: 9, color: '#666', fontWeight: 800 }}>vs</span>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D9E75' }}>2h</span>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: mirrorData.studyHoursToday < 1 ? '#D85A30' : '#FFF' }}>{mirrorData.studyHoursToday}h</span>
+                    <span style={{ fontSize: 9, color: '#666', fontWeight: 800 }}>focus</span>
                   </div>
-                  <div style={{ fontSize: 8, color: '#666', fontWeight: 800, textTransform: 'uppercase', marginTop: 6, letterSpacing: 0.5 }}>Screen/Study</div>
+                  <div style={{ fontSize: 8, color: '#666', fontWeight: 800, textTransform: 'uppercase', marginTop: 6, letterSpacing: 0.5 }}>Today's Focus</div>
                 </div>
-                
+
                 <div style={{ width: 1, height: 28, background: '#1e1e24' }} />
 
                 {/* Money Spent vs Budget */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    <span style={{ fontSize: 16, fontWeight: 900, color: 180 > 200 ? '#D85A30' : '#FFF' }}>₹180</span>
-                    <span style={{ fontSize: 9, color: '#666', fontWeight: 800 }}>vs</span>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D9E75' }}>₹200</span>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: mirrorData.dailyBudget > 0 && mirrorData.spentToday > mirrorData.dailyBudget ? '#D85A30' : '#FFF' }}>₹{Math.round(mirrorData.spentToday)}</span>
+                    {mirrorData.dailyBudget > 0 && <>
+                      <span style={{ fontSize: 9, color: '#666', fontWeight: 800 }}>vs</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: '#1D9E75' }}>₹{mirrorData.dailyBudget}</span>
+                    </>}
                   </div>
-                  <div style={{ fontSize: 8, color: '#666', fontWeight: 800, textTransform: 'uppercase', marginTop: 6, letterSpacing: 0.5 }}>Spent/Budget</div>
+                  <div style={{ fontSize: 8, color: '#666', fontWeight: 800, textTransform: 'uppercase', marginTop: 6, letterSpacing: 0.5 }}>Spent{mirrorData.dailyBudget > 0 ? '/Budget' : ' Today'}</div>
                 </div>
 
                 <div style={{ width: 1, height: 28, background: '#1e1e24' }} />
