@@ -1,121 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Zyrbit — Life Operating System</title>
+    <meta name="description" content="Zyrbit is your Life Operating System for Mind, Health, Wealth, and Growth. Build the system that breaks gravity.">
+    <meta name="theme-color" content="#121214">
 
-  <title>Zyrbit — Life Operating System</title>
+    <!-- Open Graph -->
+    <meta property="og:title" content="Zyrbit — Life Operating System">
+    <meta property="og:description" content="Your Life Operating System for Mind, Health, Wealth, and Growth.">
+    <meta property="og:type" content="website">
 
-  <meta name="description" content="Zyrbit is your Life Operating System for Mind, Health, Wealth, and Growth. Build the system that breaks gravity."/>
-  <meta name="theme-color" content="#121214"/>
-
-  <!-- Open Graph -->
-  <meta property="og:title" content="Zyrbit — Life Operating System"/>
-  <meta property="og:description" content="Your Life Operating System for Mind, Health, Wealth, and Growth."/>
-  <meta property="og:type" content="website"/>
-
-  <!-- PWA -->
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="Zyrbit"/>
-
-  <link rel="manifest" href="/manifest.json"/>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
-  <link rel="apple-touch-icon" href="/icons/apple-icon-180.png"/>
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', async () => {
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        if (isLocal) {
-          const registrations = await navigator.serviceWorker.getRegistrations();
-          if (registrations.length > 0) {
-            console.log('Local dev: Stale service worker detected. Purging...');
-            for (const reg of registrations) { await reg.unregister(); }
-            if ('caches' in window) {
-              const names = await caches.keys();
-              for (const name of names) { await caches.delete(name); }
+    <!-- PWA -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zyrbit">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+          const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          if (isLocal) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            if (registrations.length > 0) {
+              console.log('Local dev: Stale service worker detected. Purging...');
+              for (const reg of registrations) {
+                await reg.unregister();
+              }
+              if ('caches' in window) {
+                const names = await caches.keys();
+                for (const name of names) {
+                  await caches.delete(name);
+                }
+              }
+              window.location.reload();
             }
-            window.location.reload();
+          } else {
+            navigator.serviceWorker.register('/sw.js', {
+              scope: '/'
+            });
           }
-        } else {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        });
+      }
+    </script>
+
+    <!-- Fonts: Space Grotesk + Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        min-width: 0;
+        min-height: 0;
+      }
+      html,
+      body {
+        height: 100%;
+        background: #121214;
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #root {
+        height: 100%;
+        background: #121214;
+      }
+      @media (min-width: 768px) {
+        body {
+          overflow-y: scroll;
         }
-      });
-    }
-  </script>
+      }
+      /* HTML splash — visible before React hydrates */
+      #splash {
+        position: fixed;
+        inset: 0;
+        background: #121214;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.4s ease;
+      }
+      @keyframes splashFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      #splash-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        animation: splashFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      #splash-wordmark {
+        font-family: 'Space Grotesk', 'Inter', sans-serif;
+        font-size: 20px;
+        font-weight: 700;
+        color: #FFFFFF;
+        letter-spacing: -0.03em;
+      }
+    </style>
+    <link rel="apple-touch-icon" href="public/icons/apple-icon-180.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2064-2752.jpg" media="(device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2752-2064.jpg" media="(device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2048-2732.jpg" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2732-2048.jpg" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1668-2420.jpg" media="(device-width: 834px) and (device-height: 1210px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2420-1668.jpg" media="(device-width: 834px) and (device-height: 1210px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1668-2388.jpg" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2388-1668.jpg" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1668-2224.jpg" media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2224-1668.jpg" media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1536-2048.jpg" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2048-1536.jpg" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1640-2360.jpg" media="(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2360-1640.jpg" media="(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1620-2160.jpg" media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2160-1620.jpg" media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1488-2266.jpg" media="(device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2266-1488.jpg" media="(device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1320-2868.jpg" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2868-1320.jpg" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1206-2622.jpg" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2622-1206.jpg" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1260-2736.jpg" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2736-1260.jpg" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1290-2796.jpg" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2796-1290.jpg" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1179-2556.jpg" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2556-1179.jpg" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1170-2532.jpg" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2532-1170.jpg" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1284-2778.jpg" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2778-1284.jpg" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1080-2340.jpg" media="(device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2340-1080.jpg" media="(device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1242-2688.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2688-1242.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1125-2436.jpg" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2436-1125.jpg" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-828-1792.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1792-828.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1242-2208.jpg" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-2208-1242.jpg" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-750-1334.jpg" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1334-750.jpg" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-640-1136.jpg" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="public/icons/apple-splash-1136-640.jpg" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+  </head>
+  <body>
 
-  <!-- Fonts: Space Grotesk + Inter -->
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <!-- HTML splash placeholder — React replaces this immediately on load -->
+    <div id="splash">
+      <div id="splash-content">
 
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; min-width: 0; min-height: 0; }
-    html, body { height: 100%; background: #121214; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
-    #root { height: 100%; background: #121214; }
-    @media (min-width: 768px) { body { overflow-y: scroll; } }
+        <!-- Monolith Z — Execution 1: Monochrome Signal -->
+        <svg width="50" height="40" viewBox="0 0 40 32" fill="none" xmlns="http://www.w3.org/2000/svg">
 
-    /* HTML splash — visible before React hydrates */
-    #splash {
-      position: fixed;
-      inset: 0;
-      background: #121214;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      transition: opacity 0.4s ease;
-    }
-    @keyframes splashFadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    #splash-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 14px;
-      animation: splashFadeIn 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
-    }
-    #splash-wordmark {
-      font-family: 'Space Grotesk', 'Inter', sans-serif;
-      font-size: 20px;
-      font-weight: 700;
-      color: #FFFFFF;
-      letter-spacing: -0.03em;
-    }
-  </style>
-</head>
-<body>
-  <!-- HTML splash placeholder — React replaces this immediately on load -->
-  <div id="splash">
-    <div id="splash-content">
-      <!-- Monolith Z — Execution 1: Monochrome Signal -->
-      <svg width="50" height="40" viewBox="0 0 40 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Bottom-left wedge slash: white -->
-        <polygon points="15.48,16.23 0,32 8.17,32 15.91,16.23" fill="#FFFFFF"/>
-        <!-- Middle small wedge slash: white -->
-        <polygon points="19.35,9.92 17.2,14.42 21.51,9.92" fill="#FFFFFF"/>
-        <!-- Top-right Z-like shape: cyan accent -->
-        <polygon points="31.83,0 22.37,9.46 27.96,9.92 18.49,22.08 35.7,22.08 37.85,15.32 27.53,14.42 40,0" fill="#5EE6F5"/>
-      </svg>
-      <div id="splash-wordmark">Zyrbit</div>
+          <!-- Bottom-left wedge slash: white -->
+          <polygon points="15.48,16.23 0,32 8.17,32 15.91,16.23" fill="#FFFFFF"></polygon>
+
+          <!-- Middle small wedge slash: white -->
+          <polygon points="19.35,9.92 17.2,14.42 21.51,9.92" fill="#FFFFFF"></polygon>
+
+          <!-- Top-right Z-like shape: cyan accent -->
+          <polygon points="31.83,0 22.37,9.46 27.96,9.92 18.49,22.08 35.7,22.08 37.85,15.32 27.53,14.42 40,0" fill="#5EE6F5"></polygon>
+        </svg>
+        <div id="splash-wordmark">Zyrbit</div>
+      </div>
     </div>
-  </div>
-
-  <div id="root"></div>
-
-  <script>
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        const s = document.getElementById('splash');
-        if (s) {
-          s.style.opacity = '0';
-          setTimeout(() => s.remove(), 500);
-        }
-      }, 1200);
-    });
-  </script>
-  <script type="module" src="/src/main.jsx"></script>
-</body>
+    <div id="root"></div>
+    <script>
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          const s = document.getElementById('splash');
+          if (s) {
+            s.style.opacity = '0';
+            setTimeout(() => s.remove(), 500);
+          }
+        }, 1200);
+      });
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
