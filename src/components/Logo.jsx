@@ -2,8 +2,7 @@ import React from 'react';
 
 /**
  * ZyrbitMark — Monolith Z icon mark.
- * Three-element Z: top bar, diagonal slash, bottom bar.
- * Brand ratio: 85% white / 15% cyan (accent on top-left of top bar).
+ * Three-element wedge slash and Z-shape.
  * Scales from 16px (favicon) to any size.
  *
  * Props:
@@ -19,9 +18,9 @@ export const ZyrbitMark = ({
 }) => {
   const w = Math.round(size * 1.25); // 10:8 aspect ratio
 
-  // Both elements are white by default. Accent variant uses cyan on the right shape.
+  // Use cyan accent on top-left of top bar for default/accent, otherwise monochrome white
   const bodyColor = '#FFFFFF';
-  const accentColor = variant === 'accent' ? '#5EE6F5' : '#FFFFFF';
+  const accentColor = variant === 'monochrome' ? '#FFFFFF' : '#5EE6F5';
 
   return (
     <svg
@@ -73,8 +72,8 @@ export const ZyrbitIcon = ({ size = 48 }) => {
         </linearGradient>
       </defs>
 
-      {/* Main Container Fill - Graphite dark */}
-      <rect width={size} height={size} rx={radius} fill="#17181B"/>
+      {/* Main Container Fill - Pitch Black background */}
+      <rect width={size} height={size} rx={radius} fill="#121214"/>
       
       {/* Subtle Toplight Highlight */}
       <rect width={size} height={size} rx={radius} fill={`url(#toplight-${size})`}/>

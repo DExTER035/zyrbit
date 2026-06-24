@@ -24,9 +24,7 @@ import RecoveryWidget from '../components/health/RecoveryWidget.jsx';
 import VitalsGrid from '../components/health/VitalsGrid.jsx';
 import WaterCard from '../components/health/WaterCard.jsx';
 import SleepCard from '../components/health/SleepCard.jsx';
-import NutritionCard from '../components/health/NutritionCard.jsx';
 import ActivityCard from '../components/health/ActivityCard.jsx';
-import WeightWidget from '../components/health/WeightWidget.jsx';
 import DexosInsightWidget from '../components/health/DexosInsightWidget.jsx';
 import HeatmapGrid from '../components/HeatmapGrid.jsx';
 import ErrorState from '../components/ErrorState.jsx';
@@ -40,20 +38,15 @@ export default function Health() {
   // ─── Data States ───────────────────────────────────────────────────────────
   const [sleepLogs, setSleepLogs] = useState([]);     // Rolling 7 days
   const [waterLogs, setWaterLogs] = useState([]);     // Today's logs
-  const [foodLogs, setFoodLogs] = useState([]);       // Today's logs
   const [moveLogs, setMoveLogs] = useState([]);       // Rolling 7 days
-  const [weightLogs, setWeightLogs] = useState([]);   // Rolling 7 days
-  const [activeSprint, setActiveSprint] = useState(null); // Active Growth Sprint
   const [dailySummaries, setDailySummaries] = useState([]); // Last 90 days summaries
 
   // ─── Modals State ──────────────────────────────────────────────────────────
-  const [activeModal, setActiveModal] = useState(null); // null | 'sleep' | 'food' | 'move' | 'weight'
+  const [activeModal, setActiveModal] = useState(null); // null | 'sleep' | 'move'
 
   // ─── Form States ───────────────────────────────────────────────────────────
   const [formSleep, setFormSleep] = useState({ hours: '7.5', quality: '3' });
-  const [formFood, setFormFood] = useState({ name: '', protein: '25g', quality: 'neutral' });
   const [formMove, setFormMove] = useState({ type: 'Strength', minutes: '45', rpe: '5', notes: '' });
-  const [formWeight, setFormWeight] = useState({ value: '' });
 
   // ─── Data Fetcher ──────────────────────────────────────────────────────────
   const loadAllData = useCallback(async (uid) => {
@@ -75,27 +68,18 @@ export default function Health() {
       const [
         { data: sData },
         { data: watData },
-        { data: fData },
         { data: mData },
-        { data: wData },
-        { data: sprintData },
         { data: summaryData }
       ] = await Promise.all([
         supabase.from('health_sleep_logs').select('*').eq('user_id', uid).gte('sleep_date', startOfWeekStr).order('sleep_date', { ascending: false }),
         supabase.from('health_water_logs').select('*').eq('user_id', uid).eq('log_date', today),
-        supabase.from('health_food_logs').select('*').eq('user_id', uid).eq('log_date', today),
         supabase.from('health_move_logs').select('*').eq('user_id', uid).gte('log_date', startOfWeekStr).order('log_date', { ascending: false }),
-        supabase.from('health_weight_logs').select('*').eq('user_id', uid).gte('log_date', startOfWeekStr).order('log_date', { ascending: false }),
-        supabase.from('growth_sprints').select('*').eq('user_id', uid).eq('status', 'active').maybeSingle(),
         supabase.from('dexos_daily_summary').select('*').eq('user_id', uid).gte('log_date', start90DaysStr)
       ]);
 
       if (sData) setSleepLogs(sData);
       if (watData) setWaterLogs(watData);
-      if (fData) setFoodLogs(fData);
       if (mData) setMoveLogs(mData);
-      if (wData) setWeightLogs(wData);
-      if (sprintData) setActiveSprint(sprintData);
       if (summaryData) setDailySummaries(summaryData);
 
     } catch (e) {
@@ -129,8 +113,6 @@ export default function Health() {
   const dynamicWaterTarget = useMemo(() => {
     return 3000 + (Math.floor(todayExerciseMins / 30) * 500);
   }, [todayExerciseMins]);
-
-  const todayProtein = useMemo(() => foodLogs.reduce((sum, item) => sum + item.protein, 0), [foodLogs]);
 
   const sleepDebt = useMemo(() => {
     const targetSleep = 7.5;
@@ -171,11 +153,8 @@ export default function Health() {
     if (sleepDebt > 3.0) {
       return `Sleep debt is high (+${sleepDebt.toFixed(1)}h). Performance decay detected. Focus on rest tonight.`;
     }
-    if (todayProtein < 60) {
-      return 'Protein intake is low today. Fuel recovery with a high-protein clean meal.';
-    }
     return 'Physical indicators optimal. Ready for deep focus blocks.';
-  }, [recoveryScore, todayWater, dynamicWaterTarget, sleepDebt, todayProtein]);
+  }, [recoveryScore, todayWater, dynamicWaterTarget, sleepDebt]);
 
   const heatmapData = useMemo(() => {
     const map = {};
@@ -267,32 +246,6 @@ export default function Health() {
     }
   };
 
-  const handleLogFood = async (e) => {
-    e.preventDefault();
-    if (!user || !formFood.name.trim()) return;
-
-    const proteinVal = parseInt(formFood.protein.replace('g', '')) || 0;
-    const today = todayStr();
-
-    try {
-      const { error } = await supabase.from('health_food_logs').insert([{
-        user_id: user.id,
-        log_date: today,
-        food_name: formFood.name,
-        protein: proteinVal,
-        quality: formFood.quality
-      }]);
-      if (error) throw error;
-
-      showToast('🥗 Meal logged!', 'success');
-      await earnZyrons(user.id, 5, 'Food Logged');
-      setFormFood({ name: '', protein: '25g', quality: 'neutral' });
-      setActiveModal(null);
-      loadAllData(user.id);
-    } catch {
-      showToast('Error saving food logs', 'error');
-    }
-  };
 
   const handleLogWorkout = async (e) => {
     e.preventDefault();
@@ -336,30 +289,6 @@ export default function Health() {
     }
   };
 
-  const handleLogWeight = async (e) => {
-    e.preventDefault();
-    if (!user || !formWeight.value) return;
-
-    const val = parseFloat(formWeight.value);
-    const today = todayStr();
-
-    try {
-      const { error } = await supabase.from('health_weight_logs').upsert([{
-        user_id: user.id,
-        log_date: today,
-        weight: val
-      }], { onConflict: 'user_id,log_date' });
-      if (error) throw error;
-
-      showToast('⚖️ Weight logged!', 'success');
-      await earnZyrons(user.id, 5, 'Weight logged');
-      setFormWeight({ value: '' });
-      setActiveModal(null);
-      loadAllData(user.id);
-    } catch {
-      showToast('Error saving weight logs', 'error');
-    }
-  };
 
   // ─── RENDER — Loading & Error ──────────────────────────────────────────────
   if (error) {
@@ -413,16 +342,12 @@ export default function Health() {
         {/* Recovery Dial widget */}
         <RecoveryWidget recoveryScore={recoveryScore} activeSprint={activeSprint} />
 
-        {/* Vitals Grid containing Water, Sleep, Nutrition, Gym */}
+        {/* Vitals Grid containing Water, Sleep, Gym */}
         <VitalsGrid>
           <WaterCard todayWater={todayWater} dynamicTarget={dynamicWaterTarget} onLogWater={handleLogWater} />
           <SleepCard sleepLogs={sleepLogs} sleepDebt={sleepDebt} onLogClick={() => setActiveModal('sleep')} />
-          <NutritionCard proteinTotal={todayProtein} targetProtein={120} foodLogs={foodLogs} onLogClick={() => setActiveModal('food')} />
           <ActivityCard moveLogs={moveLogs} onLogClick={() => setActiveModal('move')} />
         </VitalsGrid>
-
-        {/* Weight Index display */}
-        <WeightWidget weightLogs={weightLogs} targetWeight={72} onLogClick={() => setActiveModal('weight')} />
 
         {/* Intelligence direct advisory advice */}
         <DexosInsightWidget insight={dexosInsight} />
@@ -459,46 +384,6 @@ export default function Health() {
         </Modal>
       )}
 
-      {/* Food Log Modal */}
-      {activeModal === 'food' && (
-        <Modal title="Log Meal" onClose={() => setActiveModal(null)}>
-          <form onSubmit={handleLogFood} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div>
-              <FLabel>MEAL DETAILS</FLabel>
-              <FInput placeholder="e.g. Scrambled eggs and toast..." value={formFood.name} onChange={e => setFormFood(p => ({ ...p, name: e.target.value }))} required />
-            </div>
-            <div>
-              <FLabel>ESTIMATED PROTEIN</FLabel>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {['10g', '25g', '40g'].map(p => (
-                  <button key={p} type="button" onClick={() => setFormFood(prev => ({ ...prev, protein: p }))}
-                    style={{ flex: 1, padding: '10px', borderRadius: '10px', background: formFood.protein === p ? `${C.nutrition}18` : C.surface, border: `1px solid ${formFood.protein === p ? C.nutrition : C.border2}`, color: formFood.protein === p ? C.nutrition : C.sub, fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>
-                    {p}
-                  </button>
-                ))}
-              </div>
-              <FInput type="text" placeholder="Custom protein (e.g. 30g)" value={formFood.protein} onChange={e => setFormFood(p => ({ ...p, protein: e.target.value }))} style={{ marginTop: '10px' }} />
-            </div>
-            <div>
-              <FLabel>MEAL QUALITY</FLabel>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {[
-                  { id: 'clean', label: 'Clean 🟢' },
-                  { id: 'neutral', label: 'Neutral 🟡' },
-                  { id: 'processed', label: 'Processed 🔴' }
-                ].map(q => (
-                  <button key={q.id} type="button" onClick={() => setFormFood(prev => ({ ...prev, quality: q.id }))}
-                    style={{ flex: 1, padding: '10px', borderRadius: '10px', background: formFood.quality === q.id ? `${C.nutrition}18` : C.surface, border: `1px solid ${formFood.quality === q.id ? C.nutrition : C.border2}`, color: formFood.quality === q.id ? C.nutrition : C.sub, fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>
-                    {q.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <BtnPrimary label="Log Meal +5 ⚡" type="submit" color={C.nutrition} />
-          </form>
-        </Modal>
-      )}
-
       {/* Workout/Movement Log Modal */}
       {activeModal === 'move' && (
         <Modal title="Log Exercise Session" onClose={() => setActiveModal(null)}>
@@ -529,19 +414,6 @@ export default function Health() {
               <FInput placeholder="e.g. Back and biceps, active recovery stretch..." value={formMove.notes} onChange={e => setFormMove(p => ({ ...p, notes: e.target.value }))} />
             </div>
             <BtnPrimary label="Log Session +15 ⚡" type="submit" color={C.activity} style={{ color: '#fff' }} />
-          </form>
-        </Modal>
-      )}
-
-      {/* Weight Log Modal */}
-      {activeModal === 'weight' && (
-        <Modal title="Log Body Weight" onClose={() => setActiveModal(null)}>
-          <form onSubmit={handleLogWeight} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div>
-              <FLabel>CURRENT WEIGHT (KG)</FLabel>
-              <FInput type="number" step="0.01" placeholder="e.g. 74.5" value={formWeight.value} onChange={e => setFormWeight(p => ({ ...p, value: e.target.value }))} required />
-            </div>
-            <BtnPrimary label="Log Weight +5 ⚡" type="submit" color={C.weight} style={{ color: '#fff' }} />
           </form>
         </Modal>
       )}

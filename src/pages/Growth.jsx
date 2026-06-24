@@ -24,9 +24,6 @@ import ErrorState from '../components/ErrorState.jsx';
 
 import TodayTab from '../components/growth/TodayTab.jsx';
 import ProjectsTab from '../components/growth/ProjectsTab.jsx';
-import GoalsTab from '../components/growth/GoalsTab.jsx';
-import SprintsTab from '../components/growth/SprintsTab.jsx';
-import SkillsTab from '../components/growth/SkillsTab.jsx';
 import FocusSessionView from '../components/growth/FocusSessionView.jsx';
 import ProjectDetailView from '../components/growth/ProjectDetailView.jsx';
 
@@ -37,7 +34,7 @@ export default function Growth() {
   const [error, setError] = useState(null);
 
   // ── Navigation ──────────────────────────────────────────────────────────────
-  const [tab, setTab] = useState('today');          // today | projects | goals | sprints | skills
+  const [tab, setTab] = useState('today');          // today | projects
   const [view, setView] = useState('list');          // list | project-detail
   const [prevTab, setPrevTab] = useState('today');
   const [selectedProject, setSelectedProject] = useState(null);
@@ -45,12 +42,7 @@ export default function Growth() {
   // ── Data ───────────────────────────────────────────────────────────────────
   const [projects,        setProjects]        = useState([]);
   const [tasks,           setTasks]           = useState([]);
-  const [goals,           setGoals]           = useState([]);
-  const [activeSprint,    setActiveSprint]    = useState(null);
-  const [sprintProjectIds, setSprintProjectIds] = useState([]);
-  const [skills,          setSkills]          = useState([]);
   const [sessions,        setSessions]        = useState([]);
-  const [skillSessions,   setSkillSessions]   = useState([]); // all sessions w/ skill_id for hours calc
   const [streak,          setStreak]          = useState({ current_streak: 0, longest_streak: 0, last_active_date: null });
   const [todayFocusMin,   setTodayFocusMin]   = useState(0);
   const [todayTasksDone,  setTodayTasksDone]  = useState(0);
@@ -58,7 +50,6 @@ export default function Growth() {
   // ── Focus Session ──────────────────────────────────────────────────────────
   const [focusMode,      setFocusMode]      = useState(null); // null | setup | active | done
   const [focusProject,   setFocusProject]   = useState(null);
-  const [focusSkill,     setFocusSkill]     = useState(null);
   const [focusType,      setFocusType]      = useState('open'); // open | timed
   const [focusTimedMin,  setFocusTimedMin]  = useState(45);
   const [focusElapsed,   setFocusElapsed]   = useState(0);
@@ -68,22 +59,11 @@ export default function Growth() {
 
   // ── Modals ─────────────────────────────────────────────────────────────────
   const [modalProject,   setModalProject]   = useState(false);
-  const [modalGoal,      setModalGoal]      = useState(false);
-  const [modalSprint,    setModalSprint]    = useState(false);
-  const [modalSkill,     setModalSkill]     = useState(false);
-  const [modalEndSprint, setModalEndSprint] = useState(false);
   const [modalQuickTask, setModalQuickTask] = useState(false);
-  const [modalLogTime,   setModalLogTime]   = useState(false);
 
   // ── Forms ──────────────────────────────────────────────────────────────────
   const [formProject, setFormProject] = useState({ name: '', icon: '📁', deadline: '' });
-  const [formGoal,    setFormGoal]    = useState({ name: '', target_value: '1', unit: 'done', deadline: '', project_id: '' });
-  const [formSprint,  setFormSprint]  = useState({ name: '', duration_days: 21, daily_focus_minutes: 90, project_ids: [] });
-  const [formSkill,   setFormSkill]   = useState({ name: '', icon: '⚡', category: 'technical' });
   const [formQuick,   setFormQuick]   = useState({ name: '', project_id: '', priority: 3, due_date: '' });
-  const [formLog,     setFormLog]     = useState({ project_id: '', skill_id: '', hours: '1', minutes: '0', date: todayStr(), notes: '' });
-
-
 
   const loadData = useCallback(async (uid) => {
     setLoading(true);
@@ -91,27 +71,19 @@ export default function Growth() {
     const today = todayStr();
     try {
       const [
-        { data: proj }, { data: taskData }, { data: goalData },
-        { data: sprintData }, { data: skillData }, { data: sessData },
-        { data: skillSessData }, { data: streakData }, { data: dailyData },
+        { data: proj }, { data: taskData }, { data: sessData },
+        { data: streakData }, { data: dailyData },
       ] = await Promise.all([
         supabase.from('growth_projects').select('*').eq('user_id', uid).neq('status', 'archived').order('created_at', { ascending: false }),
         supabase.from('growth_tasks').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
-        supabase.from('study_goals').select('*').eq('user_id', uid).eq('pillar', 'growth').order('created_at', { ascending: false }),
-        supabase.from('growth_sprints').select('*').eq('user_id', uid).eq('status', 'active').limit(1),
-        supabase.from('growth_skills').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
         supabase.from('growth_focus_sessions').select('*').eq('user_id', uid).order('session_date', { ascending: false }).limit(50),
-        supabase.from('growth_focus_sessions').select('skill_id, duration_minutes').eq('user_id', uid).not('skill_id', 'is', null),
         supabase.from('dexos_streaks').select('*').eq('user_id', uid).single(),
         supabase.from('dexos_daily_summary').select('*').eq('user_id', uid).eq('log_date', today).single(),
       ]);
 
       setProjects(proj || []);
       setTasks(taskData || []);
-      setGoals(goalData || []);
-      setSkills(skillData || []);
       setSessions(sessData || []);
-      setSkillSessions(skillSessData || []);
       setStreak(streakData || { current_streak: 0, longest_streak: 0, last_active_date: null });
 
       if (dailyData) {
@@ -121,14 +93,6 @@ export default function Growth() {
         const todaySess = (sessData || []).filter(s => s.session_date === today);
         setTodayFocusMin(todaySess.reduce((s, x) => s + x.duration_minutes, 0));
         setTodayTasksDone((taskData || []).filter(t => t.completed_at?.startsWith(today)).length);
-      }
-
-      const sprint = sprintData?.[0] || null;
-      setActiveSprint(sprint);
-      if (sprint) {
-        setSprintProjectIds((proj || []).map(p => p.id));
-      } else {
-        setSprintProjectIds([]);
       }
     } catch (e) {
       console.warn('Growth load error (tables may not exist yet):', e.message);
@@ -158,14 +122,6 @@ export default function Growth() {
     return map;
   }, [projects, tasks]);
 
-  const skillHoursMap = useMemo(() => {
-    const map = {};
-    for (const s of skillSessions) {
-      if (s.skill_id) map[s.skill_id] = (map[s.skill_id] || 0) + s.duration_minutes;
-    }
-    return map;
-  }, [skillSessions]);
-
   const heatmapData = useMemo(() => {
     const map = {};
     // Add completed tasks
@@ -184,21 +140,6 @@ export default function Growth() {
     return map;
   }, [tasks, sessions]);
 
-  const sprintProgress = useMemo(() => {
-    if (!activeSprint) return { day: 0, totalDays: 21, pct: 0, focusPct: 0 };
-    const start = new Date(activeSprint.start_date + 'T00:00:00');
-    const end   = new Date(activeSprint.end_date + 'T00:00:00');
-    const totalDays = Math.max(1, Math.round((end - start) / 86400000));
-    const day = Math.max(1, Math.min(totalDays, Math.ceil((Date.now() - start.getTime()) / 86400000)));
-    const totalTarget = activeSprint.daily_focus_minutes * totalDays;
-    const focusLogged = activeSprint.focus_logged_minutes || 0;
-    return {
-      day, totalDays, pct: Math.round((day / totalDays) * 100),
-      focusPct: totalTarget > 0 ? Math.min(Math.round((focusLogged / totalTarget) * 100), 100) : 0,
-      focusLogged, totalTarget,
-    };
-  }, [activeSprint]);
-
   const nowTimestamp = useMemo(() => Date.now(), []);
 
   const todayView = useMemo(() => {
@@ -212,25 +153,21 @@ export default function Growth() {
     const overdueIds = new Set(overdue.map(t => t.id));
     const candidates = open.filter(t => !overdueIds.has(t.id));
     const dueToday   = candidates.filter(t => t.due_date === today);
-    const sprintHi   = candidates.filter(t => sprintProjectIds.includes(t.project_id) && t.priority <= 2 && !dueToday.find(d => d.id === t.id));
-    const anyHi      = candidates.filter(t => t.priority <= 2 && !dueToday.find(d => d.id === t.id) && !sprintHi.find(s => s.id === t.id));
+    const anyHi      = candidates.filter(t => t.priority <= 2 && !dueToday.find(d => d.id === t.id));
     const dueSoon    = candidates.filter(t => { const d = daysUntil(t.due_date); return d !== null && d > 0 && d <= 3 && !dueToday.find(x => x.id === t.id); });
 
     const doToday = [];
     const seen = new Set();
-    for (const t of [...dueToday, ...sprintHi, ...anyHi, ...dueSoon]) {
+    for (const t of [...dueToday, ...anyHi, ...dueSoon]) {
       if (!seen.has(t.id) && doToday.length < 3) { seen.add(t.id); doToday.push(t); }
     }
 
-    const deadlines = [
-      ...projects.filter(p => { const d = daysUntil(p.deadline); return d !== null && d >= 0 && d <= 7; })
-        .map(p => ({ name: p.name, icon: p.icon, days: daysUntil(p.deadline), type: 'project' })),
-      ...goals.filter(g => { const d = daysUntil(g.deadline); return d !== null && d >= 0 && d <= 7 && !g.is_complete; })
-        .map(g => ({ name: g.name, icon: '🎯', days: daysUntil(g.deadline), type: 'goal' })),
-    ].sort((a, b) => a.days - b.days);
+    const deadlines = projects.filter(p => { const d = daysUntil(p.deadline); return d !== null && d >= 0 && d <= 7; })
+      .map(p => ({ name: p.name, icon: p.icon, days: daysUntil(p.deadline), type: 'project' }))
+      .sort((a, b) => a.days - b.days);
 
     return { overdue, doToday, deadlines };
-  }, [tasks, projects, goals, sprintProjectIds]);
+  }, [tasks, projects]);
 
   const dexosInsight = useMemo(() => {
     const urgentUntouched = projects.find(p => {
@@ -249,9 +186,6 @@ export default function Growth() {
         ? `"${urgentUntouched.name}" hasn't been touched in ${gap} days. ${d}d left.`
         : `"${urgentUntouched.name}" has no focus sessions yet. ${d}d until deadline.`;
     }
-    if (activeSprint && todayFocusMin === 0 && new Date().getHours() >= 18) {
-      return `0/${activeSprint.daily_focus_minutes}m logged today. Sprint target unmet.`;
-    }
     if (todayView.overdue.length > 0) {
       return `${todayView.overdue.length} overdue task${todayView.overdue.length > 1 ? 's' : ''}. Start with the oldest.`;
     }
@@ -259,7 +193,7 @@ export default function Growth() {
       return `Day ${streak.current_streak} streak. Don't break it — log at least 10 minutes today.`;
     }
     return 'Every focused session compounds. Open a project and start.';
-  }, [projects, sessions, activeSprint, todayFocusMin, streak, todayView.overdue]);
+  }, [projects, sessions, todayView.overdue, streak]);
 
   // ─── Focus Timer ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -295,7 +229,7 @@ export default function Growth() {
       await supabase.from('growth_focus_sessions').insert([{
         user_id: user.id,
         project_id: focusProject?.id || null,
-        skill_id:   focusSkill?.id   || null,
+        skill_id:   null,
         duration_minutes: mins,
         session_date: todayStr(),
         started_at:  new Date(Date.now() - elapsed * 1000).toISOString(),
@@ -310,7 +244,6 @@ export default function Growth() {
   const closeFocusDone = () => {
     setFocusMode(null);
     setFocusProject(null);
-    setFocusSkill(null);
     setFocusDoneMin(0);
     if (user) loadData(user.id);
   };
@@ -370,104 +303,6 @@ export default function Growth() {
     }
   };
 
-  const createGoal = async (goalForm) => {
-    if (!goalForm.name.trim() || !goalForm.project_id || !user) return;
-    try {
-      await supabase.from('study_goals').insert([{
-        name: goalForm.name,
-        target_value: Number(goalForm.target_value) || 1,
-        current_value: 0,
-        unit: goalForm.unit || 'done',
-        deadline: goalForm.deadline || null,
-        user_id: user.id,
-        project_id: goalForm.project_id,
-        pillar: 'growth'
-      }]);
-      showToast('🎯 Goal set!', 'success');
-      loadData(user.id);
-    } catch { showToast('Error creating goal', 'error'); }
-  };
-
-  const createGoalFromTab = async () => {
-    if (!formGoal.name.trim() || !formGoal.project_id || !user) return;
-    await createGoal(formGoal);
-    setFormGoal({ name: '', target_value: '1', unit: 'done', deadline: '', project_id: '' });
-    setModalGoal(false);
-  };
-
-  const updateGoalProgress = async (goal, newVal) => {
-    const v = Math.max(0, Math.min(Number(newVal), Number(goal.target_value)));
-    const isComplete = v >= Number(goal.target_value);
-    setGoals(prev => prev.map(g => g.id === goal.id ? { ...g, current_value: v, is_complete: isComplete } : g));
-    try {
-      await supabase.from('study_goals').update({ current_value: v, is_complete: isComplete }).eq('id', goal.id);
-      if (isComplete) showToast('🏁 Goal complete!', 'success');
-    } catch { showToast('Error updating goal', 'error'); }
-  };
-
-  const createSprint = async () => {
-    if (!formSprint.name.trim() || !user) return;
-    if (activeSprint) { showToast('End your current sprint first.', 'warning'); return; }
-    try {
-      const start = new Date();
-      const end   = new Date(); end.setDate(end.getDate() + formSprint.duration_days);
-      const { error } = await supabase.from('growth_sprints').insert([{
-        name: formSprint.name,
-        daily_focus_minutes: formSprint.daily_focus_minutes,
-        start_date: start.toISOString().split('T')[0],
-        end_date:   end.toISOString().split('T')[0],
-        user_id: user.id,
-      }]);
-      if (error) throw error;
-      showToast('⚡ Sprint started!', 'success');
-      setModalSprint(false);
-      setFormSprint({ name: '', duration_days: 21, daily_focus_minutes: 90, project_ids: [] });
-      loadData(user.id);
-    } catch { showToast('Error creating sprint', 'error'); }
-  };
-
-  const confirmEndSprint = async () => {
-    if (!activeSprint) return;
-    try {
-      await supabase.from('growth_sprints').update({ status: 'completed' }).eq('id', activeSprint.id);
-      showToast('Sprint completed.', 'success');
-      setModalEndSprint(false);
-      loadData(user.id);
-    } catch { showToast('Error ending sprint', 'error'); }
-  };
-
-  const createSkill = async () => {
-    if (!formSkill.name.trim() || !user) return;
-    try {
-      await supabase.from('growth_skills').insert([{ ...formSkill, user_id: user.id }]);
-      showToast('⚡ Skill added!', 'success');
-      setModalSkill(false);
-      setFormSkill({ name: '', icon: '⚡', category: 'technical' });
-      loadData(user.id);
-    } catch { showToast('Error creating skill', 'error'); }
-  };
-
-  const logTime = async () => {
-    const mins = Math.max(1, (Number(formLog.hours) || 0) * 60 + (Number(formLog.minutes) || 0));
-    if (!formLog.project_id || !user || mins < 1) { showToast('Select a project and enter time.', 'warning'); return; }
-    try {
-      await supabase.from('growth_focus_sessions').insert([{
-        user_id: user.id,
-        project_id: formLog.project_id,
-        skill_id: formLog.skill_id || null,
-        duration_minutes: mins,
-        notes: formLog.notes || null,
-        session_date: formLog.date || todayStr(),
-        created_at: new Date().toISOString(),
-      }]);
-      showToast(`✅ ${fmtHours(mins)} logged!`, 'success');
-      setModalLogTime(false);
-      setFormLog({ project_id: '', skill_id: '', hours: '1', minutes: '0', date: todayStr(), notes: '' });
-      loadData(user.id);
-    } catch { showToast('Error logging time', 'error'); }
-  };
-
-
   const openProjectDetail = (p) => {
     setPrevTab(tab);
     setSelectedProject(p);
@@ -507,11 +342,11 @@ export default function Growth() {
         focusMode={focusMode}
         setFocusMode={setFocusMode}
         projects={projects}
-        skills={skills}
+        skills={[]}
         focusProject={focusProject}
         setFocusProject={setFocusProject}
-        focusSkill={focusSkill}
-        setFocusSkill={setFocusSkill}
+        focusSkill={null}
+        setFocusSkill={() => null}
         focusType={focusType}
         setFocusType={setFocusType}
         focusTimedMin={focusTimedMin}
@@ -537,15 +372,15 @@ export default function Growth() {
         setTab={setTab}
         prevTab={prevTab}
         tasks={tasks}
-        goals={goals}
+        goals={[]}
         sessions={sessions}
         projectStatsMap={projectStatsMap}
         completeTask={completeTask}
         createTask={createTask}
-        createGoal={createGoal}
+        createGoal={() => null}
         setFocusProject={setFocusProject}
         setFocusMode={setFocusMode}
-        updateGoalProgress={updateGoalProgress}
+        updateGoalProgress={() => null}
       />
     );
   }
@@ -583,8 +418,6 @@ export default function Growth() {
         {[
           { id: 'today',    label: 'Today',    col: C.growth },
           { id: 'projects', label: 'Projects', col: C.project },
-          { id: 'goals',    label: 'Goals',    col: C.goal },
-          { id: 'sprints',  label: 'Sprint',   col: C.sprint },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             style={{ background: tab === t.id ? `${t.col}20` : C.surface, border: `1px solid ${tab === t.id ? t.col : C.border}`, borderRadius: '12px', padding: '7px 14px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '12px', fontWeight: 800, color: tab === t.id ? t.col : C.muted, transition: 'all 0.2s', flexShrink: 0 }}>
@@ -597,8 +430,8 @@ export default function Growth() {
       <div style={{ padding: '18px 20px 120px' }}>
         {tab === 'today' && (
           <TodayTab
-            activeSprint={activeSprint}
-            sprintProgress={sprintProgress}
+            activeSprint={null}
+            sprintProgress={null}
             todayFocusMin={todayFocusMin}
             todayView={todayView}
             dexosInsight={dexosInsight}
@@ -614,40 +447,9 @@ export default function Growth() {
           <ProjectsTab
             projects={projects}
             projectStatsMap={projectStatsMap}
-            sprintProjectIds={sprintProjectIds}
+            sprintProjectIds={[]}
             openProjectDetail={openProjectDetail}
             setModalProject={setModalProject}
-          />
-        )}
-        {tab === 'goals' && (
-          <GoalsTab
-            goals={goals}
-            projectMap={projectMap}
-            updateGoalProgress={updateGoalProgress}
-            setModalGoal={setModalGoal}
-          />
-        )}
-        {tab === 'sprints' && (
-          <SprintsTab
-            activeSprint={activeSprint}
-            sprintProgress={sprintProgress}
-            sprintProjectIds={sprintProjectIds}
-            projects={projects}
-            projectStatsMap={projectStatsMap}
-            tasks={tasks}
-            completeTask={completeTask}
-            openProjectDetail={openProjectDetail}
-            setModalSprint={setModalSprint}
-            setModalEndSprint={setModalEndSprint}
-          />
-        )}
-        {tab === 'skills' && (
-          <SkillsTab
-            skills={skills}
-            skillHoursMap={skillHoursMap}
-            sessions={sessions}
-            setModalSkill={setModalSkill}
-            now={nowTimestamp}
           />
         )}
       </div>
@@ -658,14 +460,6 @@ export default function Growth() {
         <button onClick={() => setModalQuickTask(true)}
           style={{ position: 'fixed', left: '20px', bottom: '84px', background: C.surface, border: `1px solid ${C.border2}`, borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.4)', zIndex: 50 }}>
           <Plus size={20} color={C.growth} />
-        </button>
-      )}
-      {/* Log Time (bottom left, visible on other tabs) */}
-      {tab !== 'today' && (
-        <button onClick={() => setModalLogTime(true)}
-          style={{ position: 'fixed', left: '20px', bottom: '84px', background: C.surface, border: `1px solid ${C.focus}60`, borderRadius: '14px', height: '44px', padding: '0 14px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.4)', zIndex: 50 }}>
-          <Timer size={14} color={C.focus} />
-          <span style={{ fontSize: '11px', fontWeight: 700, color: C.focus }}>Log Time</span>
         </button>
       )}
       {/* Focus Session FAB (bottom right) */}
@@ -708,51 +502,6 @@ export default function Growth() {
         </Modal>
       )}
 
-      {/* Log Time */}
-      {modalLogTime && (
-        <Modal title="Log Study Time" onClose={() => setModalLogTime(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div>
-              <FLabel>PROJECT</FLabel>
-              <FSelect value={formLog.project_id} onChange={e => setFormLog(p => ({ ...p, project_id: e.target.value }))}>
-                <option value="">Select project...</option>
-                {projects.map(p => <option key={p.id} value={p.id}>{p.icon} {p.name}</option>)}
-              </FSelect>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <div style={{ flex: 1 }}>
-                <FLabel>HOURS</FLabel>
-                <FInput type="number" placeholder="1" value={formLog.hours} onChange={e => setFormLog(p => ({ ...p, hours: e.target.value }))} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <FLabel>MINUTES</FLabel>
-                <FSelect value={formLog.minutes} onChange={e => setFormLog(p => ({ ...p, minutes: e.target.value }))}>
-                  <option value="0">0</option>
-                  <option value="15">15</option>
-                  <option value="30">30</option>
-                  <option value="45">45</option>
-                </FSelect>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <div style={{ flex: 1 }}>
-                <FLabel>SKILL (OPTIONAL)</FLabel>
-                <FSelect value={formLog.skill_id} onChange={e => setFormLog(p => ({ ...p, skill_id: e.target.value }))}>
-                  <option value="">None</option>
-                  {skills.map(s => <option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
-                </FSelect>
-              </div>
-              <div style={{ flex: 1 }}>
-                <FLabel>DATE</FLabel>
-                <FInput type="date" value={formLog.date} onChange={e => setFormLog(p => ({ ...p, date: e.target.value }))} />
-              </div>
-            </div>
-            <FInput placeholder="Note (optional)..." value={formLog.notes} onChange={e => setFormLog(p => ({ ...p, notes: e.target.value }))} />
-            <BtnPrimary label={`Log ${fmtHours((Number(formLog.hours) || 0) * 60 + (Number(formLog.minutes) || 0))}`} onClick={logTime} color={C.focus} disabled={!formLog.project_id} />
-          </div>
-        </Modal>
-      )}
-
       {/* New Project */}
       {modalProject && (
         <Modal title="New Project" onClose={() => setModalProject(false)}>
@@ -768,133 +517,7 @@ export default function Growth() {
         </Modal>
       )}
 
-      {/* New Goal from Goals tab */}
-      {modalGoal && (
-        <Modal title="New Goal" onClose={() => setModalGoal(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <FInput placeholder="Goal name..." value={formGoal.name} onChange={e => setFormGoal(p => ({ ...p, name: e.target.value }))} />
-            <div>
-              <FLabel>PROJECT</FLabel>
-              <FSelect value={formGoal.project_id} onChange={e => setFormGoal(p => ({ ...p, project_id: e.target.value }))}>
-                <option value="">Select project...</option>
-                {projects.map(p => <option key={p.id} value={p.id}>{p.icon} {p.name}</option>)}
-              </FSelect>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <div style={{ flex: 1 }}>
-                <FLabel>TARGET</FLabel>
-                <FInput type="number" placeholder="10" value={formGoal.target_value} onChange={e => setFormGoal(p => ({ ...p, target_value: e.target.value }))} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <FLabel>UNIT</FLabel>
-                <FInput placeholder="problems, pages..." value={formGoal.unit} onChange={e => setFormGoal(p => ({ ...p, unit: e.target.value }))} />
-              </div>
-            </div>
-            <FInput type="date" value={formGoal.deadline} onChange={e => setFormGoal(p => ({ ...p, deadline: e.target.value }))} />
-            <BtnPrimary label="Set Goal" onClick={createGoalFromTab} color={C.goal} disabled={!formGoal.name.trim() || !formGoal.project_id} />
-          </div>
-        </Modal>
-      )}
 
-      {/* New Sprint */}
-      {modalSprint && (
-        <Modal title="Start Sprint" onClose={() => setModalSprint(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <FInput placeholder='Sprint name (e.g. "DSA Blitz · July")' value={formSprint.name} onChange={e => setFormSprint(p => ({ ...p, name: e.target.value }))} />
-            <div>
-              <FLabel>DURATION</FLabel>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {[7, 14, 21].map(d => (
-                  <button key={d} onClick={() => setFormSprint(p => ({ ...p, duration_days: d }))}
-                    style={{ flex: 1, background: formSprint.duration_days === d ? `${C.sprint}20` : C.surface, border: `1px solid ${formSprint.duration_days === d ? C.sprint : C.border}`, borderRadius: '10px', padding: '8px', fontSize: '12px', fontWeight: 800, color: formSprint.duration_days === d ? C.sprint : C.sub, cursor: 'pointer' }}>
-                    {d}d
-                  </button>
-                ))}
-                <div style={{ flex: 1 }}>
-                  <FInput type="number" placeholder="Custom" value={[7, 14, 21].includes(formSprint.duration_days) ? '' : String(formSprint.duration_days)} onChange={e => setFormSprint(p => ({ ...p, duration_days: Number(e.target.value) || 21 })) } style={{ padding: '8px', textAlign: 'center', fontSize: '12px' }} />
-                </div>
-              </div>
-            </div>
-            <div>
-              <FLabel>DAILY FOCUS TARGET</FLabel>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {[60, 90, 120, 180].map(m => (
-                  <button key={m} onClick={() => setFormSprint(p => ({ ...p, daily_focus_minutes: m }))}
-                    style={{ flex: 1, background: formSprint.daily_focus_minutes === m ? `${C.sprint}20` : C.surface, border: `1px solid ${formSprint.daily_focus_minutes === m ? C.sprint : C.border}`, borderRadius: '10px', padding: '8px', fontSize: '11px', fontWeight: 800, color: formSprint.daily_focus_minutes === m ? C.sprint : C.sub, cursor: 'pointer' }}>
-                    {m}m
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div style={{ background: `${C.sprint}10`, border: `1px solid ${C.sprint}30`, borderRadius: '12px', padding: '10px 14px' }}>
-              <span style={{ fontSize: '11px', color: C.sub, lineHeight: 1.5 }}>
-                {formSprint.duration_days}d sprint · {formSprint.daily_focus_minutes}m/day · {fmtHours(formSprint.duration_days * formSprint.daily_focus_minutes)} total target
-              </span>
-            </div>
-            <BtnPrimary label="⚡ Start Sprint" onClick={createSprint} color={C.sprint} disabled={!formSprint.name.trim()} />
-          </div>
-        </Modal>
-      )}
-
-      {/* New Skill */}
-      {modalSkill && (
-        <Modal title="Add Skill" onClose={() => setModalSkill(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <FInput placeholder="Skill name (e.g. DSA, React, Writing)" value={formSkill.name} onChange={e => setFormSkill(p => ({ ...p, name: e.target.value }))} />
-            <FInput placeholder="Icon (emoji)" value={formSkill.icon} onChange={e => setFormSkill(p => ({ ...p, icon: e.target.value }))} />
-            <div>
-              <FLabel>CATEGORY</FLabel>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {['technical', 'academic', 'creative', 'professional'].map(cat => (
-                  <button key={cat} onClick={() => setFormSkill(p => ({ ...p, category: cat }))}
-                    style={{ background: formSkill.category === cat ? `${C.skill}20` : C.surface, border: `1px solid ${formSkill.category === cat ? C.skill : C.border}`, borderRadius: '10px', padding: '6px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: formSkill.category === cat ? C.skill : C.sub, transition: 'all 0.2s', textTransform: 'capitalize' }}>
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <BtnPrimary label="Add Skill" onClick={createSkill} color={C.skill} disabled={!formSkill.name.trim()} />
-          </div>
-        </Modal>
-      )}
-
-      {/* End Sprint Confirmation */}
-      {modalEndSprint && activeSprint && (
-        <Modal title="End Sprint?" onClose={() => setModalEndSprint(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ background: `${C.danger}10`, border: `1px solid ${C.danger}30`, borderRadius: '14px', padding: '14px' }}>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>⚠</span>
-                <div style={{ fontSize: '12px', color: C.sub, lineHeight: 1.5 }}>This is irreversible. The sprint will be closed and a new one can be started.</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {[
-                { label: 'Sprint', value: activeSprint.name },
-                { label: 'Day', value: `${sprintProgress.day} of ${sprintProgress.totalDays}` },
-                { label: 'Focus logged', value: fmtHours(sprintProgress.focusLogged || 0) },
-                { label: 'Total target', value: fmtHours(sprintProgress.totalTarget || 0) },
-                { label: 'Completion', value: `${sprintProgress.focusPct}%` },
-              ].map(r => (
-                <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                  <span style={{ color: C.muted }}>{r.label}</span>
-                  <span style={{ fontWeight: 700, color: C.text }}>{r.value}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setModalEndSprint(false)}
-                style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '12px', color: C.sub, fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                Keep Going
-              </button>
-              <button onClick={confirmEndSprint}
-                style={{ flex: 1, background: C.danger, border: 'none', borderRadius: '14px', padding: '12px', color: '#fff', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}>
-                End Sprint
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
 
       <BottomNav activeTab="growth" onTabChange={t => navigate(`/${t}`)} />
     </div>

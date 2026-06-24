@@ -1,0 +1,1747 @@
+{
+  "consoleLogs": [
+    {
+      "type": "warn",
+      "text": "Manifest: Enctype should be set to either application/x-www-form-urlencoded or multipart/form-data. It currently defaults to application/x-www-form-urlencoded"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "warn",
+      "text": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"> is deprecated. Please include <meta name=\"mobile-web-app-capable\" content=\"yes\">"
+    },
+    {
+      "type": "verbose",
+      "text": "[DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o"
+    },
+    {
+      "type": "log",
+      "text": "Zenith.jsx: useEffect checking user auth status..."
+    },
+    {
+      "type": "log",
+      "text": "Zenith.jsx: useEffect checking user auth status..."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "log",
+      "text": "Zenith.jsx: useEffect auth check completed, user is: 6ff1fb0a-680f-48e7-8940-51d55deea63d"
+    },
+    {
+      "type": "log",
+      "text": "Zenith.jsx: loadData started for uid: 6ff1fb0a-680f-48e7-8940-51d55deea63d"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "log",
+      "text": "Zenith.jsx: useEffect auth check completed, user is: 6ff1fb0a-680f-48e7-8940-51d55deea63d"
+    },
+    {
+      "type": "log",
+      "text": "Zenith.jsx: loadData started for uid: 6ff1fb0a-680f-48e7-8940-51d55deea63d"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()"
+    },
+    {
+      "type": "log",
+      "text": "Zenith.jsx: loadData successful!"
+    },
+    {
+      "type": "log",
+      "text": "Zenith.jsx: loadData finally block, setting loading to false."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 409 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "log",
+      "text": "Zenith.jsx: loadData successful!"
+    },
+    {
+      "type": "log",
+      "text": "Zenith.jsx: loadData finally block, setting loading to false."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "warn",
+      "text": "Manifest: Enctype should be set to either application/x-www-form-urlencoded or multipart/form-data. It currently defaults to application/x-www-form-urlencoded"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "warn",
+      "text": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"> is deprecated. Please include <meta name=\"mobile-web-app-capable\" content=\"yes\">"
+    },
+    {
+      "type": "info",
+      "text": "Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "warn",
+      "text": "Manifest: Enctype should be set to either application/x-www-form-urlencoded or multipart/form-data. It currently defaults to application/x-www-form-urlencoded"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "warn",
+      "text": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"> is deprecated. Please include <meta name=\"mobile-web-app-capable\" content=\"yes\">"
+    },
+    {
+      "type": "info",
+      "text": "Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "warn",
+      "text": "%s\n\n%s\n An error occurred in the <Health> component. Consider adding an error boundary to your tree to customize error handling behavior.\nVisit https://react.dev/link/error-boundaries to learn more about error boundaries."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "warn",
+      "text": "Manifest: Enctype should be set to either application/x-www-form-urlencoded or multipart/form-data. It currently defaults to application/x-www-form-urlencoded"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "warn",
+      "text": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"> is deprecated. Please include <meta name=\"mobile-web-app-capable\" content=\"yes\">"
+    },
+    {
+      "type": "info",
+      "text": "Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "warn",
+      "text": "Manifest: Enctype should be set to either application/x-www-form-urlencoded or multipart/form-data. It currently defaults to application/x-www-form-urlencoded"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "warn",
+      "text": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"> is deprecated. Please include <meta name=\"mobile-web-app-capable\" content=\"yes\">"
+    },
+    {
+      "type": "info",
+      "text": "Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 429 ()"
+    },
+    {
+      "type": "error",
+      "text": "Gemini API error: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "askZyra error: Rate limit exceeded. Dex needs a breather! 🧊 Please try again in a minute."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 429 ()"
+    },
+    {
+      "type": "error",
+      "text": "Gemini API error: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "askZyra error: Rate limit exceeded. Dex needs a breather! 🧊 Please try again in a minute."
+    },
+    {
+      "type": "warn",
+      "text": "Manifest: Enctype should be set to either application/x-www-form-urlencoded or multipart/form-data. It currently defaults to application/x-www-form-urlencoded"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "warn",
+      "text": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"> is deprecated. Please include <meta name=\"mobile-web-app-capable\" content=\"yes\">"
+    },
+    {
+      "type": "info",
+      "text": "Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "warn",
+      "text": "Manifest: Enctype should be set to either application/x-www-form-urlencoded or multipart/form-data. It currently defaults to application/x-www-form-urlencoded"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "warn",
+      "text": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"> is deprecated. Please include <meta name=\"mobile-web-app-capable\" content=\"yes\">"
+    },
+    {
+      "type": "info",
+      "text": "Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "warn",
+      "text": "Manifest: Enctype should be set to either application/x-www-form-urlencoded or multipart/form-data. It currently defaults to application/x-www-form-urlencoded"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "warn",
+      "text": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"> is deprecated. Please include <meta name=\"mobile-web-app-capable\" content=\"yes\">"
+    },
+    {
+      "type": "info",
+      "text": "Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 429 ()"
+    },
+    {
+      "type": "error",
+      "text": "Gemini API error: [object Object]"
+    },
+    {
+      "type": "error",
+      "text": "askZyra error: Rate limit exceeded. Dex needs a breather! 🧊 Please try again in a minute."
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "Error fetching subscription: [object Object]"
+    }
+  ],
+  "pageErrors": [
+    {
+      "message": "activeSprint is not defined",
+      "stack": "ReferenceError: activeSprint is not defined\n    at Health (http://localhost:5173/src/pages/Health.jsx?t=1782307776184:525:7)\n    at react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bd4707eb:12867:12)\n    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bd4707eb:4212:19)\n    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bd4707eb:5568:16)\n    at beginWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bd4707eb:6139:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bd4707eb:850:66)\n    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bd4707eb:8428:92)\n    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bd4707eb:8324:37)\n    at renderRootSync (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bd4707eb:8308:6)\n    at performWorkOnRoot (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bd4707eb:7993:27)"
+    }
+  ],
+  "networkErrors": [
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=friend_tag%2Cusername&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 406,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_tasks?select=*%2Cgrowth_projects%28name%29&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_settings?select=monthly_budget&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_bills?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_sleep_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&sleep_date=gte.2026-06-18&order=sleep_date.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_income?select=amount&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_sprints?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&status=eq.active&limit=1",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=friend_tag%2Cusername&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 406,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_move_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=gte.2026-06-18&order=log_date.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_bills?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_tasks?select=*%2Cgrowth_projects%28name%29&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=*&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 406,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_focus_sessions?select=started_at%2Cduration_minutes%2Csession_date&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&session_date=eq.2026-06-24",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_water_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_income?select=amount&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_sprints?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&status=eq.active&limit=1",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=friend_tag%2Cusername&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 406,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_settings?select=monthly_budget&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_move_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=gte.2026-06-18&order=log_date.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_sleep_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&sleep_date=gte.2026-06-18&order=sleep_date.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=friend_tag&friend_tag=eq.3HDFJ",
+      "status": 406,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_focus_sessions?select=started_at%2Cduration_minutes%2Csession_date&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&session_date=eq.2026-06-24",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=*&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 406,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=friend_tag&friend_tag=eq.6AEJS",
+      "status": 406,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=friend_tag&friend_tag=eq.4SLBL",
+      "status": 406,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/zyron_wallet?select=*",
+      "status": 409,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_water_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/habits",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_projects?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&status=neq.archived&order=created_at.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/dexos_daily_summary?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_tasks?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=created_at.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/dexos_streaks?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_projects?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&status=neq.archived&order=created_at.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/dexos_daily_summary?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_sleep_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&sleep_date=gte.2026-06-18&order=sleep_date.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_move_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=gte.2026-06-18&order=log_date.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_water_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/dexos_daily_summary?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=gte.2026-03-26",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_water_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_move_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=gte.2026-06-18&order=log_date.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/dexos_daily_summary?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=gte.2026-03-26",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_sleep_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&sleep_date=gte.2026-06-18&order=sleep_date.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_settings?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_bills?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=due_date.asc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_income?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=income_date.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_vault?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=created_at.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_bills?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=due_date.asc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_settings?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_income?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=income_date.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_vault?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=created_at.desc",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_water_logs?select=amount_ml&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_sleep_logs?select=duration_hours&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&sleep_date=eq.2026-06-24",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyD8fgpOsSgbjwsyJJmSDAy4TJxyjO3ITI8",
+      "status": 429,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_sleep_logs?select=duration_hours&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&sleep_date=eq.2026-06-24",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_water_logs?select=amount_ml&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyD8fgpOsSgbjwsyJJmSDAy4TJxyjO3ITI8",
+      "status": 429,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id",
+      "status": 404,
+      "statusText": ""
+    },
+    {
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyD8fgpOsSgbjwsyJJmSDAy4TJxyjO3ITI8",
+      "status": 429,
+      "statusText": ""
+    },
+    {
+      "url": "https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d",
+      "status": 400,
+      "statusText": ""
+    }
+  ],
+  "failedSupabaseQueries": [
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=friend_tag%2Cusername&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 406",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_tasks?select=*%2Cgrowth_projects%28name%29&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_settings?select=monthly_budget&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_bills?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_sleep_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&sleep_date=gte.2026-06-18&order=sleep_date.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_income?select=amount&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_sprints?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&status=eq.active&limit=1 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=friend_tag%2Cusername&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 406",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_move_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=gte.2026-06-18&order=log_date.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_bills?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_tasks?select=*%2Cgrowth_projects%28name%29&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=*&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 406",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_focus_sessions?select=started_at%2Cduration_minutes%2Csession_date&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&session_date=eq.2026-06-24 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_water_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_income?select=amount&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_sprints?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&status=eq.active&limit=1 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=friend_tag%2Cusername&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 406",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_settings?select=monthly_budget&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_move_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=gte.2026-06-18&order=log_date.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_sleep_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&sleep_date=gte.2026-06-18&order=sleep_date.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=friend_tag&friend_tag=eq.3HDFJ failed with status 406",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_focus_sessions?select=started_at%2Cduration_minutes%2Csession_date&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&session_date=eq.2026-06-24 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=*&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 406",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=friend_tag&friend_tag=eq.6AEJS failed with status 406",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=friend_tag&friend_tag=eq.4SLBL failed with status 406",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/zyron_wallet?select=* failed with status 409",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_water_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/habits failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_projects?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&status=neq.archived&order=created_at.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/dexos_daily_summary?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_tasks?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=created_at.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/dexos_streaks?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/growth_projects?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&status=neq.archived&order=created_at.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/dexos_daily_summary?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_sleep_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&sleep_date=gte.2026-06-18&order=sleep_date.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_move_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=gte.2026-06-18&order=log_date.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_water_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/dexos_daily_summary?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=gte.2026-03-26 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_water_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_move_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=gte.2026-06-18&order=log_date.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/dexos_daily_summary?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=gte.2026-03-26 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_sleep_logs?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&sleep_date=gte.2026-06-18&order=sleep_date.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_settings?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_bills?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=due_date.asc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_income?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=income_date.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_vault?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=created_at.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_bills?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=due_date.asc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_settings?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_income?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=income_date.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/wealth_vault?select=*&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&order=created_at.desc failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_water_logs?select=amount_ml&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_sleep_logs?select=duration_hours&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&sleep_date=eq.2026-06-24 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_sleep_logs?select=duration_hours&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&sleep_date=eq.2026-06-24 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/health_water_logs?select=amount_ml&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d&log_date=eq.2026-06-24 failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/analytics_events failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?select=first_login_at&user_id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/beta_onboarding?on_conflict=user_id failed with status 404",
+    "Query to https://xgowpznkqbsngdiuodmj.supabase.co/rest/v1/profiles?select=subscription_tier&id=eq.6ff1fb0a-680f-48e7-8940-51d55deea63d failed with status 400"
+  ],
+  "flowLogs": [
+    "Navigating to http://localhost:5173/",
+    "Starting Onboarding flow...",
+    "Stepping through onboarding slides...",
+    "Clicking final onboarding launch button...",
+    "Attempting Guest Login...",
+    "Waiting for welcome animation...",
+    "Completing/Skipping Goal Setup...",
+    "Mounting Zenith Dashboard...",
+    "Current URL is http://localhost:5173/zenith",
+    "Testing Zenith - Add Habit...",
+    "Testing Zenith - Complete Habit...",
+    "Navigating to Growth Pillar...",
+    "Testing Growth - Switch to Projects Tab...",
+    "Testing Growth - Adding Task to Project...",
+    "Navigating to Health Pillar...",
+    "Testing Health - Logging Water...",
+    "Navigating to Wealth Pillar...",
+    "Testing Wealth - Logging Expense...",
+    "Navigating to Dex AI...",
+    "Testing Dex - Sending Chat message...",
+    "Testing Dex - Generating OS Summary...",
+    "Testing Dex - Quiz...",
+    "Navigating to Profile...",
+    "Navigating to Stats...",
+    "Refreshing page to verify session persistence...",
+    "Post-refresh URL is http://localhost:5173/stats"
+  ]
+}

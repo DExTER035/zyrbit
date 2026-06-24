@@ -982,7 +982,6 @@ export default function Zenith() {
 
   // Quick stat cards for the dashboard
   const statCards = [
-    { label: 'TASKS', value: `${ctx.completedTasks}/${ctx.totalTasks}`, icon: '📋', color: 'var(--color-success)' },
     { label: 'FOCUS', value: `${ctx.focusHours}h`, icon: '🎯', color: 'var(--color-accent)' },
     { label: 'SLEEP', value: `${ctx.sleep}h`, icon: '🌙', color: '#8B5CF6' },
     { label: 'WATER', value: `${(ctx.water/1000).toFixed(1)}L`, icon: '💧', color: 'var(--color-accent-cyan)' },
@@ -1034,51 +1033,31 @@ export default function Zenith() {
       </div>
 
       {/* ── ALERTS WARNING SYSTEM ──────────────────────────────────────── */}
-      <div style={{ padding: '0 var(--space-24)', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)', marginTop: 'var(--space-16)' }}>
-        {recoveryScore < 50 && (
-          <div style={{
-            padding: 'var(--space-16)', background: 'var(--color-error-dim)',
-            border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-inner)',
-            borderLeft: '4px solid var(--color-error)',
-            display: 'flex', alignItems: 'center', gap: 'var(--space-8)',
-            animation: 'pageEnter 0.3s ease forwards',
-          }}>
-            <span style={{ fontSize: '14px', flexShrink: 0 }}>⚠️</span>
-            <span style={{ fontSize: 'var(--fs-xs)', color: '#F87171', fontWeight: 700, lineHeight: 1.4 }}>
-              CAPACITY ALERT: Recovery depleted ({recoveryScore}%). Rest protocol enforced.
-            </span>
+      {(() => {
+        const warnings = [];
+        if (recoveryScore < 50) warnings.push(`Capacity Alert: Recovery depleted (${recoveryScore}%). Rest protocol enforced.`);
+        if (ctx.runwayMonths < 3.0) warnings.push(`Runway Alert: ${ctx.runwayMonths.toFixed(1)} months remaining. Freeze discretionary spend.`);
+        if (ctx.spent > ctx.limit * 30) warnings.push("Budget Cap Exceeded: Monthly limit crossed.");
+        
+        if (warnings.length === 0) return null;
+        
+        return (
+          <div style={{ padding: '0 var(--space-24)', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)', marginTop: 'var(--space-16)' }}>
+            <div style={{
+              padding: 'var(--space-12) var(--space-16)', background: 'var(--color-error-dim)',
+              border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-inner)',
+              borderLeft: '4px solid var(--color-error)',
+              display: 'flex', alignItems: 'flex-start', gap: 'var(--space-8)',
+              animation: 'pageEnter 0.3s ease forwards',
+            }}>
+              <span style={{ fontSize: '14px', flexShrink: 0, marginTop: '1px' }}>⚠️</span>
+              <div style={{ fontSize: 'var(--fs-xs)', color: '#F87171', fontWeight: 700, lineHeight: 1.45 }}>
+                {warnings.map((w, idx) => <div key={idx}>{w}</div>)}
+              </div>
+            </div>
           </div>
-        )}
-
-        {ctx.runwayMonths < 3.0 && (
-          <div style={{
-            padding: 'var(--space-16)', background: 'var(--color-warning-dim)',
-            border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: 'var(--radius-inner)',
-            borderLeft: '4px solid var(--color-warning)',
-            display: 'flex', alignItems: 'center', gap: 'var(--space-8)',
-            animation: 'pageEnter 0.3s 0.05s ease forwards',
-          }}>
-            <span style={{ fontSize: '14px', flexShrink: 0 }}>⚠️</span>
-            <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--color-warning)', fontWeight: 700, lineHeight: 1.4 }}>
-              RUNWAY ALERT: {ctx.runwayMonths.toFixed(1)} months remaining. Freeze discretionary spend.
-            </span>
-          </div>
-        )}
-
-        {ctx.spent > ctx.limit * 30 && (
-          <div style={{
-            padding: 'var(--space-16)', background: 'var(--color-error-dim)',
-            border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-inner)',
-            borderLeft: '4px solid var(--color-error)',
-            display: 'flex', alignItems: 'center', gap: 'var(--space-8)',
-          }}>
-            <span style={{ fontSize: '14px', flexShrink: 0 }}>💸</span>
-            <span style={{ fontSize: 'var(--fs-xs)', color: '#F87171', fontWeight: 700, lineHeight: 1.4 }}>
-              BUDGET CAP EXCEEDED: Monthly limit crossed.
-            </span>
-          </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* ── OS SCORE RING + BRIEFING ────────────────────────────────────── */}
       <div style={{ padding: 'var(--space-24) var(--space-24) 0', display: 'flex', gap: 'var(--space-16)', alignItems: 'stretch' }}>
@@ -1118,15 +1097,6 @@ export default function Zenith() {
             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-success)', boxShadow: `0 0 6px var(--color-success)`, animation: 'glowPulse 2s ease-in-out infinite' }} />
           </div>
           <p style={{ fontSize: 'var(--fs-xs)', lineHeight: 1.55, color: 'var(--text-secondary)', margin: 0 }}>{aiBriefing}</p>
-          <div style={{ marginTop: 'auto', borderTop: `1px solid var(--border-primary)`, paddingTop: 'var(--space-8)', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
-            <span style={{ fontSize: '7px', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '1px' }}>RECOMMENDED</span>
-            <div style={{ fontSize: '10px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 'var(--space-8)' }}>
-              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--color-success)', flexShrink: 0 }} /> {healthAction}
-            </div>
-            <div style={{ fontSize: '10px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 'var(--space-8)' }}>
-              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--color-accent)', flexShrink: 0 }} /> {growthAction}
-            </div>
-          </div>
         </div>
       </div>
 
