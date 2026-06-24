@@ -7,17 +7,17 @@ import { useMemo } from 'react'
  * @param {string} label - Optional label like "Focus Sessions"
  */
 const HeatmapGrid = ({
-  color = '#00E5FF',
+  color = '#5EE6F5',
   dataMap = {},
   label = '',
+  days = 91,
 }) => {
   const { grid, months, maxVal } = useMemo(() => {
     const today = new Date()
-    const days = 91 // ~13 weeks
     const cells = []
     let max = 1
 
-    // Build array of last 91 days
+    // Build array of last days
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(today)
       d.setDate(d.getDate() - i)
@@ -45,7 +45,7 @@ const HeatmapGrid = ({
     })
 
     return { grid: padded, months: monthLabels, maxVal: max }
-  }, [dataMap])
+  }, [dataMap, days])
 
   const getIntensity = (count) => {
     if (count === 0) return 0
@@ -58,10 +58,49 @@ const HeatmapGrid = ({
 
   const getColor = (intensity) => {
     if (intensity === 0) return '#1A1A28'
-    // Parse hex color to RGB, then apply opacity levels
-    const r = parseInt(color.slice(1, 3), 16)
-    const g = parseInt(color.slice(3, 5), 16)
-    const b = parseInt(color.slice(5, 7), 16)
+
+    let resolvedColor = color;
+    // 1. If it's a CSS variable, resolve it dynamically or use hardcoded fallbacks.
+    if (resolvedColor.startsWith('var(')) {
+      const varName = resolvedColor.slice(4, -1).trim();
+      if (typeof window !== 'undefined') {
+        const styleVal = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        if (styleVal) resolvedColor = styleVal;
+      }
+      // Static fallbacks in case DOM isn't fully ready or styles aren't compiled
+      if (resolvedColor.startsWith('var(')) {
+        if (varName === '--color-accent-cyan' || varName === '--color-cyan' || varName === '--zone-mind' || varName === '--color-zone-mind') resolvedColor = '#5EE6F5';
+        else if (varName === '--color-accent') resolvedColor = '#8B7FFF';
+        else if (varName === '--color-success' || varName === '--zone-body' || varName === '--color-zone-body') resolvedColor = '#10B981';
+        else if (varName === '--color-warning' || varName === '--zone-growth' || varName === '--color-zone-growth') resolvedColor = '#F59E0B';
+        else if (varName === '--color-error') resolvedColor = '#EF4444';
+        else if (varName === '--zone-soul' || varName === '--color-zone-soul') resolvedColor = '#EC4899';
+        else resolvedColor = '#5EE6F5'; // default fallback
+      }
+    }
+
+    // 2. Parse Hex / RGB colors
+    let r = 94, g = 230, b = 245; // defaults (cyan)
+    if (resolvedColor.startsWith('#')) {
+      const hex = resolvedColor.slice(1);
+      if (hex.length === 3) {
+        r = parseInt(hex[0] + hex[0], 16);
+        g = parseInt(hex[1] + hex[1], 16);
+        b = parseInt(hex[2] + hex[2], 16);
+      } else if (hex.length === 6) {
+        r = parseInt(hex.slice(0, 2), 16);
+        g = parseInt(hex.slice(2, 4), 16);
+        b = parseInt(hex.slice(4, 6), 16);
+      }
+    } else if (resolvedColor.startsWith('rgb')) {
+      const match = resolvedColor.match(/\d+/g);
+      if (match && match.length >= 3) {
+        r = parseInt(match[0], 10);
+        g = parseInt(match[1], 10);
+        b = parseInt(match[2], 10);
+      }
+    }
+
     const opacities = [0, 0.25, 0.45, 0.7, 1.0]
     return `rgba(${r},${g},${b},${opacities[intensity]})`
   }
@@ -79,7 +118,7 @@ const HeatmapGrid = ({
           </span>
         </div>
       )}
-      <div style={{ display: 'flex', gap: '2px' }}>
+      <div style={{ display: 'flex', gap: '2px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100%', paddingBottom: '6px' }}>
         {/* Day labels */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginRight: '2px', paddingTop: '14px' }}>
           {dayLabels.map((d, i) => (

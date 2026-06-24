@@ -98,7 +98,7 @@ export default function RankBanner({ rank, onDone }) {
                   Share on X
                 </button>
                 <button className="btn-ghost" onClick={() => { setPhase('fade'); setTimeout(() => onDone?.(), 500) }} style={{ padding: '12px 24px', border: '1px solid #9C27B0', color: '#9C27B0' }}>
-                  Continue Orbit
+                  Continue
                 </button>
               </div>
             ) : (

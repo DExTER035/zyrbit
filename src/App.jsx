@@ -1,5 +1,5 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import SplashScreen from './screens/SplashScreen.jsx'
 import OnboardingScreen from './screens/OnboardingScreen.jsx'
 import LoginScreen from './screens/LoginScreen.jsx'
@@ -14,15 +14,18 @@ import { BlackoutProvider } from './lib/BlackoutContext.jsx'
 import { SubscriptionProvider } from './context/SubscriptionContext.jsx'
 import PaywallOverlay from './components/PaywallOverlay.jsx'
 import { useHabitReminders } from './hooks/useHabitReminders.js'
+import FeedbackWidget from './components/FeedbackWidget.jsx'
+import { trackPageView, recordMilestone } from './lib/analytics.js'
 
 const Zenith = lazy(() => import('./pages/Zenith.jsx'))
-const Orbit = lazy(() => import('./pages/Orbit.jsx'))
+
 const Growth = lazy(() => import('./pages/Growth.jsx'))
 const Health = lazy(() => import('./pages/Health.jsx'))
 const Wealth = lazy(() => import('./pages/Wealth.jsx'))
-const Jarvis = lazy(() => import('./pages/Jarvis.jsx'))
+const Dex = lazy(() => import('./pages/Dex.jsx'))
 const Profile = lazy(() => import('./pages/Profile.jsx'))
 const Challenge = lazy(() => import('./pages/Challenge.jsx'))
+const Stats = lazy(() => import('./pages/Stats.jsx'))
 
 const requestNotificationPermission = async () => {
   if (!('Notification' in window)) return
@@ -32,9 +35,9 @@ const requestNotificationPermission = async () => {
 }
 
 const LoadingScreen = () => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#000', flexDirection: 'column', gap: '16px' }}>
-    <Logo size={80} />
-    <div style={{ width: '40px', height: '2px', background: '#00FFFF', borderRadius: '2px', animation: 'spin-slow 1s infinite' }}/>
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#121214', flexDirection: 'column', gap: '20px' }}>
+    <Logo size={56} />
+    <div style={{ width: '32px', height: '2px', background: '#5EE6F5', borderRadius: '2px', opacity: 0.6 }}/>
   </div>
 )
 
@@ -71,24 +74,42 @@ function ProtectedRoute({ children, onSignOut }) {
   )
 }
 
-function MainApp({ handleSignOut }) {
+// Inner component placed inside BrowserRouter so it can use useLocation
+function AppPageTracker({ userId }) {
+  const location = useLocation()
+  useEffect(() => {
+    if (userId) {
+      trackPageView(userId, location.pathname)
+    }
+  }, [location.pathname, userId])
+  return null
+}
+
+function MainApp({ handleSignOut, currentUserId }) {
   return (
     <BlackoutProvider>
     <BrowserRouter>
+      <AppPageTracker userId={currentUserId} />
       <Routes>
         <Route path="/zenith" element={<ProtectedRoute onSignOut={handleSignOut}><Zenith /></ProtectedRoute>} />
-        <Route path="/orbit" element={<ProtectedRoute onSignOut={handleSignOut}><Orbit /></ProtectedRoute>} />
         <Route path="/growth" element={<ProtectedRoute onSignOut={handleSignOut}><Growth /></ProtectedRoute>} />
         <Route path="/health" element={<ProtectedRoute onSignOut={handleSignOut}><Health /></ProtectedRoute>} />
         <Route path="/wealth" element={<ProtectedRoute onSignOut={handleSignOut}><Wealth /></ProtectedRoute>} />
-        <Route path="/jarvis" element={<ProtectedRoute onSignOut={handleSignOut}><Jarvis /></ProtectedRoute>} />
+        <Route path="/dex" element={<ProtectedRoute onSignOut={handleSignOut}><Dex /></ProtectedRoute>} />
         <Route path="/challenge" element={<ProtectedRoute onSignOut={handleSignOut}><Challenge /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute onSignOut={handleSignOut}><Profile /></ProtectedRoute>} />
+        <Route path="/stats" element={<ProtectedRoute onSignOut={handleSignOut}><Stats /></ProtectedRoute>} />
         {/* Legacy route redirects */}
-        <Route path="/goals" element={<Navigate to="/orbit" replace />} />
+        <Route path="/orbit" element={<Navigate to="/zenith" replace />} />
+        <Route path="/goals" element={<Navigate to="/zenith" replace />} />
+        <Route path="/jarvis" element={<Navigate to="/dex" replace />} />
         <Route path="/" element={<Navigate to="/zenith" replace />} />
         <Route path="*" element={<Navigate to="/zenith" replace />} />
       </Routes>
+      {/* Floating feedback widget for authenticated users */}
+      {currentUserId && (
+        <FeedbackWidget userId={currentUserId} currentPage={window.location.pathname} />
+      )}
     </BrowserRouter>
     </BlackoutProvider>
   )
@@ -98,7 +119,7 @@ export default function App() {
   const [screen, setScreen] = useState('splash') // 'splash' | 'onboarding' | 'login' | 'welcome' | 'goal-setup' | 'app'
   const [isInitializing, setIsInitializing] = useState(true)
   const [currentUserId, setCurrentUserId] = useState(null)
-  const [currentUserName, setCurrentUserName] = useState('Astronaut')
+  const [currentUserName, setCurrentUserName] = useState('Builder')
 
   useHabitReminders(currentUserId)
 
@@ -122,12 +143,21 @@ export default function App() {
         localStorage.setItem('zyrbit_launched', 'true')
         setCurrentUserId(session.user.id)
         setScreen('app')
+        // Record first login milestone (non-blocking)
+        recordMilestone(session.user.id, 'first_login')
       } else if (launched) {
         setScreen('login')
       } else {
         setScreen('splash')
       }
       setIsInitializing(false)
+
+      // Instantly remove HTML loader once React is ready to take over
+      const htmlSplash = document.getElementById('splash')
+      if (htmlSplash) {
+        htmlSplash.style.opacity = '0'
+        setTimeout(() => htmlSplash.remove(), 400)
+      }
     }
     checkAuthStatus()
 
@@ -136,6 +166,7 @@ export default function App() {
         localStorage.setItem('zyrbit_launched', 'true')
         setCurrentUserId(session.user.id)
         setScreen('app')
+        recordMilestone(session.user.id, 'first_login')
       }
     })
 
@@ -149,7 +180,7 @@ export default function App() {
   const handleLoginSuccess = (userId, userName) => {
     localStorage.setItem('zyrbit_launched', 'true')
     setCurrentUserId(userId)
-    setCurrentUserName(userName || 'Astronaut')
+    setCurrentUserName(userName || 'Builder')
     setScreen('app')
   }
   const handleSignOut = () => {
@@ -167,7 +198,7 @@ export default function App() {
         {screen === 'login' && <LoginScreen onSuccess={handleLoginSuccess} />}
         {screen === 'welcome' && <WelcomeAnimation userName={currentUserName} onComplete={() => setScreen('goal-setup')} />}
         {screen === 'goal-setup' && <GoalSetupScreen userId={currentUserId} onComplete={() => setScreen('app')} />}
-        {screen === 'app' && <MainApp handleSignOut={handleSignOut} />}
+        {screen === 'app' && <MainApp handleSignOut={handleSignOut} currentUserId={currentUserId} />}
         <PaywallOverlay />
       </div>
     </SubscriptionProvider>

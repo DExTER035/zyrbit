@@ -20,6 +20,7 @@ import {
   FSelect,
   SectionHeader
 } from '../components/growth/shared.jsx';
+import ErrorState from '../components/ErrorState.jsx';
 
 import TodayTab from '../components/growth/TodayTab.jsx';
 import ProjectsTab from '../components/growth/ProjectsTab.jsx';
@@ -33,6 +34,7 @@ export default function Growth() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // ── Navigation ──────────────────────────────────────────────────────────────
   const [tab, setTab] = useState('today');          // today | projects | goals | sprints | skills
@@ -85,6 +87,7 @@ export default function Growth() {
 
   const loadData = useCallback(async (uid) => {
     setLoading(true);
+    setError(null);
     const today = todayStr();
     try {
       const [
@@ -129,6 +132,7 @@ export default function Growth() {
       }
     } catch (e) {
       console.warn('Growth load error (tables may not exist yet):', e.message);
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -470,13 +474,28 @@ export default function Growth() {
     setView('project-detail');
   };
 
-  // ─── RENDER — Loading ──────────────────────────────────────────────────────
+  // ─── RENDER — Loading & Error ──────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="app-container" style={{ background: C.bg, minHeight: '100vh', padding: '20px' }}>
+        <ErrorState message={error} onRetry={() => loadData(user?.id)} />
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: C.bg, gap: '12px' }}>
-        <div style={{ width: '44px', height: '44px', borderRadius: '50%', border: `2px solid ${C.growth}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
-        <span style={{ fontSize: '10px', color: C.muted, fontWeight: 800, letterSpacing: '2px' }}>LOADING GROWTH</span>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div className="app-container" style={{ background: C.bg, minHeight: '100vh', padding: '28px 20px 120px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="skeleton-box" style={{ height: '10px', width: '30%' }} />
+          <div className="skeleton-box" style={{ height: '24px', width: '70%' }} />
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="skeleton-box" style={{ height: '36px', flex: 1, borderRadius: '12px' }} />
+          <div className="skeleton-box" style={{ height: '36px', flex: 1, borderRadius: '12px' }} />
+        </div>
+        <div className="skeleton-box" style={{ height: '150px', borderRadius: '20px' }} />
+        <div className="skeleton-box" style={{ height: '80px', borderRadius: '20px' }} />
       </div>
     );
   }

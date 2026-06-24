@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 32" aria-label="Zyrbit">
+  <!-- Bottom-left wedge slash: white -->
+  <polygon points="15.48,16.23 0,32 8.17,32 15.91,16.23" fill="#FFFFFF"/>
+  <!-- Middle small wedge slash: white -->
+  <polygon points="19.35,9.92 17.2,14.42 21.51,9.92" fill="#FFFFFF"/>
+  <!-- Top-right Z-like shape: white -->
+  <polygon points="31.83,0 22.37,9.46 27.96,9.92 18.49,22.08 35.7,22.08 37.85,15.32 27.53,14.42 40,0" fill="#FFFFFF"/>
+</svg>

@@ -8,11 +8,10 @@ export default function BottomNav({ activeTab, onTabChange }) {
 
   const tabs = [
     { id: 'zenith', icon: '🌌', label: 'ZENITH' },
-    { id: 'orbit', icon: '🪐', label: 'ORBIT' },
     { id: 'growth', icon: '🌱', label: 'GROWTH' },
     { id: 'health', icon: '💪', label: 'HEALTH' },
     { id: 'wealth', icon: '💰', label: 'WEALTH' },
-    { id: 'jarvis', icon: '🤖', label: 'JARVIS' }
+    { id: 'dex', icon: '🤖', label: 'DEX' }
   ]
 
   return (

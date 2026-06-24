@@ -1,0 +1,90 @@
+/* src/design/theme.css — Zyrbit Brand Tokens v2 */
+/* Direction: Linear · Arc Browser · Raycast · Apple · Notion */
+
+:root {
+  /* ── Spacing Tokens ── */
+  --space-4:  4px;
+  --space-8:  8px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+
+  /* ── Radius Tokens ── */
+  --radius-card:   24px;
+  --radius-inner:  16px;
+  --radius-button: 12px;
+  --radius-input:  12px;
+  --radius-badge:  100px;
+
+  /* ── Typography Sizes ── */
+  --fs-xs:   11px;
+  --fs-sm:   13px;
+  --fs-base: 15px;
+  --fs-md:   16px;
+  --fs-lg:   20px;
+  --fs-xl:   24px;
+  --fs-xxl:  32px;
+
+  /* ── Core Backgrounds ── */
+  --bg-root:     #121214;
+  --bg-page:     #121214;
+  --bg-card:     #17181B;
+  --bg-elevated: #1C1D21;
+  --bg-input:    #1E1F24;
+  --bg-nav:      rgba(18, 18, 20, 0.88);
+
+  /* ── Borders ── */
+  --border-primary:   #26272C;
+  --border-secondary: #2E2F35;
+
+  /* ── Typography Colors ── */
+  --text-primary:   #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-muted:     #71717A;
+  --text-dim:       #3F3F46;
+  --text-hint:      #27272A;
+
+  /* ── Accent Colors ── */
+  --color-accent:      #8B7FFF;  /* Violet */
+  --color-accent-dim:  rgba(139, 127, 255, 0.15);
+  --color-accent-glow: rgba(139, 127, 255, 0.08);
+
+  --color-accent-cyan:      #5EE6F5;  /* Cyan */
+  --color-accent-cyan-dim:  rgba(94, 230, 245, 0.15);
+  --color-accent-cyan-glow: rgba(94, 230, 245, 0.08);
+
+  /* ── Semantic Colors ── */
+  --color-success:      #10B981;
+  --color-success-dim:  rgba(16, 185, 129, 0.15);
+  --color-warning:      #F59E0B;
+  --color-warning-dim:  rgba(245, 158, 11, 0.15);
+  --color-error:        #EF4444;
+  --color-error-dim:    rgba(239, 68, 68, 0.15);
+
+  /* ── Logo System ── */
+  --logo-primary:   #FFFFFF;
+  --logo-accent:    #5EE6F5;
+
+  /* ── Zone Colors ── */
+  --zone-mind:   #5EE6F5;
+  --zone-body:   #10B981;
+  --zone-growth: #F59E0B;
+  --zone-soul:   #EC4899;
+}
+
+/* ── Glassmorphism utility ── */
+.glass {
+  backdrop-filter: blur(16px);
+  background: rgba(23, 24, 27, 0.6);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-card);
+}
+
+/* ── Subtle ambient utility ── */
+.ambient-glow-cyan {
+  box-shadow: 0 0 40px var(--color-accent-cyan-glow);
+}
+.ambient-glow-accent {
+  box-shadow: 0 0 40px var(--color-accent-glow);
+}
+

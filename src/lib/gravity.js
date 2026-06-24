@@ -13,15 +13,15 @@ export function calculateGravityScore({ completionRate7Days = 0, currentStreak =
 }
 
 export function getGravityStatus(score) {
-  if (score >= 86) return { label: 'Perfect Orbit 🌟', color: '#00FFFF' }
-  if (score >= 70) return { label: 'Strong Orbit 🪐', color: '#9C27B0' }
-  if (score >= 50) return { label: 'Stable Orbit ⭐', color: '#FFC107' }
-  if (score >= 30) return { label: 'Weak Orbit 🌙', color: '#FF9800' }
+  if (score >= 86) return { label: 'Peak Flow 🌟', color: '#5EE6F5' }
+  if (score >= 70) return { label: 'Strong Flow 🪐', color: '#9C27B0' }
+  if (score >= 50) return { label: 'Steady Flow ⭐', color: '#FFC107' }
+  if (score >= 30) return { label: 'Low Flow 🌙', color: '#FF9800' }
   return { label: 'Drifting 💨', color: '#F44336' }
 }
 
 export function getGravityColor(score) {
-  if (score >= 86) return '#00FFFF'
+  if (score >= 86) return '#5EE6F5'
   if (score >= 70) return '#9C27B0'
   if (score >= 50) return '#FFC107'
   if (score >= 30) return '#FF9800'

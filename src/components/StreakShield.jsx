@@ -91,7 +91,7 @@ export default function StreakShield({ user, habits, activity, streaks }) {
     setSaving(false)
     setShieldUsed(true)
     setTarget(null)
-    showToast('🛡️ Streak saved by your Orbit Shield!', 'success')
+    showToast('🛡️ Streak saved by your Streak Shield!', 'success')
   }
 
   const handleLetReset = () => {
@@ -126,7 +126,7 @@ export default function StreakShield({ user, habits, activity, streaks }) {
         </svg>
       </div>
 
-      <div style={{ fontSize: 11, color: '#EF9F27', fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Orbit Shield</div>
+      <div style={{ fontSize: 11, color: '#EF9F27', fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Streak Shield</div>
       <div style={{ fontSize: 20, fontWeight: 900, color: '#FFF', textAlign: 'center', marginBottom: 10 }}>
         You missed <span style={{ color: '#EF9F27' }}>{target.habit.name}</span> yesterday
       </div>

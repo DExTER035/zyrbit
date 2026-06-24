@@ -2,7 +2,7 @@ import React from 'react'
 
 export default function ZoneTab({ active, onChange }) {
   const tabs = [
-    { id: 'all', label: 'All Orbits', color: '#E8E8F0' },
+    { id: 'all', label: 'All Zones', color: '#E8E8F0' },
     { id: 'mind', label: 'Mind', color: 'var(--color-zone-mind)' },
     { id: 'body', label: 'Body', color: 'var(--color-zone-body)' },
     { id: 'growth', label: 'Growth', color: 'var(--color-zone-growth)' },

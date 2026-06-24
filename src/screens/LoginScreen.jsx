@@ -31,7 +31,7 @@ export default function LoginScreen({ onSuccess }) {
         setLoading(false)
       } else if (data?.user) {
         if (data.session) {
-          const name = data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Astronaut'
+          const name = data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Builder'
           onSuccess(data.user.id, name)
         } else {
           setError('Account created! Please check your email to confirm.')
@@ -44,7 +44,7 @@ export default function LoginScreen({ onSuccess }) {
         setError(error.message)
         setLoading(false)
       } else if (data?.user) {
-        const name = data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Astronaut'
+        const name = data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Builder'
         onSuccess(data.user.id, name)
       }
     }
@@ -75,53 +75,52 @@ export default function LoginScreen({ onSuccess }) {
       )
       setGuestLoading(false)
     } else if (data?.user) {
-      const name = 'Astronaut'
+      const name = 'Builder'
       onSuccess(data.user.id, name)
     }
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#020204', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '40px 24px', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ position: 'fixed', inset: 0, background: '#121214', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '40px 24px', fontFamily: "'Inter', sans-serif" }}>
       
-      {/* Ambient orbs */}
-      <div style={{ position: 'absolute', top: -120, right: -120, width: 300, height: 300, borderRadius: '50%', background: '#00f5d4', filter: 'blur(80px)', opacity: 0.08, pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: -80, left: -80, width: 220, height: 220, borderRadius: '50%', background: '#8B7FFF', filter: 'blur(80px)', opacity: 0.07, pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: 110, right: -50, width: 150, height: 150, borderRadius: '50%', background: '#ff9800', filter: 'blur(80px)', opacity: 0.05, pointerEvents: 'none' }} />
+      {/* Subtle ambient orbs — not neon explosions */}
+      <div style={{ position: 'absolute', top: -100, right: -100, width: 280, height: 280, borderRadius: '50%', background: '#5EE6F5', filter: 'blur(100px)', opacity: 0.04, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: -60, left: -60, width: 200, height: 200, borderRadius: '50%', background: '#A78BFA', filter: 'blur(100px)', opacity: 0.04, pointerEvents: 'none' }} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 10, maxWidth: 400, margin: '0 auto', width: '100%' }}>
         
         {/* Header */}
         <div style={{ animation: visible ? 'zoomIn 0.5s 0.05s cubic-bezier(0.34,1.56,0.64,1) forwards' : 'none', opacity: 0, textAlign: 'center', marginBottom: 48 }}>
           <ZyrbitIcon size={46} />
-          <h1 style={{ fontSize: 27, fontWeight: 900, color: '#fff', letterSpacing: -1, marginTop: 16, marginBottom: 8 }}>
-            Zyr<span style={{ color: '#00f5d4' }}>bit</span>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: -0.8, marginTop: 16, marginBottom: 8, fontFamily: "'Space Grotesk', sans-serif" }}>
+            Zyrbit
           </h1>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500, letterSpacing: 0.5 }}>Enter your orbit. Build something real.</p>
+          <p style={{ fontSize: 13, color: '#71717A', fontWeight: 500 }}>Your Life Operating System.</p>
         </div>
 
         {/* Fields */}
         <div style={{ animation: visible ? 'fadeSlideUp 0.5s 0.15s cubic-bezier(0.4,0,0.2,1) forwards' : 'none', opacity: 0 }}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 9, color: 'var(--text-muted)', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700, marginBottom: 8, paddingLeft: 4 }}>Email</label>
-            <input type="email" placeholder="astronaut@example.com" 
+            <input type="email" placeholder="you@example.com" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ width: '100%', height: 52, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 14, padding: '0 16px', fontSize: 13, color: 'var(--text-primary)', outline: 'none', transition: 'all 0.2s' }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = '#00f5d450'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,245,212,0.08)' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none' }}
+              style={{ width: '100%', height: 52, background: '#17181B', border: '1px solid #26272C', borderRadius: 12, padding: '0 16px', fontSize: 14, color: '#FFFFFF', outline: 'none', transition: 'all 0.2s', fontFamily: "'Inter', sans-serif" }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = '#5EE6F5'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(94,230,245,0.07)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = '#26272C'; e.currentTarget.style.boxShadow = 'none' }}
             />
           </div>
           <div style={{ marginBottom: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, paddingLeft: 4, paddingRight: 4 }}>
               <label style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>Password</label>
-              {!isSignUp && <a href="#" style={{ fontSize: 10, color: '#00f5d4', textDecoration: 'none', fontWeight: 600 }}>Forgot?</a>}
+              {!isSignUp && <a href="#" style={{ fontSize: 10, color: '#5EE6F5', textDecoration: 'none', fontWeight: 600 }}>Forgot?</a>}
             </div>
             <input type="password" placeholder="••••••••" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{ width: '100%', height: 52, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 14, padding: '0 16px', fontSize: 13, color: 'var(--text-primary)', outline: 'none', transition: 'all 0.2s' }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = '#00f5d450'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,245,212,0.08)' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none' }}
+              style={{ width: '100%', height: 52, background: '#17181B', border: '1px solid #26272C', borderRadius: 12, padding: '0 16px', fontSize: 14, color: '#FFFFFF', outline: 'none', transition: 'all 0.2s', fontFamily: "'Inter', sans-serif" }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = '#5EE6F5'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(94,230,245,0.07)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = '#26272C'; e.currentTarget.style.boxShadow = 'none' }}
             />
           </div>
         </div>
@@ -129,13 +128,20 @@ export default function LoginScreen({ onSuccess }) {
         {/* CTA */}
         <div style={{ animation: visible ? 'fadeSlideUp 0.5s 0.25s cubic-bezier(0.4,0,0.2,1) forwards' : 'none', opacity: 0 }}>
           <button onClick={handleEmailAuth} disabled={loading} style={{
-            width: '100%', height: 54, borderRadius: 27,
-            background: 'linear-gradient(135deg, #00f5d4, #00c4a8)',
-            color: '#000', fontSize: 14, fontWeight: 800, letterSpacing: 0.5,
-            border: 'none', cursor: 'pointer', boxShadow: '0 0 28px rgba(0,245,212,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            {loading ? <div style={{ width: 18, height: 18, border: '2px solid #000', borderTopColor: 'transparent', borderRadius: '50%', animation: 'local-spin 0.6s linear infinite' }} /> : (isSignUp ? 'Create Account 🚀' : 'Launch into Orbit 🚀')}
+            width: '100%', height: 52, borderRadius: 12,
+            background: '#FFFFFF',
+            color: '#121214', fontSize: 14, fontWeight: 700, letterSpacing: -0.2,
+            border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: "'Inter', sans-serif",
+            transition: 'background 0.2s, transform 0.15s',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#E4E4E7'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+          >
+            {loading ? <div style={{ width: 16, height: 16, border: '2px solid #121214', borderTopColor: 'transparent', borderRadius: '50%', animation: 'local-spin 0.6s linear infinite' }} /> : (isSignUp ? 'Create Account' : 'Sign In')}
           </button>
         </div>
 
@@ -170,7 +176,7 @@ export default function LoginScreen({ onSuccess }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: guestLoading ? 'wait' : 'pointer', transition: 'all 0.2s', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600
           }} onMouseOver={e=>{e.currentTarget.style.borderColor='var(--border-secondary)';e.currentTarget.style.background='var(--bg-elevated)'}} onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border-primary)';e.currentTarget.style.background='var(--bg-card)'}} title="Explore as Guest">
             {guestLoading
-              ? <div style={{ width: 16, height: 16, border: '2px solid #555', borderTopColor: '#00f5d4', borderRadius: '50%', animation: 'local-spin 0.6s linear infinite' }} />
+              ? <div style={{ width: 16, height: 16, border: '2px solid #555', borderTopColor: '#5EE6F5', borderRadius: '50%', animation: 'local-spin 0.6s linear infinite' }} />
               : <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.1 14.5c-.6.3-1.4.5-2.2.5-2.8 0-4.6-1.9-4.6-4.8 0-2.8 1.8-4.8 4.6-4.8.8 0 1.5.2 2.1.5l-.6 1.4c-.4-.2-1-.4-1.5-.4-1.8 0-2.9 1.3-2.9 3.2 0 1.9 1.1 3.2 3 3.2.6 0 1.2-.2 1.6-.4l.5 1.6z"/>
                 </svg>
@@ -182,7 +188,7 @@ export default function LoginScreen({ onSuccess }) {
         {/* Footer Text */}
         <div style={{ animation: visible ? 'fadeSlideUp 0.5s 0.44s cubic-bezier(0.4,0,0.2,1) forwards' : 'none', opacity: 0, textAlign: 'center', marginTop: 40, fontSize: 13, color: 'var(--text-muted)' }}>
           {isSignUp ? "Already have an account? " : "New to Zyrbit? "}
-          <button onClick={() => setIsSignUp(!isSignUp)} style={{ color: '#00f5d4', textDecoration: 'none', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13 }}>
+          <button onClick={() => setIsSignUp(!isSignUp)} style={{ color: '#5EE6F5', textDecoration: 'none', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13 }}>
             {isSignUp ? "Sign In" : "Create account"}
           </button>
         </div>

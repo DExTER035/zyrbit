@@ -98,7 +98,7 @@ export default function GoalSetupScreen({ onComplete, userId }) {
         icon: h.icon,
         zone: h.zone,
         frequency: 'daily',
-        color: ZONE_COLORS[h.zone] || '#00FFFF',
+        color: ZONE_COLORS[h.zone] || '#5EE6F5',
         reminder_enabled: false,
       }))
       await supabase.from('habits').insert(habitsToInsert)
@@ -111,7 +111,7 @@ export default function GoalSetupScreen({ onComplete, userId }) {
 
   return (
     <div style={{
-      minHeight: '100vh', background: 'linear-gradient(180deg, #020204 0%, #080812 100%)',
+      minHeight: '100vh', background: '#121214',
       display: 'flex', flexDirection: 'column', padding: '0 20px 40px', color: 'var(--text-primary)',
       fontFamily: 'inherit'
     }}>
@@ -215,11 +215,10 @@ export default function GoalSetupScreen({ onComplete, userId }) {
               onClick={addAllHabits}
               disabled={adding}
               style={{
-                background: 'linear-gradient(135deg, #00f5d4, #00c4a8)',
-                color: '#000', border: 'none', borderRadius: 16, padding: '16px',
+                background: '#5EE6F5',
+                color: '#121214', border: 'none', borderRadius: 16, padding: '16px',
                 fontSize: 15, fontWeight: 900, cursor: 'pointer',
                 opacity: adding ? 0.7 : 1, transition: 'all 0.2s',
-                boxShadow: '0 0 32px rgba(0,245,212,0.35)'
               }}
             >
               {adding ? 'Adding Habits...' : `Add All 5 Habits ✓`}

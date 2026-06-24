@@ -53,7 +53,7 @@
       "sizes": "625x939",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Orbit Dashboard — Track your daily habits and Gravity Score"
+      "label": "Zenith Dashboard — Track your daily habits and Gravity Score"
     },
     {
       "src": "/screenshots/mobile-2.png",
@@ -74,7 +74,7 @@
       "sizes": "625x939",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Community — Join orbit groups and compete with friends"
+      "label": "Dex AI — Speak voice commands and receive coaching"
     },
     {
       "src": "/screenshots/mobile-5.png",
@@ -87,7 +87,7 @@
   "shortcuts": [
     {
       "name": "Log Habit",
-      "url": "/orbit",
+      "url": "/zenith",
       "icons": [
         {
           "src": "/icons/manifest-icon-192.maskable.png",

@@ -33,7 +33,7 @@ export const ensureProfile = async (user) => {
         if (!check) exists = false
         else tag = generateFriendTag()
       }
-      const username = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Orbiter'
+      const username = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Builder'
       await supabase.from('profiles').upsert({
         id: user.id,
         friend_tag: tag,

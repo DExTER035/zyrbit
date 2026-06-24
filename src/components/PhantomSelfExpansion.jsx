@@ -82,8 +82,8 @@ export default function PhantomSelfExpansion({ user, habits }) {
                 <stop offset="95%" stopColor="#7F77DD" stopOpacity={0}/>
               </linearGradient>
               <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#00FFFF" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#00FFFF" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#5EE6F5" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#5EE6F5" stopOpacity={0}/>
               </linearGradient>
             </defs>
             <XAxis dataKey="date" hide />
@@ -94,7 +94,7 @@ export default function PhantomSelfExpansion({ user, habits }) {
                labelStyle={{ display: 'none' }}
             />
             <Area type="monotone" dataKey="Phantom" stroke="#7F77DD" strokeWidth={2} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorPhantom)" />
-            <Area type="monotone" dataKey="Actual" stroke={isWinning ? '#4CAF50' : '#00FFFF'} strokeWidth={3} fillOpacity={1} fill="url(#colorActual)" />
+            <Area type="monotone" dataKey="Actual" stroke={isWinning ? '#4CAF50' : '#5EE6F5'} strokeWidth={3} fillOpacity={1} fill="url(#colorActual)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -104,7 +104,7 @@ export default function PhantomSelfExpansion({ user, habits }) {
             <div style={{ width: 10, height: 4, background: '#7F77DD', borderRadius: 2 }} /> 90% Ghost
          </div>
          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#666', fontWeight: 800 }}>
-            <div style={{ width: 10, height: 4, background: isWinning ? '#4CAF50' : '#00FFFF', borderRadius: 2 }} /> You
+            <div style={{ width: 10, height: 4, background: isWinning ? '#4CAF50' : '#5EE6F5', borderRadius: 2 }} /> You
          </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { showToast } from '../components/Toast';
 import BottomNav from '../components/BottomNav';
 import { earnZyrons } from '../lib/zyrons';
+import ErrorState from '../components/ErrorState';
 
 const getLocalYMD = (dateObj = new Date()) => {
   const d = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000);
@@ -13,6 +14,8 @@ const getLocalYMD = (dateObj = new Date()) => {
 export default function Wealth() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   const todayDate = getLocalYMD();
   const curMonth = todayDate.slice(0, 7);
@@ -35,23 +38,34 @@ export default function Wealth() {
   // UI state
   const [expandedVaultId, setExpandedVaultId] = useState(null);
   const [revealVaultIds, setRevealVaultIds] = useState(new Set());
+  // Confirm sheet: { message, onConfirm }
+  const [confirmSheet, setConfirmSheet] = useState(null);
 
   const loadData = async (uid) => {
-    const [{ data: sDocs }, { data: eDocs }, { data: iDocs }, { data: bDocs }, { data: vDocs }] = await Promise.all([
-      supabase.from('wealth_settings').select('*').eq('user_id', uid).single(),
-      supabase.from('money_expenses').select('*').eq('user_id', uid).order('expense_date', { ascending: false }),
-      supabase.from('wealth_income').select('*').eq('user_id', uid).order('income_date', { ascending: false }),
-      supabase.from('wealth_bills').select('*').eq('user_id', uid).order('due_date', { ascending: true }),
-      supabase.from('wealth_vault').select('*').eq('user_id', uid).order('created_at', { ascending: false })
-    ]);
-    if (sDocs) {
-      setSettings(sDocs);
-      setSetupForm({ currency: sDocs.currency === 'INR' ? '₹' : sDocs.currency === 'USD' ? '$' : '€', budget: sDocs.monthly_budget });
+    setLoading(true);
+    setError(null);
+    try {
+      const [{ data: sDocs }, { data: eDocs }, { data: iDocs }, { data: bDocs }, { data: vDocs }] = await Promise.all([
+        supabase.from('wealth_settings').select('*').eq('user_id', uid).single(),
+        supabase.from('money_expenses').select('*').eq('user_id', uid).order('expense_date', { ascending: false }),
+        supabase.from('wealth_income').select('*').eq('user_id', uid).order('income_date', { ascending: false }),
+        supabase.from('wealth_bills').select('*').eq('user_id', uid).order('due_date', { ascending: true }),
+        supabase.from('wealth_vault').select('*').eq('user_id', uid).order('created_at', { ascending: false })
+      ]);
+      if (sDocs) {
+        setSettings(sDocs);
+        setSetupForm({ currency: sDocs.currency === 'INR' ? '₹' : sDocs.currency === 'USD' ? '$' : '€', budget: sDocs.monthly_budget });
+      }
+      if (eDocs) setExpenses(eDocs);
+      if (iDocs) setIncomes(iDocs);
+      if (bDocs) setBills(bDocs);
+      if (vDocs) setVaultItems(vDocs);
+    } catch (e) {
+      console.warn('Wealth load error:', e.message);
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
-    if (eDocs) setExpenses(eDocs);
-    if (iDocs) setIncomes(iDocs);
-    if (bDocs) setBills(bDocs);
-    if (vDocs) setVaultItems(vDocs);
   };
 
   useEffect(() => {
@@ -161,15 +175,14 @@ export default function Wealth() {
   };
 
   const deleteBill = async (id) => {
-    if (window.confirm('Delete this bill?')) {
-      const { error } = await supabase.from('wealth_bills').delete().eq('id', id);
-      if (!error) {
-        showToast('🗑 Bill deleted', 'success');
-        loadData(user.id);
-      } else {
-        showToast('❌ Delete failed', 'error');
+    setConfirmSheet({
+      message: 'Delete this bill?',
+      onConfirm: async () => {
+        const { error } = await supabase.from('wealth_bills').delete().eq('id', id);
+        if (!error) { showToast('🗑 Bill deleted', 'success'); loadData(user.id); }
+        else showToast('❌ Delete failed', 'error');
       }
-    }
+    });
   };
 
   const saveVault = async (e) => {
@@ -190,15 +203,14 @@ export default function Wealth() {
   };
 
   const deleteVault = async (id) => {
-    if (window.confirm('Are you sure you want to permanently delete this item from the secure vault?')) {
-      const { error } = await supabase.from('wealth_vault').delete().eq('id', id);
-      if (!error) {
-        showToast('🗑 Credential deleted', 'success');
-        loadData(user.id);
-      } else {
-        showToast('❌ Delete failed', 'error');
+    setConfirmSheet({
+      message: 'Permanently delete this item from the secure vault?',
+      onConfirm: async () => {
+        const { error } = await supabase.from('wealth_vault').delete().eq('id', id);
+        if (!error) { showToast('🗑 Credential deleted', 'success'); loadData(user.id); }
+        else showToast('❌ Delete failed', 'error');
       }
-    }
+    });
   };
 
   const toggleRevealVault = (id) => {
@@ -219,17 +231,23 @@ export default function Wealth() {
   };
 
   const deleteExpense = async (id) => {
-    if (window.confirm('Delete this expense?')) {
-      await supabase.from('money_expenses').delete().eq('id', id);
-      loadData(user.id);
-    }
+    setConfirmSheet({
+      message: 'Delete this expense?',
+      onConfirm: async () => {
+        await supabase.from('money_expenses').delete().eq('id', id);
+        loadData(user.id);
+      }
+    });
   };
 
   const deleteIncome = async (id) => {
-    if (window.confirm('Delete this income?')) {
-      await supabase.from('wealth_income').delete().eq('id', id);
-      loadData(user.id);
-    }
+    setConfirmSheet({
+      message: 'Delete this income entry?',
+      onConfirm: async () => {
+        await supabase.from('wealth_income').delete().eq('id', id);
+        loadData(user.id);
+      }
+    });
   };
 
   // Computations
@@ -305,6 +323,32 @@ export default function Wealth() {
     'One-time': '🎁'
   };
 
+  if (error) {
+    return (
+      <div className="app-container" style={{ background: 'var(--bg-page)', minHeight: '100vh', padding: '20px' }}>
+        <ErrorState message={error} onRetry={() => loadData(user?.id)} />
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="app-container" style={{ background: 'var(--bg-page)', minHeight: '100vh', padding: '32px 20px 120px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '50%' }}>
+          <div className="skeleton-box" style={{ height: '24px', width: '80%' }} />
+          <div className="skeleton-box" style={{ height: '12px', width: '60%' }} />
+        </div>
+        <div className="skeleton-box" style={{ height: '180px', borderRadius: '24px' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div className="skeleton-box" style={{ height: '100px', borderRadius: '16px' }} />
+          <div className="skeleton-box" style={{ height: '100px', borderRadius: '16px' }} />
+          <div className="skeleton-box" style={{ height: '100px', borderRadius: '16px' }} />
+          <div className="skeleton-box" style={{ height: '100px', borderRadius: '16px' }} />
+        </div>
+      </div>
+    );
+  }
+
   if (!settings) {
     return (
       <div className="app-container" style={{ background: 'var(--bg-page)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -316,17 +360,17 @@ export default function Wealth() {
           <form onSubmit={saveSetup} style={{ maxWidth: 300, margin: '0 auto' }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
               {['₹', '$', '€'].map(c => (
-                <button key={c} type="button" onClick={() => setSetupForm({...setupForm, currency: c})} style={{ flex: 1, padding: '12px', borderRadius: 12, border: setupForm.currency === c ? '2px solid #00FFFF' : '2px solid #1A1A24', background: setupForm.currency === c ? '#00FFFF15' : '#1A1A24', color: setupForm.currency === c ? '#00FFFF' : '#888', fontSize: 20, fontWeight: 800, cursor: 'pointer' }}>{c}</button>
+                <button key={c} type="button" onClick={() => setSetupForm({...setupForm, currency: c})} style={{ flex: 1, padding: '12px', borderRadius: 12, border: setupForm.currency === c ? '2px solid #5EE6F5' : '2px solid #26272C', background: setupForm.currency === c ? 'rgba(94, 230, 245, 0.15)' : '#17181B', color: setupForm.currency === c ? '#5EE6F5' : '#888', fontSize: 20, fontWeight: 800, cursor: 'pointer' }}>{c}</button>
               ))}
             </div>
             
             <div style={{ position: 'relative', marginBottom: 24 }}>
-              <span style={{ position: 'absolute', left: 16, top: 16, fontSize: 24, fontWeight: 900, color: '#00FFFF' }}>{setupForm.currency}</span>
-              <input type="number" step="10" min="1" required className="input" value={setupForm.budget} onChange={e => setSetupForm({...setupForm, budget: e.target.value})} style={{ width: '100%', background: '#1A1A24', border: '1px solid #1A1A24', color: '#00FFFF', padding: '16px 16px 16px 48px', borderRadius: 16, fontSize: 24, fontWeight: 900, outline: 'none', height: 62 }} />
+              <span style={{ position: 'absolute', left: 16, top: 16, fontSize: 24, fontWeight: 900, color: '#5EE6F5' }}>{setupForm.currency}</span>
+              <input type="number" step="10" min="1" required className="input" value={setupForm.budget} onChange={e => setSetupForm({...setupForm, budget: e.target.value})} style={{ width: '100%', background: '#17181B', border: '1px solid #26272C', color: '#5EE6F5', padding: '16px 16px 16px 48px', borderRadius: 16, fontSize: 24, fontWeight: 900, outline: 'none', height: 62 }} />
               <div style={{ fontSize: 10, color: '#555566', textTransform: 'uppercase', fontWeight: 800, marginTop: 8 }}>Monthly Budget</div>
             </div>
             
-            <button type="submit" style={{ width: '100%', padding: '16px', borderRadius: 16, background: '#00FFFF', color: '#000', fontWeight: 900, fontSize: 16, border: 'none', cursor: 'pointer' }}>
+            <button type="submit" style={{ width: '100%', padding: '16px', borderRadius: 16, background: '#5EE6F5', color: '#121214', fontWeight: 900, fontSize: 16, border: 'none', cursor: 'pointer' }}>
               Save & Start Tracking
             </button>
           </form>
@@ -371,8 +415,8 @@ export default function Wealth() {
         {activeTab === 'Today' && (
           <div>
             {/* RUNWAY CARD */}
-            <div style={{ background: '#0D0D18', border: '1px solid #1E1E28', borderRadius: 24, padding: 20, marginBottom: 16 }}>
-              <div style={{ fontSize: 10, color: '#00FFFF', textTransform: 'uppercase', fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>ESTIMATED RUNWAY</div>
+            <div style={{ background: '#17181B', border: '1px solid #26272C', borderRadius: 24, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: '#5EE6F5', textTransform: 'uppercase', fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>ESTIMATED RUNWAY</div>
               <div style={{ fontSize: 40, fontWeight: 900, color: '#FFF', letterSpacing: -1, marginBottom: 4 }}>
                 {runwayMonths} <span style={{ fontSize: 20, color: '#888' }}>Mon</span>
               </div>
@@ -380,8 +424,8 @@ export default function Wealth() {
                 Avg Burn Rate: {sym}{Math.round(burnLast30).toLocaleString()}/mo
               </div>
               
-              <div style={{ height: 6, background: '#1A1A24', borderRadius: 100, overflow: 'hidden' }}>
-                 <div style={{ height: '100%', width: runwayMonths !== '∞' ? `${Math.min(100, Number(runwayMonths) * 10)}%` : '100%', background: '#00FFFF' }} />
+              <div style={{ height: 6, background: '#121214', borderRadius: 100, overflow: 'hidden' }}>
+                 <div style={{ height: '100%', width: runwayMonths !== '∞' ? `${Math.min(100, Number(runwayMonths) * 10)}%` : '100%', background: '#5EE6F5' }} />
               </div>
             </div>
 
@@ -419,14 +463,14 @@ export default function Wealth() {
             </div>
 
             {/* CATEGORY BUDGETS BREAKDOWN */}
-            <div style={{ background: '#0D0D18', border: '1px solid #1E1E28', borderRadius: 24, padding: 20, marginBottom: 16 }}>
+            <div style={{ background: '#17181B', border: '1px solid #26272C', borderRadius: 24, padding: 20, marginBottom: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 900, color: '#FFF', textTransform: 'uppercase', marginBottom: 14, letterSpacing: 1 }}>Category Budget Monitoring</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {Object.entries(categoryBudgetLimits).map(([cat, limit]) => {
                   const spent = spentByCategory[cat] || 0;
                   const pct = Math.min(100, Math.round((spent / limit) * 100));
                   const isOver = spent > limit;
-                  const barColor = isOver ? '#EF4444' : pct > 80 ? '#FF9800' : '#00FFFF';
+                  const barColor = isOver ? '#EF4444' : pct > 80 ? '#FF9800' : '#5EE6F5';
                   return (
                     <div key={cat}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4, fontWeight: 800 }}>
@@ -451,7 +495,7 @@ export default function Wealth() {
                 <div style={{ fontSize: 12, fontWeight: 600 }}>You are {budgetPct - 100}% above your monthly budget limit. Consider pausing non-essential subscriptions to extend your runway.</div>
               </div>
             ) : (
-              <div style={{ background: 'rgba(0, 255, 255, 0.05)', border: '1px solid rgba(0, 255, 255, 0.15)', borderRadius: 16, padding: 16, color: '#00FFFF' }}>
+              <div style={{ background: 'rgba(94, 230, 245, 0.05)', border: '1px solid rgba(94, 230, 245, 0.15)', borderRadius: 16, padding: 16, color: '#5EE6F5' }}>
                 <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 4 }}>🤖 DEXOS ACTION DIRECTIVE</div>
                 <div style={{ fontSize: 12, fontWeight: 600 }}>Your spending is within limits. Estimated survival runway stands at {runwayMonths} months. Stay focused.</div>
               </div>
@@ -581,7 +625,7 @@ export default function Wealth() {
                   <label style={{ fontSize: 10, color: '#555', fontWeight: 800, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Frequency</label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     {['monthly', 'annual'].map(f => (
-                      <button key={f} type="button" onClick={() => setBillForm({...billForm, frequency: f})} style={{ flex: 1, padding: '10px', borderRadius: 10, border: billForm.frequency === f ? '2px solid #00FFFF' : '1px solid #1A1A24', background: billForm.frequency === f ? '#00FFFF15' : '#1A1A24', color: billForm.frequency === f ? '#00FFFF' : '#888', fontSize: 12, fontWeight: 800, textTransform: 'capitalize', cursor: 'pointer' }}>{f}</button>
+                      <button key={f} type="button" onClick={() => setBillForm({...billForm, frequency: f})} style={{ flex: 1, padding: '10px', borderRadius: 10, border: billForm.frequency === f ? '2px solid #5EE6F5' : '1px solid #26272C', background: billForm.frequency === f ? 'rgba(94, 230, 245, 0.15)' : '#17181B', color: billForm.frequency === f ? '#5EE6F5' : '#888', fontSize: 12, fontWeight: 800, textTransform: 'capitalize', cursor: 'pointer' }}>{f}</button>
                     ))}
                   </div>
                 </div>
@@ -638,7 +682,7 @@ export default function Wealth() {
               <form onSubmit={saveVault}>
                 <input type="text" required placeholder="Credential Title (e.g. Supabase production key)" className="input" style={{ width: '100%', marginBottom: 12, background: '#0D0D14', border: '1px solid #1E1E28' }} value={vaultForm.title} onChange={e => setVaultForm({...vaultForm, title: e.target.value})} />
                 <textarea required placeholder="Payload/Secret data" className="input" style={{ width: '100%', minHeight: 80, marginBottom: 16, background: '#0D0D14', border: '1px solid #1E1E28', resize: 'vertical', fontFamily: 'monospace' }} value={vaultForm.payload} onChange={e => setVaultForm({...vaultForm, payload: e.target.value})} />
-                <button type="submit" className="btn-primary" style={{ width: '100%', fontSize: 13, background: '#00FFFF', color: '#000' }}>
+                <button type="submit" className="btn-primary" style={{ width: '100%', fontSize: 13, background: '#5EE6F5', color: '#121214' }}>
                   Lock Item in Vault
                 </button>
               </form>
@@ -665,14 +709,14 @@ export default function Wealth() {
                           <button onClick={() => toggleRevealVault(v.id)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #222', background: '#111', color: '#888', fontSize: 10, fontWeight: 800, cursor: 'pointer' }}>
                             {isRevealed ? 'Mask' : 'Reveal'}
                           </button>
-                          <button onClick={() => copyToClipboard(v.encrypted_payload)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #222', background: '#111', color: '#00FFFF', fontSize: 10, fontWeight: 800, cursor: 'pointer' }}>
+                          <button onClick={() => copyToClipboard(v.encrypted_payload)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #26272C', background: '#17181B', color: '#5EE6F5', fontSize: 10, fontWeight: 800, cursor: 'pointer' }}>
                             Copy Secret
                           </button>
                           <button onClick={() => deleteVault(v.id)} style={{ padding: '4px 8px', borderRadius: 6, border: 'none', background: '#EF444420', color: '#EF4444', fontSize: 10, fontWeight: 800, cursor: 'pointer' }}>
                             Delete
                           </button>
                         </div>
-                        <div style={{ background: '#030307', padding: '12px 14px', borderRadius: 8, border: '1px solid #111', fontFamily: 'monospace', fontSize: 12, color: isRevealed ? '#00FFFF' : '#444', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
+                        <div style={{ background: '#121214', padding: '12px 14px', borderRadius: 8, border: '1px solid #26272C', fontFamily: 'monospace', fontSize: 12, color: isRevealed ? '#5EE6F5' : '#444', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
                           {isRevealed ? v.encrypted_payload : '••••••••••••••••••••••••••••••••'}
                         </div>
                       </div>
@@ -693,7 +737,7 @@ export default function Wealth() {
                <div style={{ marginBottom: 16 }}>
                  <label style={{ fontSize: 10, color: '#555', fontWeight: 800, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Monthly Budget Limit</label>
                  <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 16, top: 12, fontSize: 18, fontWeight: 900, color: '#00FFFF' }}>{sym}</span>
+                  <span style={{ position: 'absolute', left: 16, top: 12, fontSize: 18, fontWeight: 900, color: '#5EE6F5' }}>{sym}</span>
                   <input type="number" min="1" step="10" required className="input" style={{ paddingLeft: 40, width: '100%' }} value={setupForm.budget} onChange={e => setSetupForm({...setupForm, budget: e.target.value})} />
                  </div>
                </div>
@@ -702,7 +746,7 @@ export default function Wealth() {
                  <label style={{ fontSize: 10, color: '#555', fontWeight: 800, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Currency Symbol</label>
                  <div style={{ display: 'flex', gap: 8 }}>
                   {['₹', '$', '€'].map(c => (
-                    <button key={c} type="button" onClick={() => setSetupForm({...setupForm, currency: c})} style={{ flex: 1, padding: '12px', borderRadius: 12, border: setupForm.currency === c ? '2px solid #00FFFF' : '1px solid #1A1A24', background: setupForm.currency === c ? '#00FFFF15' : '#1A1A24', color: setupForm.currency === c ? '#00FFFF' : '#888', fontSize: 20, fontWeight: 800, cursor: 'pointer' }}>{c}</button>
+                    <button key={c} type="button" onClick={() => setSetupForm({...setupForm, currency: c})} style={{ flex: 1, padding: '12px', borderRadius: 12, border: setupForm.currency === c ? '2px solid #5EE6F5' : '1px solid #26272C', background: setupForm.currency === c ? 'rgba(94, 230, 245, 0.15)' : '#17181B', color: setupForm.currency === c ? '#5EE6F5' : '#888', fontSize: 20, fontWeight: 800, cursor: 'pointer' }}>{c}</button>
                   ))}
                  </div>
                </div>
@@ -715,6 +759,43 @@ export default function Wealth() {
         )}
 
       </div>
+
+      {/* CONFIRM SHEET */}
+      {confirmSheet && (
+        <div
+          onClick={() => setConfirmSheet(null)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+            zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-card)', borderTop: '1px solid var(--border-primary)',
+              borderRadius: '24px 24px 0 0', padding: 'var(--space-24)',
+              width: '100%', maxWidth: '430px',
+              animation: 'slideUpModal 0.25s cubic-bezier(0.34,1.56,0.64,1) forwards'
+            }}
+          >
+            <p style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-24)', lineHeight: 1.5 }}>
+              {confirmSheet.message}
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--space-8)' }}>
+              <button
+                onClick={() => setConfirmSheet(null)}
+                className="btn-ghost"
+                style={{ flex: 1 }}
+              >Cancel</button>
+              <button
+                onClick={async () => { await confirmSheet.onConfirm(); setConfirmSheet(null); }}
+                className="btn-primary"
+                style={{ flex: 1, background: 'var(--color-error)' }}
+              >Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNav activeTab="wealth" onTabChange={(t) => navigate(t === 'zenith' ? '/' : `/${t}`)} />
     </div>

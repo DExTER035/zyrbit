@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   LineChart, Line, AreaChart, Area,
   BarChart, Bar,
@@ -11,6 +12,9 @@ import { showToast } from '../components/Toast.jsx'
 import { supabase } from '../lib/supabase.js'
 import { askZyra } from '../lib/gemini.js'
 import PhantomSelfExpansion from '../components/PhantomSelfExpansion.jsx'
+import { earnZyrons } from '../lib/zyrons.js'
+import HeatmapGrid from '../components/HeatmapGrid.jsx'
+import ErrorState from '../components/ErrorState.jsx'
 
 // ─── Helpers ───────────────────────────────────────
 const thirtyDaysAgo = () => {
@@ -49,43 +53,43 @@ const buildDailyMap = (items, dateKey, valueKey = null, since = 30) => {
 // ─── Shared UI Components ──────────────────────────
 const ChartBadge = ({ type }) => {
   const cfg = {
-    LINE: { bg: '#00FFFF10', color: '#00FFFF', label: 'LINE' },
-    BAR:  { bg: '#FF980010', color: '#FF9800', label: 'BAR' },
-    PIE:  { bg: '#E91E6310', color: '#E91E63', label: 'PIE' },
+    LINE: { className: 'badge badge-cyan', label: 'LINE' },
+    BAR:  { className: 'badge badge-warning', label: 'BAR' },
+    PIE:  { className: 'badge badge-error', label: 'PIE' },
   }[type]
   return (
-    <span style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}30`, padding: '4px 10px', borderRadius: 100, fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>
+    <span className={cfg.className} style={{ textTransform: 'uppercase' }}>
       {cfg.label}
     </span>
   )
 }
 
 const SectionHeader = ({ id, emoji, title }) => (
-  <div id={id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, paddingTop: 12 }}>
-    <span style={{ fontSize: 20 }}>{emoji}</span>
-    <span style={{ fontSize: 16, fontWeight: 900, color: '#FFF', letterSpacing: -0.5, textTransform: 'uppercase' }}>{title}</span>
-    <div style={{ flex: 1, height: 1, background: '#1A1A24', marginLeft: 6 }} />
+  <div id={id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)', marginBottom: 'var(--space-16)', paddingTop: 'var(--space-8)' }}>
+    <span style={{ fontSize: 'var(--fs-lg)' }}>{emoji}</span>
+    <span style={{ fontSize: 'var(--fs-md)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: -0.5, textTransform: 'uppercase' }}>{title}</span>
+    <div style={{ flex: 1, height: 1, background: 'var(--border-primary)', marginLeft: 'var(--space-8)' }} />
   </div>
 )
 
 const StatBox = ({ label, value, color, sub }) => (
-  <div style={{ background: '#0A0A12', border: '1px solid #1A1A24', borderRadius: 20, padding: '16px 14px', textAlign: 'center' }}>
-    <div style={{ fontSize: 28, fontWeight: 900, color: color, letterSpacing: -1, marginBottom: 4 }}>{value}</div>
-    <div style={{ fontSize: 10, color: '#333', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5 }}>{label}</div>
-    {sub && <div style={{ fontSize: 10, color: '#222', marginTop: 4, fontWeight: 700 }}>{sub}</div>}
+  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 'var(--radius-inner)', padding: 'var(--space-16) var(--space-8)', textAlign: 'center' }}>
+    <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 900, color: color, letterSpacing: -1, marginBottom: 'var(--space-4)' }}>{value}</div>
+    <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5 }}>{label}</div>
+    {sub && <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: 'var(--space-4)', fontWeight: 700 }}>{sub}</div>}
   </div>
 )
 
 const Card = ({ children, style = {} }) => (
-  <div style={{ background: '#0A0A12', border: '1px solid #1A1A24', borderRadius: 24, padding: 24, marginBottom: 20, ...style }}>
+  <div className="card-base" style={{ marginBottom: 'var(--space-16)', ...style }}>
     {children}
   </div>
 )
 
 const CardHeader = ({ title, chartType, right }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-    <span style={{ fontSize: 14, fontWeight: 900, color: '#FFF', letterSpacing: -0.3 }}>{title}</span>
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-16)' }}>
+    <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: -0.3 }}>{title}</span>
+    <div style={{ display: 'flex', gap: 'var(--space-8)', alignItems: 'center' }}>
       {right}
       {chartType && <ChartBadge type={chartType} />}
     </div>
@@ -93,16 +97,17 @@ const CardHeader = ({ title, chartType, right }) => (
 )
 
 const NoData = ({ emoji = '📊', label = 'No data yet', sub = 'Complete activities to see your stats here' }) => (
-  <div style={{ textAlign: 'center', padding: '28px 16px' }}>
-    <div style={{ fontSize: 28, marginBottom: 8 }}>{emoji}</div>
-    <div style={{ fontSize: 13, fontWeight: 700, color: '#666', marginBottom: 4 }}>{label}</div>
-    <div style={{ fontSize: 11, color: '#444' }}>{sub}</div>
+  <div className="empty-state" style={{ marginTop: 'var(--space-16)' }}>
+    <div className="empty-state-emoji">{emoji}</div>
+    <div className="empty-state-title">{label}</div>
+    <div className="empty-state-subtitle">{sub}</div>
   </div>
 )
 
 const Skeleton = ({ height = 120 }) => (
-  <div style={{ height, borderRadius: 10, background: 'linear-gradient(90deg, #1E1E28 25%, #2A2A38 50%, #1E1E28 75%)', backgroundSize: '200% 100%', animation: 'skeletonPulse 1.5s infinite' }} />
+  <div className="skeleton" style={{ height, borderRadius: 'var(--radius-inner)' }} />
 )
+
 
 // ─── Tooltip Styles ────────────────────────────────
 const TooltipStyle = { background: '#111118', border: '1px solid #1E1E28', borderRadius: 8, fontSize: 11, color: '#E8E8F0' }
@@ -131,7 +136,7 @@ const MiniLine = ({ data, color, height = 120, dataKey = 'value' }) => {
   )
 }
 
-const MiniBar = ({ data, color = '#00FFFF', height = 100, useColor = false, labelKey = 'label', valueKey = 'value' }) => {
+const MiniBar = ({ data, color = '#5EE6F5', height = 100, useColor = false, labelKey = 'label', valueKey = 'value' }) => {
   if (!data || !data.some(d => d[valueKey] > 0)) return <NoData />
   const FALLBACK_COLORS = ['#00BCD4','#4CAF50','#FF9800','#9C27B0','#E91E63','#FDE047','#FB923C']
   return (
@@ -182,7 +187,7 @@ const MiniPie = ({ data, height = 160 }) => {
 }
 
 const ToggleBtn = ({ active, label, onClick }) => (
-  <button onClick={onClick} style={{ padding: '4px 10px', borderRadius: 100, border: active ? 'none' : '1px solid #1A1A24', background: active ? '#00FFFF' : '#0A0A12', color: active ? '#000' : '#666', fontSize: 10, fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}>{label}</button>
+  <button onClick={onClick} style={{ padding: 'var(--space-4) var(--space-8)', borderRadius: 'var(--radius-badge)', border: active ? 'none' : '1px solid var(--border-primary)', background: active ? 'var(--color-accent-cyan)' : 'var(--bg-card)', color: active ? 'var(--bg-root)' : 'var(--text-muted)', fontSize: 10, fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}>{label}</button>
 )
 
 const FooterNote = ({ text, color = '#4CAF50' }) => (
@@ -235,9 +240,11 @@ const FILTERS = [
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════
 export default function Stats() {
+  const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [activeFilter, setActiveFilter] = useState('all')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [habitRange, setHabitRange] = useState('30D')
 
   // Data state
@@ -253,7 +260,6 @@ export default function Stats() {
   const [diaryEntries, setDiaryEntries] = useState([])
   const [diarySettings, setDiarySettings] = useState(null)
   const [profile, setProfile] = useState(null)
-  const [battles, setBattles] = useState([])
 
   // AI report
   const [weeklyReport, setWeeklyReport] = useState('')
@@ -267,14 +273,17 @@ export default function Stats() {
 
   const fetchAll = async (uid) => {
     setLoading(true)
-    const since30 = thirtyDaysAgo()
+    setError(null)
+    try {
+      const since30 = thirtyDaysAgo()
+    const since365 = (() => { const d = new Date(); d.setDate(d.getDate() - 365); return d.toISOString().split('T')[0] })()
     const firstMonth = firstOfMonth()
     const todayStr = today()
 
     // Use allSettled so missing legacy tables (zyron_wallet etc.) don't crash the page
     const results = await Promise.allSettled([
       supabase.from('habits').select('*').eq('user_id', uid),
-      supabase.from('activity_log').select('*').eq('user_id', uid).gte('completed_date', since30),
+      supabase.from('activity_log').select('*').eq('user_id', uid).gte('completed_date', since365),
       supabase.from('user_streaks').select('*').eq('user_id', uid),
       supabase.from('zyron_wallet').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('zyron_transactions').select('*').eq('user_id', uid).gte('created_at', since30),
@@ -285,7 +294,6 @@ export default function Stats() {
       supabase.from('diary_entries').select('entry_date, mood').eq('user_id', uid).gte('entry_date', since30),
       supabase.from('diary_settings').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
-      supabase.from('battles').select('*').or(`challenger_id.eq.${uid},opponent_id.eq.${uid}`).eq('status', 'complete'),
     ])
 
     const safeData = (idx, fallback = null) =>
@@ -303,7 +311,6 @@ export default function Stats() {
     const deData = safeData(9, [])
     const dsData = safeData(10)
     const profData=safeData(11)
-    const btData = safeData(12, [])
 
     setHabits(hData)
     setActivityLog(alData)
@@ -317,16 +324,19 @@ export default function Stats() {
     setDiaryEntries(deData)
     setDiarySettings(dsData)
     setProfile(profData)
-    setBattles(btData)
-    setLoading(false)
-
-    // Load cached weekly report
-    const weekKey = getWeekKey()
-    const cached = localStorage.getItem(`zyrbit_weekly_report_${weekKey}`)
-    if (cached) {
-      setWeeklyReport(cached)
-    } else {
-      generateWeeklyReport(uid, hData, alData, wData, txData)
+      // Load cached weekly report
+      const weekKey = getWeekKey()
+      const cached = localStorage.getItem(`zyrbit_weekly_report_${weekKey}`)
+      if (cached) {
+        setWeeklyReport(cached)
+      } else {
+        generateWeeklyReport(uid, hData, alData, wData, txData, stData)
+      }
+    } catch (e) {
+      console.warn('Stats load error:', e.message)
+      setError(e.message)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -337,19 +347,20 @@ export default function Stats() {
     return `${d.getFullYear()}-W${weekNum}`
   }
 
-  const generateWeeklyReport = async (uid, hData, alData, wData, txData) => {
+  const generateWeeklyReport = async (uid, hData, alData, wData, txData, stData) => {
     setLoadingReport(true)
     try {
-      const completions = alData?.length || 0
+      const since30Str = thirtyDaysAgo()
+      const completions = alData?.filter(l => l.completed_date >= since30Str && l.status === 'completed').length || 0
       const balance = wData?.balance || 0
-      const bestStreak = (hData || []).reduce((m, h) => Math.max(m, h.current_streak || 0), 0)
+      const bestStreak = (stData || []).reduce((max, s) => Math.max(max, s.current_streak || 0), 0) || 0
       const context = `Habits tracked: ${hData?.length || 0}. Completions in 30 days: ${completions}. Zyrons balance: ${balance}. Best streak: ${bestStreak} days. This week's earned: ${wData?.daily_earned || 0} Zyrons.`
-      const prompt = [{ role: 'user', text: `You are Zyra, AI coach inside Zyrbit. Write a warm, specific weekly orbit report in under 80 words. Include actionable insight. Context: ${context}` }]
+      const prompt = [{ role: 'user', text: `You are Zyra, AI coach inside Zyrbit. Write a warm, specific weekly report in under 80 words. Include actionable insight. Context: ${context}` }]
       const report = await askZyra(prompt)
       setWeeklyReport(report)
       localStorage.setItem(`zyrbit_weekly_report_${getWeekKey()}`, report)
     } catch (e) {
-      setWeeklyReport('Keep orbiting consistently — every habit you complete adds to your gravity score! 🪐')
+      setWeeklyReport('Keep growing consistently — every habit you complete adds to your gravity score! 🪐')
     }
     setLoadingReport(false)
   }
@@ -358,7 +369,7 @@ export default function Stats() {
     if (!user) return
     localStorage.removeItem(`zyrbit_weekly_report_${getWeekKey()}`)
     setWeeklyReport('')
-    await generateWeeklyReport(user.id, habits, activityLog, wallet, transactions)
+    await generateWeeklyReport(user.id, habits, activityLog, wallet, transactions, userStreaks)
     await earnZyrons(user.id, 5, 'Refreshed weekly report', 'stats')
     showToast('+5 ⚡ Report refreshed!', 'success')
   }
@@ -381,6 +392,16 @@ export default function Stats() {
     : 0
   const bestStreak = userStreaks.reduce((m, s) => Math.max(m, s.longest_streak || 0), 0)
   const gravityScore = wallet?.gravity_score || 0
+
+  const yearlyCompletionsMap = React.useMemo(() => {
+    const map = {}
+    activityLog.forEach(l => {
+      if (l.status === 'completed' && l.completed_date) {
+        map[l.completed_date] = (map[l.completed_date] || 0) + 1
+      }
+    })
+    return map
+  }, [activityLog])
 
   const dailyCompletions = buildDailyMap(
     filteredLog.filter(l => l.status === 'completed'), 'completed_date', null, rangeDays
@@ -525,32 +546,38 @@ export default function Stats() {
   const mostWrittenDay = writingByDay.reduce((max, d) => d.value > max.value ? d : max, writingByDay[0])?.label || '—'
 
   // --- Community ---
-  const battlesWon = battles.filter(b => b.winner_id === user?.id).length
-  const battlesLost = battles.length - battlesWon
   const friendTag = profile?.friend_tag || '—'
 
   // ─── RENDER ──────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="app-container" style={{ background: 'var(--bg-root)', minHeight: '100vh', padding: '20px' }}>
+        <ErrorState message={error} onRetry={() => fetchAll(user?.id)} />
+      </div>
+    )
+  }
+
   return (
-    <div style={{ background: '#000', minHeight: '100vh', padding: '0 20px 100px', color: '#FFF' }}>
+    <div className="app-container page-enter" style={{ background: 'var(--bg-root)', minHeight: '100vh', padding: '0 var(--space-24) 100px', color: 'var(--text-primary)' }}>
       
       {/* HEADER */}
-      <div style={{ padding: '32px 0 24px' }}>
-        <h1 style={{ fontSize: 32, fontWeight: 900, letterSpacing: -1, marginBottom: 4 }}>Analytics</h1>
-        <p style={{ fontSize: 13, color: '#444', fontWeight: 600 }}>Performance data from the last 30 cycles</p>
+      <div style={{ padding: 'var(--space-32) 0 var(--space-24)' }}>
+        <h1 style={{ fontSize: 'var(--fs-xxl)', fontWeight: 900, letterSpacing: -1, marginBottom: 'var(--space-4)' }}>Analytics</h1>
+        <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', fontWeight: 600 }}>Performance data from the last 30 cycles</p>
       </div>
 
       {/* FILTER PILLS */}
-      <div style={{ padding: '0 0 32px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+      <div style={{ padding: '0 0 var(--space-32)', display: 'flex', flexWrap: 'wrap', gap: 'var(--space-8)' }}>
         {FILTERS.map(f => {
           const isActive = activeFilter === f.id
           return (
             <button key={f.id} onClick={() => f.id === 'all' ? setActiveFilter('all') : scrollTo(f.id)}
               style={{
-                flex: '1 1 calc(25% - 8px)', padding: '10px 8px', borderRadius: 100, cursor: 'pointer',
-                border: isActive ? '1px solid #FFF' : '1px solid #1A1A24',
-                background: isActive ? '#FFF' : '#0A0A12',
-                color: isActive ? '#000' : '#444',
-                fontWeight: 900, fontSize: 12, transition: 'all 0.2s', whiteSpace: 'nowrap'
+                flex: '1 1 calc(25% - 8px)', padding: 'var(--space-8) var(--space-4)', borderRadius: 'var(--radius-badge)', cursor: 'pointer',
+                border: isActive ? '1px solid var(--text-primary)' : '1px solid var(--border-primary)',
+                background: isActive ? 'var(--text-primary)' : 'var(--bg-card)',
+                color: isActive ? 'var(--bg-root)' : 'var(--text-muted)',
+                fontWeight: 900, fontSize: 'var(--fs-xs)', transition: 'all 0.2s', whiteSpace: 'nowrap'
               }}>
               {f.label}
             </button>
@@ -559,28 +586,28 @@ export default function Stats() {
       </div>
 
       {/* WEEKLY INSIGHT CARD */}
-      <div style={{ background: '#0A0A12', border: '1px solid #1A1A24', borderRadius: 24, padding: 24, marginBottom: 40 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div className="card-base" style={{ marginBottom: 'var(--space-32)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-24)' }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 900, color: '#FFF', letterSpacing: -0.3 }}>Weekly Orbit Report</div>
+            <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: -0.3 }}>Weekly Report</div>
           </div>
-          <button onClick={refreshReport} style={{ background: '#111', border: '1px solid #222', padding: '8px 16px', borderRadius: 12, color: '#FFF', fontSize: 11, fontWeight: 900, cursor: 'pointer' }}>
+          <button onClick={refreshReport} className="btn-secondary" style={{ padding: 'var(--space-8) var(--space-16)', borderRadius: 'var(--radius-button)', fontSize: 'var(--fs-xs)' }}>
             REFRESH
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-          <StatBox label="Completion" value={`${completionRate}%`} color="#00FFFF" />
-          <StatBox label="Best Streak" value={`${bestStreak}d`} color="#FF9800" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-16)', marginBottom: 'var(--space-24)' }}>
+          <StatBox label="Completion" value={`${completionRate}%`} color="var(--color-accent-cyan)" />
+          <StatBox label="Best Streak" value={`${bestStreak}d`} color="var(--color-warning)" />
         </div>
 
-        <div style={{ background: '#000', borderRadius: 16, padding: 16, border: '1px solid #111' }}>
-          <div style={{ fontSize: 11, color: '#333', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>INSIGHTS</div>
-          <div style={{ fontSize: 13, color: '#FFF', lineHeight: 1.6, fontWeight: 500 }}>
+        <div style={{ background: 'var(--bg-root)', borderRadius: 'var(--radius-inner)', padding: 'var(--space-16)', border: '1px solid var(--border-primary)' }}>
+          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 'var(--space-12)' }}>INSIGHTS</div>
+          <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-primary)', lineHeight: 1.6, fontWeight: 500 }}>
             {loadingReport ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#00FFFF', animation: 'skeletonPulse 1s infinite' }} />
-                <span style={{ color: '#444' }}>Analyzing patterns...</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)' }}>
+                <div style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--color-accent-cyan)', animation: 'skeletonPulse 1s infinite' }} />
+                <span style={{ color: 'var(--text-muted)' }}>Analyzing patterns...</span>
               </div>
             ) : (
               weeklyReport || 'Complete more habits to get automated insights.'
@@ -592,7 +619,6 @@ export default function Stats() {
       {/* SMART INSIGHT CHIPS */}
       {!loading && (() => {
         const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-        // Best performing day
         const dayTotals = [0,0,0,0,0,0,0]
         activityLog.filter(l => l.status === 'completed').forEach(l => {
           if (l.completed_date) dayTotals[new Date(l.completed_date).getDay()]++
@@ -600,12 +626,10 @@ export default function Stats() {
         const bestDayIdx = dayTotals.indexOf(Math.max(...dayTotals))
         const bestDay = dayTotals[bestDayIdx] > 0 ? DAY_NAMES[bestDayIdx] : null
 
-        // Streak drop pattern — find avg streak length from user_streaks
         const avgStreak = userStreaks.length > 0
           ? Math.round(userStreaks.reduce((s, r) => s + (r.longest_streak || 0), 0) / userStreaks.length)
           : null
 
-        // Weakest zone
         const zoneCounts = { mind: 0, body: 0, growth: 0, soul: 0 }
         activityLog.filter(l => l.status === 'completed').forEach(l => {
           const h = habits.find(hb => hb.id === l.habit_id)
@@ -617,24 +641,24 @@ export default function Stats() {
           : null
 
         const chips = [
-          bestDay && { icon: '🔥', text: `Best day: ${bestDay}`, color: '#FF9800' },
-          avgStreak && avgStreak < 7 && { icon: '⚠️', text: `Streak typically drops after ${avgStreak} days`, color: '#EF4444' },
-          weakestZone && { icon: '📉', text: `Weakest zone: ${weakestZone.charAt(0).toUpperCase() + weakestZone.slice(1)}`, color: '#9C27B0' },
+          bestDay && { icon: '🔥', text: `Best day: ${bestDay}`, color: 'var(--color-warning)' },
+          avgStreak && avgStreak < 7 && { icon: '⚠️', text: `Streak typically drops after ${avgStreak} days`, color: 'var(--color-error)' },
+          weakestZone && { icon: '📉', text: `Weakest zone: ${weakestZone.charAt(0).toUpperCase() + weakestZone.slice(1)}`, color: 'var(--color-accent)' },
         ].filter(Boolean)
 
         if (chips.length === 0) return null
 
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 40 }}>
-            <div style={{ fontSize: 10, color: '#333', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 4 }}>PATTERN INTEL</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-12)', marginBottom: 'var(--space-32)' }}>
+            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 'var(--space-4)' }}>PATTERN INTEL</div>
             {chips.map((chip, i) => (
               <div key={i} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                background: '#0A0A12', border: `1px solid ${chip.color}20`,
-                borderRadius: 14, padding: '12px 16px'
+                display: 'flex', alignItems: 'center', gap: 'var(--space-8)',
+                background: 'var(--bg-card)', border: `1px solid ${chip.color}33`,
+                borderRadius: 'var(--radius-inner)', padding: 'var(--space-12) var(--space-16)'
               }}>
-                <span style={{ fontSize: 16 }}>{chip.icon}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: chip.color }}>{chip.text}</span>
+                <span style={{ fontSize: 'var(--fs-base)' }}>{chip.icon}</span>
+                <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: chip.color }}>{chip.text}</span>
               </div>
             ))}
           </div>
@@ -642,7 +666,7 @@ export default function Stats() {
       })()}
 
       {/* SECTIONS */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-32)' }}>
         
         {/* HABITS */}
         <div id="habits">
@@ -652,29 +676,33 @@ export default function Stats() {
 
           {loading ? <Skeleton height={200} /> : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <StatBox label="Active Habits" value={habits.length} color="#9C27B0" />
-                <StatBox label="Gravity Score" value={gravityScore} color="#00FFFF" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-16)', marginBottom: 'var(--space-16)' }}>
+                <StatBox label="Active Habits" value={habits.length} color="var(--color-accent)" />
+                <StatBox label="Gravity Score" value={gravityScore} color="var(--color-accent-cyan)" />
               </div>
               <Card>
                 <CardHeader title="Gravity Score Trend" chartType="LINE" />
-                <MiniLine data={gravityData} color="#00FFFF" height={120} />
+                <MiniLine data={gravityData} color="#5EE6F5" height={120} />
+              </Card>
+              <Card style={{ padding: 'var(--space-16)' }}>
+                <CardHeader title="Yearly Consistency Map" />
+                <HeatmapGrid color="var(--color-accent-cyan)" dataMap={yearlyCompletionsMap} label="Consistency Grid (365 Days)" days={365} />
               </Card>
               <Card>
                 <CardHeader title="Daily Completions" chartType="BAR" />
-                <MiniBar data={dailyCompletions.slice(habitRange === '7D' ? -7 : -30)} color="#00FFFF" height={100} />
+                <MiniBar data={dailyCompletions.slice(habitRange === '7D' ? -7 : -30)} color="#5EE6F5" height={100} />
               </Card>
               <Card>
                 <CardHeader title="Zone Breakdown" />
                 {zoneRows.every(z => z.count === 0) ? <NoData emoji="🧬" label="No zone data" /> : (
                   zoneRows.map(z => (
-                    <div key={z.zone} style={{ marginBottom: 16 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontSize: 12, color: '#333', fontWeight: 800, textTransform: 'uppercase' }}>{z.zone}</span>
-                        <span style={{ fontSize: 12, color: z.color, fontWeight: 900 }}>{z.pct}%</span>
+                    <div key={z.zone} style={{ marginBottom: 'var(--space-16)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-8)' }}>
+                        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>{z.zone}</span>
+                        <span style={{ fontSize: 'var(--fs-xs)', color: z.color, fontWeight: 900 }}>{z.pct}%</span>
                       </div>
-                      <div style={{ height: 6, background: '#111', borderRadius: 100 }}>
-                        <div style={{ width: `${z.pct}%`, height: '100%', background: z.color, borderRadius: 100 }} />
+                      <div style={{ height: '6px', background: 'var(--bg-root)', borderRadius: 'var(--radius-badge)' }}>
+                        <div style={{ width: `${z.pct}%`, height: '100%', background: z.color, borderRadius: 'var(--radius-badge)' }} />
                       </div>
                     </div>
                   ))
@@ -690,9 +718,9 @@ export default function Stats() {
           <SectionHeader emoji="💰" title="Money" />
           {loading ? <Skeleton height={200} /> : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <StatBox label="Total Spent" value={`${sym}${totalSpent.toFixed(0)}`} color="#EF4444" />
-                <StatBox label="Remaining" value={`${sym}${remaining.toFixed(0)}`} color={remaining >= 0 ? '#4CAF50' : '#EF4444'} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-16)', marginBottom: 'var(--space-16)' }}>
+                <StatBox label="Total Spent" value={`${sym}${totalSpent.toFixed(0)}`} color="var(--color-error)" />
+                <StatBox label="Remaining" value={`${sym}${remaining.toFixed(0)}`} color={remaining >= 0 ? 'var(--color-success)' : 'var(--color-error)'} />
               </div>
               <Card>
                 <CardHeader title="Spend Trend" chartType="LINE" />
@@ -711,9 +739,9 @@ export default function Stats() {
           <SectionHeader emoji="📚" title="Study" />
           {loading ? <Skeleton height={200} /> : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <StatBox label="Hours" value={`${studyHoursMonth.toFixed(1)}h`} color="#00BCD4" />
-                <StatBox label="Streak" value={`${studyStreak}d`} color="#FF9800" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-16)', marginBottom: 'var(--space-16)' }}>
+                <StatBox label="Hours" value={`${studyHoursMonth.toFixed(1)}h`} color="var(--color-accent-cyan)" />
+                <StatBox label="Streak" value={`${studyStreak}d`} color="var(--color-warning)" />
               </div>
               <Card>
                 <CardHeader title="Subject Focus" chartType="PIE" />
@@ -728,12 +756,12 @@ export default function Stats() {
           <SectionHeader emoji="📖" title="Diary" />
           {loading ? <Skeleton height={200} /> : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <StatBox label="Entries" value={diaryCount} color="#9C27B0" />
-                <StatBox label="Avg Mood" value={moodEmoji} color="#4CAF50" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-16)', marginBottom: 'var(--space-16)' }}>
+                <StatBox label="Entries" value={diaryCount} color="var(--color-accent)" />
+                <StatBox label="Avg Mood" value={moodEmoji} color="var(--color-success)" />
               </div>
               <Card>
-                <CardHeader title="Mood Orbit" chartType="LINE" />
+                <CardHeader title="Mood Trend" chartType="LINE" />
                 <MiniLine data={moodTrend} color="#FF9800" height={120} />
               </Card>
             </>
@@ -742,7 +770,7 @@ export default function Stats() {
 
       </div>
 
-      <BottomNav activeTab="stats" onTabChange={(t) => window.location.href = `/${t}`} />
+      <BottomNav activeTab="stats" onTabChange={(t) => navigate(`/${t}`)} />
     </div>
   )
 }

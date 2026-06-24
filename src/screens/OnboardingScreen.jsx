@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
+import { ZyrbitIcon } from '../components/Logo.jsx'
 
-const CYAN = '#00f5d4'
-const BG = '#020204'
+const CYAN = '#5EE6F5'
+const BG = '#121214'
 
 // ── Progress dots ──────────────────────────────────────────────────────────────
 const Dots = ({ current, total }) => (
@@ -12,8 +13,8 @@ const Dots = ({ current, total }) => (
         <div key={i} style={{
           height: 3, borderRadius: 99,
           width: active ? 22 : 12,
-          background: active ? CYAN : '#1a1a2a',
-          boxShadow: active ? `0 0 6px ${CYAN}88` : 'none',
+          background: active ? CYAN : 'var(--border-primary)',
+          boxShadow: active ? `0 0 8px ${CYAN}33` : 'none',
           transition: 'width 0.3s, background 0.3s',
         }} />
       )
@@ -27,12 +28,10 @@ const CyanBtn = ({ onClick, children, gradient }) => (
     width: '100%', borderRadius: 16,
     padding: '16px', fontSize: 13, fontWeight: 800,
     cursor: 'pointer', letterSpacing: '1.5px',
-    background: gradient ? 'linear-gradient(135deg, #00f5d4, #00c4a8)' : 'rgba(255,255,255,0.03)',
-    color: gradient ? '#000' : 'var(--text-primary)',
+    background: gradient ? CYAN : 'rgba(255,255,255,0.03)',
+    color: gradient ? '#121214' : 'var(--text-primary)',
     border: gradient ? 'none' : '1px solid var(--border-primary)',
-    boxShadow: gradient
-      ? '0 0 32px rgba(0,245,212,0.35), 0 4px 16px rgba(0,245,212,0.2)'
-      : 'none',
+    boxShadow: 'none',
     fontFamily: 'inherit',
     flexShrink: 0,
     transition: 'all 0.2s',
@@ -91,22 +90,22 @@ const Slide = ({ children, onSkip, onNext, slide, total, btnLabel, gradient }) =
 // ─── Slide 1: Zenith (Command Center) ──────────────────────────────────────────
 const Slide1 = () => (
   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, paddingBottom: 4 }}>
-    {/* Visual Representation of Zenith Orbit / OS Score */}
+    {/* Visual Representation of Zenith Index / OS Score */}
     <div style={{ position: 'relative', width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
       {/* Outer Glow Orb */}
-      <div style={{ position: 'absolute', width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,127,255,0.15) 0%, transparent 70%)', filter: 'blur(10px)' }} />
+      <div style={{ position: 'absolute', width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,127,255,0.06) 0%, transparent 70%)', filter: 'blur(10px)' }} />
       {/* Inner Circles */}
-      <div style={{ position: 'absolute', width: 130, height: 130, borderRadius: '50%', border: '1.5px dashed rgba(139,127,255,0.25)', animation: 'spin 40s linear infinite' }} />
-      <div style={{ position: 'absolute', width: 100, height: 100, borderRadius: '50%', border: '1px solid rgba(0,229,255,0.2)' }} />
+      <div style={{ position: 'absolute', width: 130, height: 130, borderRadius: '50%', border: '1.5px dashed rgba(139,127,255,0.15)', animation: 'spin 40s linear infinite' }} />
+      <div style={{ position: 'absolute', width: 100, height: 100, borderRadius: '50%', border: '1px solid rgba(94,230,245,0.15)' }} />
       
       <div style={{
         width: 80, height: 80, borderRadius: '50%', position: 'relative', zIndex: 1,
-        background: 'radial-gradient(circle at 40% 30%, #151525 0%, #0A0A14 80%, #020204 100%)',
+        background: 'radial-gradient(circle at 40% 30%, #17181B 0%, #121214 80%)',
         border: '2px solid #8B7FFF',
-        boxShadow: '0 0 32px rgba(139,127,255,0.35), inset 0 0 12px rgba(139,127,255,0.1)',
+        boxShadow: '0 0 20px rgba(139,127,255,0.15), inset 0 0 12px rgba(139,127,255,0.05)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       }}>
-        <span style={{ fontSize: 28, fontWeight: 900, color: '#FFF', lineHeight: 1, textShadow: '0 0 12px rgba(139,127,255,0.5)' }}>85</span>
+        <span style={{ fontSize: 28, fontWeight: 900, color: '#FFF', lineHeight: 1 }}>85</span>
         <span style={{ fontSize: 7, color: 'rgba(139,127,255,0.8)', letterSpacing: '2px', marginTop: 4, fontWeight: 800 }}>OS INDEX</span>
       </div>
     </div>
@@ -115,7 +114,7 @@ const Slide1 = () => (
     <div style={{ width: '100%', textAlign: 'center' }}>
       <div style={{ fontSize: 9, color: '#8B7FFF', fontWeight: 800, letterSpacing: '2.5px', textTransform: 'uppercase', marginBottom: 8 }}>COMMAND CENTER</div>
       <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.2, marginBottom: 8 }}>
-        Meet Zenith, your <span style={{ background: 'linear-gradient(135deg, #8B7FFF 0%, #00E5FF 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Personal OS.</span>
+        Meet Zenith, your <span style={{ background: 'linear-gradient(135deg, #8B7FFF 0%, #5EE6F5 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Personal OS.</span>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 320, margin: '0 auto' }}>
         DexOS aggregates your daily habits, task completion, active recovery, and financial health into a single real-time execution index.
@@ -130,28 +129,28 @@ const Slide2 = () => (
     {/* Focus Sessions & Tasks representation */}
     <div style={{ display: 'flex', gap: 12, width: '100%', maxWidth: 300, flexShrink: 0 }}>
       <div style={{
-        flex: 1, background: 'linear-gradient(145deg, #0A0A14 0%, #0E0E1A 100%)', border: '1px solid #1A1A2A', borderLeft: '3.5px solid #8B7FFF',
-        borderRadius: 16, padding: '16px 12px', textAlign: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+        flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderLeft: '3.5px solid #8B7FFF',
+        borderRadius: 16, padding: '16px 12px', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
       }}>
         <div style={{ fontSize: 24, marginBottom: 6 }}>🎯</div>
         <div style={{ fontSize: 18, fontWeight: 900, color: '#8B7FFF' }}>90m</div>
         <div style={{ fontSize: 8, color: 'var(--text-muted)', letterSpacing: '1px', marginTop: 4, fontWeight: 700 }}>FOCUS GOAL</div>
       </div>
       <div style={{
-        flex: 1, background: 'linear-gradient(145deg, #0A0A14 0%, #0E0E1A 100%)', border: '1px solid #1A1A2A', borderLeft: '3.5px solid #00f5d4',
-        borderRadius: 16, padding: '16px 12px', textAlign: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+        flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderLeft: `3.5px solid ${CYAN}`,
+        borderRadius: 16, padding: '16px 12px', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
       }}>
         <div style={{ fontSize: 24, marginBottom: 6 }}>📋</div>
-        <div style={{ fontSize: 18, fontWeight: 900, color: '#00f5d4' }}>4 / 5</div>
+        <div style={{ fontSize: 18, fontWeight: 900, color: CYAN }}>4 / 5</div>
         <div style={{ fontSize: 8, color: 'var(--text-muted)', letterSpacing: '1px', marginTop: 4, fontWeight: 700 }}>TASKS DONE</div>
       </div>
     </div>
 
     {/* Text */}
     <div style={{ width: '100%', textAlign: 'center' }}>
-      <div style={{ fontSize: 9, color: '#00f5d4', fontWeight: 800, letterSpacing: '2.5px', textTransform: 'uppercase', marginBottom: 8 }}>GROWTH PILLAR</div>
+      <div style={{ fontSize: 9, color: CYAN, fontWeight: 800, letterSpacing: '2.5px', textTransform: 'uppercase', marginBottom: 8 }}>GROWTH PILLAR</div>
       <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.2, marginBottom: 8 }}>
-        Supercharge your <span style={{ color: '#00f5d4' }}>Growth Engine.</span>
+        Supercharge your <span style={{ color: CYAN }}>Growth Engine.</span>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 320, margin: '0 auto' }}>
         Run focus sprints, organize priority backlogs, complete high-impact tasks, and review your daily execution consistency grids.
@@ -171,9 +170,9 @@ const Slide3 = () => (
         { name: 'Water Intake', val: '2,500 ml', icon: '💧', color: '#06B6D4', barPct: '83%' },
       ].map(vital => (
         <div key={vital.name} style={{
-          background: 'linear-gradient(145deg, #0A0A14 0%, #0E0E1A 100%)', border: '1px solid #1A1A2A',
+          background: 'var(--bg-card)', border: '1px solid var(--border-primary)',
           borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
           <span style={{ fontSize: 16 }}>{vital.icon}</span>
           <div style={{ flex: 1 }}>
@@ -181,7 +180,7 @@ const Slide3 = () => (
               <span style={{ color: 'var(--text-primary)' }}>{vital.name}</span>
               <span style={{ color: vital.color }}>{vital.val}</span>
             </div>
-            <div style={{ height: 4, background: '#1A1A2A', borderRadius: 2 }}>
+            <div style={{ height: 4, background: 'var(--bg-elevated)', borderRadius: 2 }}>
               <div style={{ height: '100%', width: vital.barPct, background: vital.color, borderRadius: 2 }} />
             </div>
           </div>
@@ -207,14 +206,14 @@ const Slide4 = () => (
   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, paddingBottom: 4 }}>
     {/* Capital status design */}
     <div style={{
-      width: '100%', maxWidth: 300, background: 'linear-gradient(145deg, #0A0A14 0%, #0E0E1A 100%)',
-      border: '1px solid #1A1A2A', borderRadius: 20, padding: '20px', textAlign: 'center',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.4)', flexShrink: 0
+      width: '100%', maxWidth: 300, background: 'var(--bg-card)',
+      border: '1px solid var(--border-primary)', borderRadius: 20, padding: '20px', textAlign: 'center',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.2)', flexShrink: 0
     }}>
       <div style={{ fontSize: 8, color: 'var(--text-muted)', letterSpacing: '2px', fontWeight: 800, textTransform: 'uppercase', marginBottom: 6 }}>CAPITAL RUNWAY</div>
       <div style={{ fontSize: 28, fontWeight: 900, color: '#F59E0B', letterSpacing: '-0.5px' }}>12.4 Months</div>
       <div style={{ fontSize: 11, color: 'var(--text-primary)', marginTop: 8, fontWeight: 600 }}>Liquid Cash: $18,450</div>
-      <div style={{ height: 1, background: '#1A1A2A', margin: '14px 0' }} />
+      <div style={{ height: 1, background: 'var(--border-primary)', margin: '14px 0' }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)' }}>
         <span>Monthly Budget: $1,500</span>
         <span style={{ color: '#10B981' }}>Within Target ✓</span>
@@ -237,23 +236,16 @@ const Slide4 = () => (
 // ─── Slide 5: Ready for launch ─────────────────────────────────────────────────
 const Slide5 = () => (
   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, paddingBottom: 4 }}>
-    {/* Glowing logo / welcome icon */}
-    <div style={{
-      width: 76, height: 76, borderRadius: '50%',
-      background: 'radial-gradient(circle, rgba(0,245,212,0.15) 0%, transparent 70%)',
-      border: '2px solid #00f5d4',
-      boxShadow: '0 0 36px rgba(0,245,212,0.4), inset 0 0 16px rgba(0,245,212,0.1)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 32, flexShrink: 0,
-    }}>
-      🚀
+    {/* Zyrbit Icon Accent Container */}
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <ZyrbitIcon size={80} />
     </div>
 
     {/* Text */}
     <div style={{ width: '100%', textAlign: 'center' }}>
-      <div style={{ fontSize: 9, color: '#00f5d4', fontWeight: 800, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 8 }}>SYSTEM INITIALIZED</div>
+      <div style={{ fontSize: 9, color: CYAN, fontWeight: 800, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 8 }}>SYSTEM INITIALIZED</div>
       <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: 10 }}>
-        Ready for <span style={{ color: '#00f5d4' }}>Launch.</span>
+        Ready for <span style={{ color: CYAN }}>Launch.</span>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 290, margin: '0 auto' }}>
         Welcome to your new daily briefing command center. Commit to consistency, reduce gravity, and level up your execution.

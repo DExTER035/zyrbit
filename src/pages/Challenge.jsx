@@ -151,7 +151,7 @@ export default function Challenge() {
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 900, color: '#FFF', marginBottom: 4 }}>{ch.name}</div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, color: '#00FFFF', background: '#00FFFF10', padding: '2px 8px', borderRadius: 100 }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: '#5EE6F5', background: '#5EE6F510', padding: '2px 8px', borderRadius: 100 }}>
                         {ch.duration_days}-DAY
                       </span>
                       <span style={{ fontSize: 10, color: '#444' }}>
@@ -179,7 +179,7 @@ export default function Challenge() {
                         const allDone = day.completed >= day.total && day.total > 0
                         const partDone = day.completed > 0 && !allDone
                         const bg = allDone ? '#4CAF50' : partDone ? '#FF9800' : day.isPast ? '#111' : '#0A0A12'
-                        const border = day.isToday ? '1px solid #00FFFF' : '1px solid #1A1A24'
+                        const border = day.isToday ? '1px solid #5EE6F5' : '1px solid #1A1A24'
                         return (
                           <div key={day.dayNum} style={{
                             width: 28, height: 28, borderRadius: 8,
@@ -200,9 +200,9 @@ export default function Challenge() {
                         return (
                           <span key={hid} style={{
                             fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 100,
-                            background: `${ZONE_COLORS[h.zone] || '#00FFFF'}15`,
-                            color: ZONE_COLORS[h.zone] || '#00FFFF',
-                            border: `1px solid ${ZONE_COLORS[h.zone] || '#00FFFF'}30`
+                            background: `${ZONE_COLORS[h.zone] || '#5EE6F5'}15`,
+                            color: ZONE_COLORS[h.zone] || '#5EE6F5',
+                            border: `1px solid ${ZONE_COLORS[h.zone] || '#5EE6F5'}30`
                           }}>
                             {h.icon} {h.name}
                           </span>
@@ -252,7 +252,7 @@ export default function Challenge() {
                     style={{
                       flex: 1, padding: '14px 8px', borderRadius: 14, textAlign: 'center',
                       border: form.duration === d ? '1px solid var(--color-cyan)' : '1px solid var(--color-border2)',
-                      background: form.duration === d ? '#00FFFF10' : 'var(--color-elevated)',
+                      background: form.duration === d ? 'rgba(94, 230, 245, 0.1)' : 'var(--color-elevated)',
                       color: form.duration === d ? 'var(--color-cyan)' : 'var(--color-muted)',
                       fontSize: 14, fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s'
                     }}
@@ -269,7 +269,7 @@ export default function Challenge() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 200, overflowY: 'auto' }}>
                 {habits.map(h => {
                   const isSelected = form.habitIds.includes(h.id)
-                  const zc = ZONE_COLORS[h.zone] || '#00FFFF'
+                  const zc = ZONE_COLORS[h.zone] || '#5EE6F5'
                   return (
                     <div
                       key={h.id}

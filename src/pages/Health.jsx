@@ -29,11 +29,13 @@ import ActivityCard from '../components/health/ActivityCard.jsx';
 import WeightWidget from '../components/health/WeightWidget.jsx';
 import DexosInsightWidget from '../components/health/DexosInsightWidget.jsx';
 import HeatmapGrid from '../components/HeatmapGrid.jsx';
+import ErrorState from '../components/ErrorState.jsx';
 
 export default function Health() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // ─── Data States ───────────────────────────────────────────────────────────
   const [sleepLogs, setSleepLogs] = useState([]);     // Rolling 7 days
@@ -56,6 +58,7 @@ export default function Health() {
   // ─── Data Fetcher ──────────────────────────────────────────────────────────
   const loadAllData = useCallback(async (uid) => {
     setLoading(true);
+    setError(null);
     const today = todayStr();
     
     // Calculate rolling 7 days ago start date
@@ -97,6 +100,7 @@ export default function Health() {
 
     } catch (e) {
       console.warn('Error loading health telemetry:', e.message);
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -357,13 +361,32 @@ export default function Health() {
     }
   };
 
-  // ─── RENDER — Loading ──────────────────────────────────────────────────────
+  // ─── RENDER — Loading & Error ──────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="app-container" style={{ background: C.bg, minHeight: '100vh', padding: '20px' }}>
+        <ErrorState message={error} onRetry={() => loadAllData(user?.id)} />
+      </div>
+    );
+  }
+
   if (loading && waterLogs.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: C.bg, gap: '12px' }}>
-        <div style={{ width: '44px', height: '44px', borderRadius: '50%', border: `2px solid ${C.recovery}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
-        <span style={{ fontSize: '10px', color: C.muted, fontWeight: 800, letterSpacing: '2px' }}>SYNCING TELEMETRY</span>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div className="app-container" style={{ background: C.bg, minHeight: '100vh', padding: '28px 20px 120px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '60%' }}>
+            <div className="skeleton-box" style={{ height: '10px', width: '40%' }} />
+            <div className="skeleton-box" style={{ height: '24px', width: '80%' }} />
+          </div>
+          <div className="skeleton-box" style={{ width: '40px', height: '40px', borderRadius: '12px' }} />
+        </div>
+        <div className="skeleton-box" style={{ height: '220px', borderRadius: '24px' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div className="skeleton-box" style={{ height: '120px', borderRadius: '20px' }} />
+          <div className="skeleton-box" style={{ height: '120px', borderRadius: '20px' }} />
+          <div className="skeleton-box" style={{ height: '120px', borderRadius: '20px' }} />
+          <div className="skeleton-box" style={{ height: '120px', borderRadius: '20px' }} />
+        </div>
       </div>
     );
   }

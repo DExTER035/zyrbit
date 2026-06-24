@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { ZyrbitMark } from '../components/Logo.jsx'
 
-const CYAN = '#00f5d4'
+const CYAN = '#5EE6F5'
 
 const genStars = () =>
   Array.from({ length: 32 }, (_, i) => ({
@@ -18,28 +19,22 @@ const genStars = () =>
 export default function WelcomeAnimation({ userName, onComplete }) {
   const [stars] = useState(genStars)
   const [phase, setPhase] = useState(0)
-  // phase: 0=rings drawing, 1=logo in, 2=welcome text, 3=name, 4=day1, 5=rocket, 6=fade out
+  // phase: 0=start, 1=logo in, 2=welcome text, 3=name, 4=day1, 5=rocket, 6=fade out
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 2400),
-      setTimeout(() => setPhase(2), 3200),
-      setTimeout(() => setPhase(3), 4000),
-      setTimeout(() => setPhase(4), 4800),
-      setTimeout(() => setPhase(5), 5600),
-      setTimeout(() => setPhase(6), 6200),
-      setTimeout(() => onComplete(), 6800),
+      setTimeout(() => setPhase(1), 1000), // accelerated ringless phase
+      setTimeout(() => setPhase(2), 1800),
+      setTimeout(() => setPhase(3), 2600),
+      setTimeout(() => setPhase(4), 3400),
+      setTimeout(() => setPhase(5), 4200),
+      setTimeout(() => setPhase(6), 4800),
+      setTimeout(() => onComplete(), 5400),
     ]
     return () => timers.forEach(clearTimeout)
   }, [onComplete])
 
-  const firstName = (userName || 'Astronaut').split(' ')[0]
-
-  // Ring circumferences
-  const r1 = 130, r2 = 92, r3 = 56
-  const c1 = Math.round(2 * Math.PI * r1)
-  const c2 = Math.round(2 * Math.PI * r2)
-  const c3 = Math.round(2 * Math.PI * r3)
+  const firstName = (userName || 'Builder').split(' ')[0]
 
   const fadeIn = (fromPhase, delay = '0s') => ({
     opacity: phase >= fromPhase ? 1 : 0,
@@ -49,7 +44,7 @@ export default function WelcomeAnimation({ userName, onComplete }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: '#000',
+      position: 'fixed', inset: 0, background: '#121214',
       overflow: 'hidden', zIndex: 9999,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
@@ -59,18 +54,6 @@ export default function WelcomeAnimation({ userName, onComplete }) {
         @keyframes twinkleW {
           0%,100% { opacity: var(--lo); transform: scale(1); }
           50% { opacity: var(--hi); transform: scale(1.3); }
-        }
-        @keyframes drawRing1 {
-          from { stroke-dashoffset: ${c1}; }
-          to   { stroke-dashoffset: 0; }
-        }
-        @keyframes drawRing2 {
-          from { stroke-dashoffset: ${c2}; }
-          to   { stroke-dashoffset: 0; }
-        }
-        @keyframes drawRing3 {
-          from { stroke-dashoffset: ${c3}; }
-          to   { stroke-dashoffset: 0; }
         }
         @keyframes popIn {
           0%   { transform: scale(0.3); opacity: 0; }
@@ -107,59 +90,24 @@ export default function WelcomeAnimation({ userName, onComplete }) {
         alignItems: 'center', gap: 0,
         width: '100%', paddingTop: 20,
       }}>
-        {/* Ring + Logo container */}
+        {/* Logo container */}
         <div style={{
           position: 'relative',
-          width: 280, height: 280,
+          width: 200, height: 200,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}>
-          {/* SVG rings */}
-          <svg
-            width="280" height="280"
-            viewBox="0 0 280 280"
-            style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
-          >
-            <circle cx="140" cy="140" r={r1}
-              stroke={CYAN} strokeWidth="1" fill="none" opacity="0.18"
-              strokeDasharray={c1} strokeDashoffset={c1}
-              style={{ animation: 'drawRing1 1.2s 0.5s ease forwards' }}
-            />
-            <circle cx="140" cy="140" r={r2}
-              stroke={CYAN} strokeWidth="1.2" fill="none" opacity="0.28"
-              strokeDasharray={c2} strokeDashoffset={c2}
-              style={{ animation: 'drawRing2 1s 1.1s ease forwards' }}
-            />
-            <circle cx="140" cy="140" r={r3}
-              stroke={CYAN} strokeWidth="1.5" fill="none" opacity="0.4"
-              strokeDasharray={c3} strokeDashoffset={c3}
-              style={{ animation: 'drawRing3 0.8s 1.8s ease forwards' }}
-            />
-          </svg>
-
           {/* Z Logo — pops in at phase 1 */}
           <div style={{
             position: 'relative', zIndex: 2,
             animation: phase >= 1 ? 'popIn 0.5s ease forwards' : 'none',
             opacity: phase >= 1 ? 1 : 0,
           }}>
-            <div style={{
-              width: 70, height: 70, borderRadius: '50%',
-              border: `2px solid rgba(0,245,212,0.4)`,
-              background: 'radial-gradient(circle, rgba(0,245,212,0.08) 0%, transparent 70%)',
-              boxShadow: `0 0 30px rgba(0,245,212,0.2), 0 0 60px rgba(0,245,212,0.08)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <span style={{
-                fontSize: 34, fontWeight: 900, color: CYAN,
-                textShadow: `0 0 20px ${CYAN}, 0 0 40px ${CYAN}66`,
-                lineHeight: 1, userSelect: 'none',
-              }}>Z</span>
-            </div>
+            <ZyrbitMark size={64} variant="default" />
           </div>
         </div>
 
-        {/* Text stack — spaced below the ring container */}
+        {/* Text stack — spaced below the logo container */}
         <div style={{
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', gap: 0,
@@ -167,14 +115,14 @@ export default function WelcomeAnimation({ userName, onComplete }) {
           boxSizing: 'border-box',
           marginTop: -12,
         }}>
-          {/* "Welcome to your orbit," */}
+          {/* "Welcome to Zyrbit," */}
           <div style={{
-            fontSize: 13, color: 'rgba(255,255,255,0.45)',
+            fontSize: 13, color: 'var(--text-muted)',
             fontWeight: 500, letterSpacing: '0.3px',
             marginBottom: 10,
             ...fadeIn(2),
           }}>
-            Welcome to your orbit,
+            Welcome to Zyrbit,
           </div>
 
           {/* User name */}
@@ -193,7 +141,6 @@ export default function WelcomeAnimation({ userName, onComplete }) {
             fontSize: 12, color: CYAN, fontWeight: 600,
             letterSpacing: '1px',
             marginBottom: 40,
-            textShadow: `0 0 16px ${CYAN}88`,
             ...fadeIn(4),
           }}>
             Day 1 begins now.
@@ -213,7 +160,7 @@ export default function WelcomeAnimation({ userName, onComplete }) {
       {/* Black fade-out overlay */}
       {phase >= 6 && (
         <div style={{
-          position: 'absolute', inset: 0, background: '#000', zIndex: 10,
+          position: 'absolute', inset: 0, background: '#121214', zIndex: 10,
           animation: 'fadeToBlack 0.5s ease forwards',
         }} />
       )}

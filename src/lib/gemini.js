@@ -46,6 +46,9 @@ export const askZyra = async (messages, systemPrompt = null) => {
     if (!res.ok) {
       const err = await res.json()
       console.error('Gemini API error:', err)
+      if (res.status === 429) {
+        throw new Error('Rate limit exceeded. Dex needs a breather! 🧊 Please try again in a minute.')
+      }
       throw new Error(err.error?.message || `Gemini responded with ${res.status}`)
     }
 
@@ -78,23 +81,23 @@ export const generateContent = async (prompt) => {
 export const getZyraCoaching = async (context) => {
   return askZyra([{
     role: 'user',
-    text: `You are Zyra, AI wellness coach inside Zyrbit.
+    text: `You are Dex, AI wellness coach inside Zyrbit Life OS.
 Give warm motivational coaching under 100 words.
-Reference user element rank when relevant.
+Reference user rank and active habits when relevant.
 End with: "This is general wellness advice, not medical advice."
 Context: ${context}`
   }])
 }
 
 /**
- * Weekly orbit report: ~150 word personalised summary.
+ * Weekly progress report: ~150 word personalised summary.
  */
 export const getWeeklyReport = async (context) => {
   return askZyra([{
     role: 'user',
-    text: `You are Zyra inside Zyrbit habit app.
-Generate a weekly orbit report under 150 words.
-Be specific about the user's habits and progress.
+    text: `You are Dex inside Zyrbit Life OS.
+Generate a weekly progress report under 150 words.
+Be specific about the user's habits, tasks, and overall progress.
 Context: ${context}`
   }])
 }

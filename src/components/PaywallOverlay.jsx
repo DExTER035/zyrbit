@@ -105,7 +105,7 @@ export default function PaywallOverlay() {
               <Zap size={16} />
             </div>
             <div>
-              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#FFF' }}>Unlimited Jarvis AI Coaching</h4>
+              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#FFF' }}>Unlimited Dex AI Coaching</h4>
               <p style={{ fontSize: '11px', color: '#888899' }}>No prompt limit, faster advice, voice execution.</p>
             </div>
           </div>
@@ -125,7 +125,7 @@ export default function PaywallOverlay() {
               <Trophy size={16} />
             </div>
             <div>
-              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#FFF' }}>Public Orbits & habit Battles</h4>
+              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#FFF' }}>Community Challenges & Battles</h4>
               <p style={{ fontSize: '11px', color: '#888899' }}>Form groups, chat real-time, and challenge peers for stakes.</p>
             </div>
           </div>
