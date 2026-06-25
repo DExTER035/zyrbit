@@ -40,8 +40,7 @@ export default function HabitCard({
   isCompleted = false,
   onToggle,
   onEdit,
-  onDelete,
-  onStats
+  onDelete
 }) {
   const [checking, setChecking] = useState(false)
   const [showMenu, setShowMenu] = useState(false)

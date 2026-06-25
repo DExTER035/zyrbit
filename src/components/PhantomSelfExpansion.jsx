@@ -1,16 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 export default function PhantomSelfExpansion({ user, habits }) {
   const [data, setData] = useState([])
 
-  useEffect(() => {
-    if (!user || !habits || habits.length === 0) return
-    loadData()
-  }, [user, habits])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const ninetyDaysAgo = new Date(Date.now() - 90 * 86400000).toLocaleDateString('en-CA')
     const { data: logs } = await supabase.from('activity_log')
       .select('completed_date, status')
@@ -44,7 +39,14 @@ export default function PhantomSelfExpansion({ user, habits }) {
     }
 
     setData(chartData)
-  }
+  }, [user, habits])
+
+  useEffect(() => {
+    if (!user || !habits || habits.length === 0) return
+    Promise.resolve().then(() => {
+      loadData()
+    })
+  }, [user, habits, loadData])
 
   if (data.length === 0) return null
 

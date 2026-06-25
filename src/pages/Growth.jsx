@@ -32,6 +32,7 @@ export default function Growth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [mountTime] = useState(() => Date.now());
 
   // ── Navigation ──────────────────────────────────────────────────────────────
   const [tab, setTab] = useState('today');          // today | projects
@@ -140,8 +141,6 @@ export default function Growth() {
     return map;
   }, [tasks, sessions]);
 
-  const nowTimestamp = useMemo(() => Date.now(), []);
-
   const todayView = useMemo(() => {
     const today = todayStr();
     const open  = tasks.filter(t => t.status !== 'done');
@@ -175,13 +174,13 @@ export default function Growth() {
       if (d === null || d < 0 || d > 5) return false;
       const last = sessions.find(s => s.project_id === p.id);
       if (!last) return true;
-      const daysSince = Math.ceil((Date.now() - new Date(last.session_date + 'T00:00:00').getTime()) / 86400000);
+      const daysSince = Math.ceil((mountTime - new Date(last.session_date + 'T00:00:00').getTime()) / 86400000);
       return daysSince >= 3;
     });
     if (urgentUntouched) {
       const d = daysUntil(urgentUntouched.deadline);
       const last = sessions.find(s => s.project_id === urgentUntouched.id);
-      const gap = last ? Math.ceil((Date.now() - new Date(last.session_date + 'T00:00:00').getTime()) / 86400000) : null;
+      const gap = last ? Math.ceil((mountTime - new Date(last.session_date + 'T00:00:00').getTime()) / 86400000) : null;
       return gap
         ? `"${urgentUntouched.name}" hasn't been touched in ${gap} days. ${d}d left.`
         : `"${urgentUntouched.name}" has no focus sessions yet. ${d}d until deadline.`;
@@ -193,25 +192,7 @@ export default function Growth() {
       return `Day ${streak.current_streak} streak. Don't break it — log at least 10 minutes today.`;
     }
     return 'Every focused session compounds. Open a project and start.';
-  }, [projects, sessions, todayView.overdue, streak]);
-
-  // ─── Focus Timer ───────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (focusMode === 'active' && !focusPaused) {
-      timerRef.current = setInterval(() => {
-        setFocusElapsed(p => {
-          if (focusType === 'timed' && p >= focusTimedMin * 60 - 1) {
-            endFocusSession(p + 1); return p + 1;
-          }
-          return p + 1;
-        });
-      }, 1000);
-    } else {
-      clearInterval(timerRef.current);
-    }
-    return () => clearInterval(timerRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusMode, focusPaused, focusType, focusTimedMin]);
+  }, [projects, sessions, todayView.overdue, streak, mountTime]);
 
   const startFocusSession = () => {
     setFocusElapsed(0);
@@ -219,7 +200,7 @@ export default function Growth() {
     setFocusMode('active');
   };
 
-  const endFocusSession = async (elapsed = focusElapsed) => {
+  const endFocusSession = useCallback(async (elapsed) => {
     clearInterval(timerRef.current);
     const mins = Math.max(1, Math.round(elapsed / 60));
     setFocusDoneMin(mins);
@@ -239,7 +220,24 @@ export default function Growth() {
         await supabase.rpc('update_streak', { p_user_id: user.id, p_date: todayStr() });
       } catch { /* optional */ }
     } catch (e) { console.warn('Session save error:', e.message); }
-  };
+  }, [user, focusProject]);
+
+  // ─── Focus Timer ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (focusMode === 'active' && !focusPaused) {
+      timerRef.current = setInterval(() => {
+        setFocusElapsed(p => {
+          if (focusType === 'timed' && p >= focusTimedMin * 60 - 1) {
+            endFocusSession(p + 1); return p + 1;
+          }
+          return p + 1;
+        });
+      }, 1000);
+    } else {
+      clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [focusMode, focusPaused, focusType, focusTimedMin, endFocusSession]);
 
   const closeFocusDone = () => {
     setFocusMode(null);

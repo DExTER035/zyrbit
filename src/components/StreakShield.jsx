@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { showToast } from './Toast'
 
@@ -16,17 +16,11 @@ import { showToast } from './Toast'
 export default function StreakShield({ user, habits, activity, streaks }) {
   const [target, setTarget] = useState(null)      // { habit, savedStreak }
   const [shieldAvailable, setShieldAvailable] = useState(false)
-  const [shieldUsed, setShieldUsed] = useState(false)
+  const [ShieldUsed, setShieldUsed] = useState(false)
   const [saving, setSaving] = useState(false)
   const checked = useRef(false)
 
-  useEffect(() => {
-    if (!user || !habits.length || !activity.length || checked.current) return
-    checked.current = true
-    runCheck()
-  }, [user, habits, activity])
-
-  const runCheck = async () => {
+  const runCheck = useCallback(async () => {
     const now = new Date()
     const currentMonth = now.getMonth() + 1
     const currentYear = now.getFullYear()
@@ -65,7 +59,13 @@ export default function StreakShield({ user, habits, activity, streaks }) {
       const habit = missedHabits[0]
       setTarget({ habit, savedStreak: streaks[habit.id] || 3 })
     }
-  }
+  }, [user, habits, activity, streaks])
+
+  useEffect(() => {
+    if (!user || !habits.length || !activity.length || checked.current) return
+    checked.current = true
+    runCheck()
+  }, [user, habits, activity, runCheck])
 
   const handleUseShield = async () => {
     if (!target || saving) return

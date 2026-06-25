@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BottomNav from '../components/BottomNav.jsx'
 import GravityRing from '../components/GravityRing.jsx'
 import RankBanner from '../components/RankBanner.jsx'
 import { showToast } from '../components/Toast.jsx'
 import { supabase } from '../lib/supabase.js'
-import { earnZyrons, spendZyrons, getWallet, getDailyStats, getWeeklyStats } from '../lib/zyrons.js'
+import { spendZyrons, getWallet } from '../lib/zyrons.js'
 import { getRankByZyrons, getNextRank, getProgressToNext, getVisibleRanks, RANKS } from '../lib/ranks.js'
 import { computeGravityScore } from '../lib/gravity.js'
 import { useInstallPrompt } from '../hooks/useInstallPrompt.js'
@@ -69,40 +69,7 @@ export default function Profile() {
     tabs.push({ id: 'admin', label: 'Admin', icon: '⚙️' })
   }
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) { 
-        setUser(user)
-        setAvatarUrl(user.user_metadata?.avatar_url || null)
-        loadData(user.id)
-      }
-    })
-  }, [])
-
-  const handleAvatarUpload = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file || !user) return
-    if (file.size > 2 * 1024 * 1024) { showToast('❌ Max 2MB image', 'warning'); return }
-    setUploading(true)
-    try {
-      const ext = file.name.split('.').pop()
-      const path = `avatars/${user.id}.${ext}`
-      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-      if (upErr) throw upErr
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
-      await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
-      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
-      setAvatarUrl(publicUrl + '?t=' + Date.now())
-      showToast('📷 Profile picture updated!', 'success')
-    } catch (err) {
-      console.error(err)
-      showToast('❌ Upload failed.', 'error')
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const loadData = async (uid) => {
+  const loadData = useCallback(async (uid) => {
     setLoading(true)
     setError(null)
     try {
@@ -130,6 +97,39 @@ export default function Profile() {
       setError(e.message)
     } finally {
       setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) { 
+        setUser(user)
+        setAvatarUrl(user.user_metadata?.avatar_url || null)
+        loadData(user.id)
+      }
+    })
+  }, [loadData])
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    if (file.size > 2 * 1024 * 1024) { showToast('❌ Max 2MB image', 'warning'); return }
+    setUploading(true)
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `avatars/${user.id}.${ext}`
+      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      if (upErr) throw upErr
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+      await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
+      setAvatarUrl(publicUrl + '?t=' + Date.now())
+      showToast('📷 Profile picture updated!', 'success')
+    } catch (err) {
+      console.error(err)
+      showToast('❌ Upload failed.', 'error')
+    } finally {
+      setUploading(false)
     }
   }
 

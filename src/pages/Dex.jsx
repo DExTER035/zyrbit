@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BottomNav from '../components/BottomNav.jsx'
 import { showToast } from '../components/Toast.jsx'
@@ -45,38 +45,7 @@ function ChatTab({ userContext, earn, habits, fetchLatest, userRef }) {
   const recognitionRef = useRef(null)
   const bottomRef = useRef(null)
 
-  useEffect(() => { localStorage.setItem('zyrbit_zyra_chat', JSON.stringify(history.slice(-50))) }, [history])
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [history, loading])
-
-  useEffect(() => {
-    if (SpeechRecognition) {
-      const rec = new SpeechRecognition()
-      rec.continuous = false
-      rec.lang = 'en-US'
-      rec.interimResults = false
-
-      rec.onresult = async (e) => {
-        const transcript = e.results[0][0].transcript
-        setIsListening(false)
-        showToast(`🎙️ Heard: "${transcript}"`, 'info')
-        await processVoiceCommand(transcript)
-      }
-
-      rec.onerror = (e) => {
-        console.error('Speech error', e)
-        setIsListening(false)
-        showToast('❌ Microphone error. Try again.', 'error')
-      }
-
-      rec.onend = () => {
-        setIsListening(false)
-      }
-
-      recognitionRef.current = rec
-    }
-  }, [])
-
-  const personalities = {
+  const personalities = useMemo(() => ({
     Supportive: {
       color: '#ce93d8', border: '#9c27b0', bg: '#9c27b015',
       prompt: `You are Dex, warm AI wellness coach inside Zyrbit. User data: ${JSON.stringify(userContext)}. Give encouraging, specific coaching under 80 words. Reference their rank and habits when relevant. End response with: "This is general wellness advice, not medical advice."`
@@ -89,9 +58,12 @@ function ChatTab({ userContext, earn, habits, fetchLatest, userRef }) {
       color: '#81c784', border: '#4caf50', bg: '#4caf5015',
       prompt: `You are Dex in ZEN mode — calm and philosophical. User data: ${JSON.stringify(userContext)}. Provide mindful, peaceful insights under 80 words. End with: "This is general wellness advice, not medical advice."`
     }
-  }
+  }), [userContext])
 
-  const handleSend = async (text = input) => {
+  useEffect(() => { localStorage.setItem('zyrbit_zyra_chat', JSON.stringify(history.slice(-50))) }, [history])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [history, loading])
+
+  const handleSend = useCallback(async (text = input) => {
     if (!text.trim() || loading) return
 
     // Free Tier Gating: Limit daily Dex prompts to 5
@@ -122,23 +94,9 @@ function ChatTab({ userContext, earn, habits, fetchLatest, userRef }) {
       const replyMsg = { role: 'model', text: `Dex is offline 🧊 (${err.message})`, id: Date.now() + 1 }
       setHistory(prev => [...prev, replyMsg])
     }
-  }
+  }, [input, loading, isPremium, triggerPaywall, history, personalities, personality, earn])
 
-  const toggleSpeech = () => {
-    if (!recognitionRef.current) {
-      showToast('⚠️ Speech recognition not supported on this platform.', 'warning')
-      return
-    }
-    if (isListening) {
-      recognitionRef.current.stop()
-      setIsListening(false)
-    } else {
-      setIsListening(true)
-      recognitionRef.current.start()
-    }
-  }
-
-  const processVoiceCommand = async (phrase) => {
+  const processVoiceCommand = useCallback(async (phrase) => {
     const text = phrase.toLowerCase().trim()
     const todayStr = new Date().toLocaleDateString('en-CA')
 
@@ -248,6 +206,53 @@ function ChatTab({ userContext, earn, habits, fetchLatest, userRef }) {
 
     // Fallback
     handleSend(phrase)
+  }, [habits, fetchLatest, userRef, handleSend])
+
+  const processVoiceCommandRef = useRef(processVoiceCommand)
+  useEffect(() => {
+    processVoiceCommandRef.current = processVoiceCommand
+  }, [processVoiceCommand])
+
+  useEffect(() => {
+    if (SpeechRecognition) {
+      const rec = new SpeechRecognition()
+      rec.continuous = false
+      rec.lang = 'en-US'
+      rec.interimResults = false
+
+      rec.onresult = async (e) => {
+        const transcript = e.results[0][0].transcript
+        setIsListening(false)
+        showToast(`🎙️ Heard: "${transcript}"`, 'info')
+        await processVoiceCommandRef.current(transcript)
+      }
+
+      rec.onerror = (e) => {
+        console.error('Speech error', e)
+        setIsListening(false)
+        showToast('❌ Microphone error. Try again.', 'error')
+      }
+
+      rec.onend = () => {
+        setIsListening(false)
+      }
+
+      recognitionRef.current = rec
+    }
+  }, [SpeechRecognition])
+
+  const toggleSpeech = () => {
+    if (!recognitionRef.current) {
+      showToast('⚠️ Speech recognition not supported on this platform.', 'warning')
+      return
+    }
+    if (isListening) {
+      recognitionRef.current.stop()
+      setIsListening(false)
+    } else {
+      setIsListening(true)
+      recognitionRef.current.start()
+    }
   }
 
   return (
@@ -340,12 +345,10 @@ function ChatTab({ userContext, earn, habits, fetchLatest, userRef }) {
 }
 
 // --- TAB 2: DAILY SUMMARY & SUGGESTIONS ---
-function SummaryTab({ userContext, uid }) {
+function SummaryTab({ userContext }) {
   const [summary, setSummary] = useState(null)
   const [suggs, setSuggs] = useState(null)
   const [loading, setLoading] = useState({})
-
-  const today = new Date().toLocaleDateString('en-CA')
 
   const handleRefreshSummary = async () => {
     setLoading(p => ({ ...p, summary: true }))
@@ -353,7 +356,9 @@ function SummaryTab({ userContext, uid }) {
     try {
       const res = await generateContent(prompt)
       if (res) setSummary(res)
-    } catch (_) {}
+    } catch (err) {
+      console.warn('Summary refresh error:', err)
+    }
     setLoading(p => ({ ...p, summary: false }))
   }
 
@@ -364,7 +369,9 @@ function SummaryTab({ userContext, uid }) {
       const res = await generateContent(prompt)
       const parsed = JSON.parse(res.replace(/```json|```/g,'').trim())
       setSuggs(parsed)
-    } catch (_) {}
+    } catch (err) {
+      console.warn('Suggestions refresh error:', err)
+    }
     setLoading(p => ({ ...p, suggs: false }))
   }
 
@@ -410,17 +417,17 @@ function QuizTab({ earn, userContext }) {
   const [selected, setSelected] = useState(null)
   const [status, setStatus] = useState('idle') // idle, correct, wrong
   const [quizPhase, setQuizPhase] = useState('start') // start, active, gameover, maxearned
-  const [cooldown, setCooldown] = useState(null)
   const [loading, setLoading] = useState(false)
   const [learnMode, setLearnMode] = useState(false)
 
-  useEffect(() => {
+  const [cooldown, setCooldown] = useState(() => {
     const last = localStorage.getItem('zyrbit_quiz_last')
     if (last) {
       const diff = Date.now() - parseInt(last)
-      if (diff < 86400000) setCooldown(86400000 - diff)
+      if (diff < 86400000) return 86400000 - diff
     }
-  }, [])
+    return 0
+  })
 
   useEffect(() => {
     if (cooldown > 0) {
@@ -429,45 +436,13 @@ function QuizTab({ earn, userContext }) {
     }
   }, [cooldown])
 
-  useEffect(() => {
-    if (quizPhase === 'active' && status === 'idle' && !learnMode && timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000)
-      return () => clearTimeout(timer)
-    } else if (timeLeft === 0 && status === 'idle') {
-      handleAnswer(-1)
-    }
-  }, [quizPhase, status, timeLeft, learnMode])
+  const endQuiz = useCallback((mode) => {
+    setQuizPhase(mode)
+    localStorage.setItem('zyrbit_quiz_last', Date.now().toString())
+    setCooldown(86400000)
+  }, [])
 
-  const startQuiz = async () => {
-    setLoading(true)
-    const today = new Date().toDateString()
-    const cacheKey = `zyrbit_quiz_${userContext?.rank || 'guest'}_${today}`
-    let qs = localStorage.getItem(cacheKey)
-    if (qs) {
-      qs = JSON.parse(qs)
-    } else {
-      const prompt = `Generate exactly 10 unique riddles, math teasers, logic puzzles and habit wellness questions. Return ONLY raw JSON array: [{"q":"...","opts":["A","B","C","D"],"ans":0,"cat":"Logic","explanation":"..."}]`
-      try {
-        const res = await generateContent(prompt)
-        qs = JSON.parse(res.replace(/```json|```/g,'').trim())
-        if (qs.length > 10) qs = qs.slice(0, 10)
-        localStorage.setItem(cacheKey, JSON.stringify(qs))
-      } catch (_) {
-        qs = getFallbackQuestions()
-      }
-    }
-    setQuestions(qs)
-    setQIdx(0)
-    setSessionEarned(0)
-    setTimeLeft(20)
-    setStatus('idle')
-    setSelected(null)
-    setLearnMode(false)
-    setQuizPhase('active')
-    setLoading(false)
-  }
-
-  const handleAnswer = async (idx) => {
+  const handleAnswer = useCallback(async (idx) => {
     if (status !== 'idle') return
     setSelected(idx)
     const q = questions[qIdx]
@@ -494,18 +469,53 @@ function QuizTab({ earn, userContext }) {
       setStatus('wrong')
       setTimeout(() => endQuiz('gameover'), 2000)
     }
-  }
+  }, [status, qIdx, questions, sessionEarned, earn, endQuiz])
 
-  const endQuiz = (mode) => {
-    setQuizPhase(mode)
-    localStorage.setItem('zyrbit_quiz_last', Date.now().toString())
-    setCooldown(86400000)
+  useEffect(() => {
+    if (quizPhase === 'active' && status === 'idle' && !learnMode && timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000)
+      return () => clearTimeout(timer)
+    } else if (timeLeft === 0 && status === 'idle') {
+      Promise.resolve().then(() => {
+        handleAnswer(-1)
+      })
+    }
+  }, [quizPhase, status, timeLeft, learnMode, handleAnswer])
+
+  const startQuiz = async () => {
+    setLoading(true)
+    const todayStr = new Date().toDateString()
+    const cacheKey = `zyrbit_quiz_${userContext?.rank || 'guest'}_${todayStr}`
+    let qs = localStorage.getItem(cacheKey)
+    if (qs) {
+      qs = JSON.parse(qs)
+    } else {
+      const prompt = `Generate exactly 10 unique riddles, math teasers, logic puzzles and habit wellness questions. Return ONLY raw JSON array: [{"q":"...","opts":["A","B","C","D"],"ans":0,"cat":"Logic","explanation":"..."}]`
+      try {
+        const res = await generateContent(prompt)
+        qs = JSON.parse(res.replace(/```json|```/g,'').trim())
+        if (qs.length > 10) qs = qs.slice(0, 10)
+        localStorage.setItem(cacheKey, JSON.stringify(qs))
+      } catch (err) {
+        console.warn('Quiz generation error:', err)
+        qs = getFallbackQuestions()
+      }
+    }
+    setQuestions(qs)
+    setQIdx(0)
+    setSessionEarned(0)
+    setTimeLeft(20)
+    setStatus('idle')
+    setSelected(null)
+    setLearnMode(false)
+    setQuizPhase('active')
+    setLoading(false)
   }
 
   const formatTime = (ms) => {
-    const h = Math.floor(ms / 3600000)
-    const m = Math.floor((ms % 3600000) / 60000)
-    return `${h}h ${m}m`
+    const hNum = Math.floor(ms / 3600000)
+    const mNum = Math.floor((ms % 3600000) / 60000)
+    return `${hNum}h ${mNum}m`
   }
 
   if (learnMode) {
@@ -602,17 +612,7 @@ export default function Dex() {
 
   const userRef = useRef(null)
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        userRef.current = user
-        setUser(user)
-        buildContext(user)
-      }
-    })
-  }, [])
-
-  const buildContext = async (u) => {
+  const buildContext = useCallback(async (u) => {
     const today = new Date().toLocaleDateString('en-CA')
     const [{ data: h }, { data: logs }, { data: streaks }, wallet, gs, { data: sleep }, { data: wat }, { data: exp }] = await Promise.all([
       supabase.from('habits').select('*').eq('user_id', u.id),
@@ -654,7 +654,17 @@ export default function Dex() {
       waterTotal: waterSum,
       spentTotal: spentSum
     })
-  }
+  }, [])
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        userRef.current = user
+        setUser(user)
+        buildContext(user)
+      }
+    })
+  }, [buildContext])
 
   const handleEarn = useCallback(async (amt, reason) => {
     const currentUser = userRef.current
@@ -710,7 +720,7 @@ export default function Dex() {
         )}
         
         {activeSubTab === 'summary' && userContext && (
-          <SummaryTab userContext={userContext} uid={user?.id} />
+          <SummaryTab userContext={userContext} />
         )}
 
         {activeSubTab === 'quiz' && (

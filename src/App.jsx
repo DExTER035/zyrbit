@@ -85,6 +85,15 @@ function AppPageTracker({ userId }) {
   return null
 }
 
+function RedirectToLogin({ onSignOut }) {
+  useEffect(() => {
+    supabase.auth.signOut().then(() => {
+      if (onSignOut) onSignOut()
+    })
+  }, [onSignOut])
+  return null
+}
+
 function MainApp({ handleSignOut, currentUserId }) {
   return (
     <BlackoutProvider>
@@ -99,6 +108,7 @@ function MainApp({ handleSignOut, currentUserId }) {
         <Route path="/challenge" element={<ProtectedRoute onSignOut={handleSignOut}><Challenge /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute onSignOut={handleSignOut}><Profile /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute onSignOut={handleSignOut}><Stats /></ProtectedRoute>} />
+        <Route path="/login" element={<RedirectToLogin onSignOut={handleSignOut} />} />
         {/* Legacy route redirects */}
         <Route path="/orbit" element={<Navigate to="/zenith" replace />} />
         <Route path="/goals" element={<Navigate to="/zenith" replace />} />

@@ -1,41 +1,71 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { showToast } from '../components/Toast'
 
 const BlackoutContext = createContext(null)
 
+const getSavedBlackout = () => {
+  if (typeof window === 'undefined') return null
+  const saved = localStorage.getItem('zyrbit_blackout')
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved)
+      const end = new Date(parsed.endsAt)
+      if (end > new Date()) {
+        return parsed
+      } else {
+        localStorage.removeItem('zyrbit_blackout')
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return null
+}
+
 export function useBlackout() {
   return useContext(BlackoutContext)
 }
 
 export function BlackoutProvider({ children }) {
-  const [isActive, setIsActive] = useState(false)
-  const [endsAt, setEndsAt] = useState(null)       // Date object
-  const [remaining, setRemaining] = useState(0)    // seconds
-  const [subject, setSubject] = useState('')
-  const [userId, setUserId] = useState(null)
-  const startedAtRef = useRef(null)
+  const [savedData] = useState(() => getSavedBlackout())
+
+  const [isActive, setIsActive] = useState(!!savedData)
+  const [endsAt, setEndsAt] = useState(savedData ? new Date(savedData.endsAt) : null)
+  const [remaining, setRemaining] = useState(0)
+  const [subject, setSubject] = useState(savedData ? savedData.subject || '' : '')
+  const [userId, setUserId] = useState(savedData ? savedData.userId : null)
+
+  const startedAtRef = useRef(savedData ? new Date(savedData.startedAt) : null)
   const intervalRef = useRef(null)
 
-  // Persist state across refreshes via localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('zyrbit_blackout')
-    if (saved) {
-      try {
-        const { endsAt: ea, subject: sub, userId: uid, startedAt } = JSON.parse(saved)
-        const end = new Date(ea)
-        if (end > new Date()) {
-          setIsActive(true)
-          setEndsAt(end)
-          setSubject(sub || '')
-          setUserId(uid)
-          startedAtRef.current = new Date(startedAt)
-        } else {
-          localStorage.removeItem('zyrbit_blackout')
-        }
-      } catch (_) {}
+  const endBlackout = useCallback(async (natural = false, reflection = '') => {
+    clearInterval(intervalRef.current)
+    const startedAt = startedAtRef.current || new Date()
+    const durationMinutes = Math.round((new Date() - startedAt) / 60000)
+    
+    // Log session to Supabase
+    if (userId && durationMinutes > 0) {
+      await supabase.from('growth_focus_sessions').insert({
+        user_id: userId,
+        duration_minutes: durationMinutes,
+        session_date: new Date().toLocaleDateString('en-CA'),
+        notes: reflection || 'Blackout Mode session',
+        started_at: startedAt.toISOString(),
+        ended_at: new Date().toISOString()
+      })
     }
-  }, [])
+
+    localStorage.removeItem('zyrbit_blackout')
+    setIsActive(false)
+    setEndsAt(null)
+    setRemaining(0)
+    setSubject('')
+    startedAtRef.current = null
+    if (natural) showToast(`⚡ Blackout complete! ${durationMinutes}min logged.`, 'success')
+    else showToast(`Focus session ended. ${durationMinutes}min logged.`, 'info')
+  }, [userId])
 
   useEffect(() => {
     if (!isActive || !endsAt) { clearInterval(intervalRef.current); return }
@@ -47,7 +77,7 @@ export function BlackoutProvider({ children }) {
     tick()
     intervalRef.current = setInterval(tick, 1000)
     return () => clearInterval(intervalRef.current)
-  }, [isActive, endsAt])
+  }, [isActive, endsAt, endBlackout])
 
   const startBlackout = useCallback((durationMinutes, sub, uid) => {
     const end = new Date(Date.now() + durationMinutes * 60 * 1000)
@@ -61,34 +91,6 @@ export function BlackoutProvider({ children }) {
       endsAt: end.toISOString(), subject: sub, userId: uid, startedAt: startedAt.toISOString()
     }))
   }, [])
-
-  const endBlackout = useCallback(async (natural = false, reflection = '') => {
-    clearInterval(intervalRef.current)
-    const startedAt = startedAtRef.current || new Date()
-    const durationMinutes = Math.round((new Date() - startedAt) / 60000)
-    
-    // Log session to Supabase
-    if (userId && durationMinutes > 0) {
-      await supabase.from('study_sessions').insert({
-        user_id: userId,
-        duration_minutes: durationMinutes,
-        session_date: new Date().toLocaleDateString('en-CA'),
-        notes: reflection || 'Blackout Mode session',
-        source: 'blackout',
-        started_at: startedAt.toISOString(),
-        completed_at: new Date().toISOString()
-      })
-    }
-
-    localStorage.removeItem('zyrbit_blackout')
-    setIsActive(false)
-    setEndsAt(null)
-    setRemaining(0)
-    setSubject('')
-    startedAtRef.current = null
-    if (natural) showToast(`⚡ Blackout complete! ${durationMinutes}min logged.`, 'success')
-    else showToast(`Focus session ended. ${durationMinutes}min logged.`, 'info')
-  }, [userId])
 
   const formatMMSS = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0')

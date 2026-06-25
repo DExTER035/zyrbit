@@ -340,7 +340,7 @@ export default function Health() {
       <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '18px', paddingBottom: '120px' }}>
         
         {/* Recovery Dial widget */}
-        <RecoveryWidget recoveryScore={recoveryScore} activeSprint={activeSprint} />
+        <RecoveryWidget recoveryScore={recoveryScore} />
 
         {/* Vitals Grid containing Water, Sleep, Gym */}
         <VitalsGrid>

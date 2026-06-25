@@ -10,7 +10,6 @@ import ZoneTab from '../components/ZoneTab.jsx';
 import StreakShield from '../components/StreakShield.jsx';
 import HeatmapGrid from '../components/HeatmapGrid.jsx';
 import { earnZyrons, getWallet } from '../lib/zyrons.js';
-import { getRankByZyrons } from '../lib/ranks.js';
 import ErrorState from '../components/ErrorState.jsx';
 
 // ─── colour tokens (Zenith Premium palette) ─────────────────────────────────
@@ -238,7 +237,7 @@ export default function Zenith() {
   const [streaks, setStreaks] = useState({});
   const [longestStreaks, setLongestStreaks] = useState({});
   const [activeZone, setActiveZone] = useState('all');
-  const [wallet, setWallet] = useState(null);
+  const [Wallet, setWallet] = useState(null);
   const [xpPopup, setXpPopup] = useState(null); // { amount, label }
   const [celebrationShown, setCelebrationShown] = useState(() => {
     const todayStr = (() => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0] })()
@@ -720,12 +719,12 @@ export default function Zenith() {
   }, [loadData]);
 
   // Show floating XP popup then auto-dismiss
-  const triggerXpPopup = (amount, label) => {
+  const triggerXpPopup = useCallback((amount, label) => {
     setXpPopup({ amount, label })
     setTimeout(() => setXpPopup(null), 2000)
-  }
+  }, [])
 
-  const checkAllDone = async (optimisticActivity) => {
+  const checkAllDone = useCallback(async (optimisticActivity) => {
     const currentUser = userRef.current
     if (!currentUser) return;
     const currentCompleted = new Set(optimisticActivity.filter(l => l.completed_date === today && l.status === 'completed').map(l => l.habit_id))
@@ -745,7 +744,7 @@ export default function Zenith() {
       setReflectionText('')
       setTimeout(() => setShowReflection(true), 400)
     }
-  }
+  }, [habits, celebrationShown, today, triggerXpPopup])
 
   const handleToggle = useCallback(async (habit) => {
     const currentUser = userRef.current
@@ -793,7 +792,7 @@ export default function Zenith() {
         showToast('❌ Failed to uncheck habit.', 'error')
       }
     }
-  }, [activity, habits, celebrationShown, today, loadHabitsAndStreaks])
+  }, [activity, today, loadHabitsAndStreaks, checkAllDone, triggerXpPopup])
 
   const handleSkip = async (habit) => {
     const currentUser = userRef.current
@@ -962,22 +961,22 @@ export default function Zenith() {
   const name = profile?.username || profile?.full_name || 'Commander';
 
   // Recommendations for briefing box
-  let healthAction = "Physical indicators stable. Maintain status.";
+  let HealthAction = "Physical indicators stable. Maintain status.";
   if (ctx.water < 2000) {
-    healthAction = "Hydrate: Drink 500ml water to restore capacity.";
+    HealthAction = "Hydrate: Drink 500ml water to restore capacity.";
   } else if (ctx.sleepDebt > 2.0) {
-    healthAction = "Prioritize a 8-hour sleep window tonight.";
+    HealthAction = "Prioritize a 8-hour sleep window tonight.";
   } else {
-    healthAction = "Execute a 15-minute active recovery walk.";
+    HealthAction = "Execute a 15-minute active recovery walk.";
   }
 
-  let growthAction = "Growth targets nominal. Focus when ready.";
+  let GrowthAction = "Growth targets nominal. Focus when ready.";
   if (ctx.overdueTasksCount > 0) {
-    growthAction = "Resolve oldest overdue task.";
+    GrowthAction = "Resolve oldest overdue task.";
   } else if (ctx.sprintActive && (ctx.sprintLoggedToDate < ctx.sprintTargetToDate)) {
-    growthAction = "Log focus session to meet daily sprint target.";
+    GrowthAction = "Log focus session to meet daily sprint target.";
   } else if (ctx.totalTasks > ctx.completedTasks) {
-    growthAction = "Complete your high-priority growth tasks.";
+    GrowthAction = "Complete your high-priority growth tasks.";
   }
 
   // Quick stat cards for the dashboard
@@ -1218,7 +1217,7 @@ export default function Zenith() {
 
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
-              {filteredHabits.map((habit, index) => {
+              {filteredHabits.map((habit) => {
                 const completedToday = new Set(
                   activity.filter(log => log.completed_date === today && log.status === 'completed').map(l => l.habit_id)
                 )
@@ -1243,7 +1242,7 @@ export default function Zenith() {
                       onLongPress={setSkipTarget}
                       onDelete={deleteHabit}
                       onStats={() => showToast('Open habit history', 'info')}
-                      onEdit={(h) => { setEditHabit(habit); setForm({ name: habit.name, zone: habit.zone, icon: habit.icon||'🌱', frequency: habit.frequency||'daily', reminder_enabled: habit.reminder_enabled||false, reminder_time: habit.reminder_time||'' }); setShowModal(true) }}
+                      onEdit={() => { setEditHabit(habit); setForm({ name: habit.name, zone: habit.zone, icon: habit.icon||'🌱', frequency: habit.frequency||'daily', reminder_enabled: habit.reminder_enabled||false, reminder_time: habit.reminder_time||'' }); setShowModal(true) }}
                     />
                   </div>
                 )

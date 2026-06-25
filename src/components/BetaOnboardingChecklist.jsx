@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { getOnboardingProgress } from '../lib/analytics.js'
 
 const MILESTONES = [
@@ -13,17 +13,19 @@ export default function BetaOnboardingChecklist({ userId }) {
   const [progress, setProgress] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchProgress = async () => {
+  const fetchProgress = useCallback(async (showLoader = false) => {
     if (!userId) return
-    setLoading(true)
+    if (showLoader) setLoading(true)
     const data = await getOnboardingProgress(userId)
     setProgress(data)
     setLoading(false)
-  }
+  }, [userId])
 
   useEffect(() => {
-    fetchProgress()
-  }, [userId])
+    Promise.resolve().then(() => {
+      fetchProgress()
+    })
+  }, [userId, fetchProgress])
 
   if (loading) {
     return (

@@ -14,8 +14,8 @@ export default function AdminAnalytics() {
     feedbackCount: { bug: 0, feature: 0, general: 0 }
   })
 
-  const loadAdminData = async () => {
-    setLoading(true)
+  const loadAdminData = async (showLoader = false) => {
+    if (showLoader) setLoading(true)
     try {
       // 1. Fetch Feedback
       const { data: feedbackData, error: fbError } = await supabase
@@ -110,12 +110,15 @@ export default function AdminAnalytics() {
       showToast(`📝 Status updated to ${nextStatus}`, 'success')
       setFeedbackList(prev => prev.map(f => f.id === id ? { ...f, status: nextStatus } : f))
     } catch (err) {
+      console.error('[Admin] Error updating feedback status:', err)
       showToast('❌ Failed to update status', 'error')
     }
   }
 
   useEffect(() => {
-    loadAdminData()
+    Promise.resolve().then(() => {
+      loadAdminData()
+    })
   }, [])
 
   if (loading) {
@@ -187,7 +190,7 @@ export default function AdminAnalytics() {
       <div className="card-base" style={{ padding: 'var(--space-20)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-16)' }}>
           <h3 style={{ fontSize: 'var(--fs-xs)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-primary)' }}>Beta Feedback Submissions</h3>
-          <button onClick={loadAdminData} style={{ background: 'none', border: 'none', color: 'var(--color-accent-cyan)', fontSize: 'var(--fs-xs)', cursor: 'pointer', fontWeight: 800 }}>Refresh</button>
+          <button onClick={() => loadAdminData(true)} style={{ background: 'none', border: 'none', color: 'var(--color-accent-cyan)', fontSize: 'var(--fs-xs)', cursor: 'pointer', fontWeight: 800 }}>Refresh</button>
         </div>
 
         {feedbackList.length === 0 ? (

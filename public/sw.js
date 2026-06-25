@@ -1,7 +1,7 @@
 // Self-destructing Service Worker
 // This will replace any active service worker, unregister itself, clear all caches, and reload clients.
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   console.log('Self-destructing SW: Installing and skipping waiting...');
   self.skipWaiting();
 });

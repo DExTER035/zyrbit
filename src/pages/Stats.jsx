@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   LineChart, Line, AreaChart, Area,
@@ -30,6 +30,13 @@ const firstOfMonth = () => {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`
 }
 const today = () => new Date().toISOString().split('T')[0]
+
+const getWeekKey = () => {
+  const d = new Date()
+  const jan1 = new Date(d.getFullYear(), 0, 1)
+  const weekNum = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7)
+  return `${d.getFullYear()}-W${weekNum}`
+}
 
 const buildDailyMap = (items, dateKey, valueKey = null, since = 30) => {
   const map = {}
@@ -245,8 +252,7 @@ export default function Stats() {
   const [activeFilter, setActiveFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [habitRange, setHabitRange] = useState('30D')
-
+  const [habitRange, SetHabitRange] = useState('30D')
   // Data state
   const [habits, setHabits] = useState([])
   const [activityLog, setActivityLog] = useState([])
@@ -265,65 +271,78 @@ export default function Stats() {
   const [weeklyReport, setWeeklyReport] = useState('')
   const [loadingReport, setLoadingReport] = useState(false)
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) { setUser(session.user); fetchAll(session.user.id) }
-    })
+  const generateWeeklyReport = useCallback(async (uid, hData, alData, wData, txData, stData) => {
+    setLoadingReport(true)
+    try {
+      const since30Str = thirtyDaysAgo()
+      const completions = alData?.filter(l => l.completed_date >= since30Str && l.status === 'completed').length || 0
+      const balance = wData?.balance || 0
+      const bestStreak = (stData || []).reduce((max, s) => Math.max(max, s.current_streak || 0), 0) || 0
+      const context = `Habits tracked: ${hData?.length || 0}. Completions in 30 days: ${completions}. Zyrons balance: ${balance}. Best streak: ${bestStreak} days. This week's earned: ${wData?.daily_earned || 0} Zyrons.`
+      const prompt = [{ role: 'user', text: `You are Zyra, AI coach inside Zyrbit. Write a warm, specific weekly report in under 80 words. Include actionable insight. Context: ${context}` }]
+      const report = await askZyra(prompt)
+      setWeeklyReport(report)
+      localStorage.setItem(`zyrbit_weekly_report_${getWeekKey()}`, report)
+    } catch {
+      setWeeklyReport('Keep growing consistently — every habit you complete adds to your gravity score! 🪐')
+    }
+    setLoadingReport(false)
   }, [])
 
-  const fetchAll = async (uid) => {
+  const fetchAll = useCallback(async (uid) => {
     setLoading(true)
     setError(null)
     try {
       const since30 = thirtyDaysAgo()
-    const since365 = (() => { const d = new Date(); d.setDate(d.getDate() - 365); return d.toISOString().split('T')[0] })()
-    const firstMonth = firstOfMonth()
-    const todayStr = today()
+      const since365 = (() => { const d = new Date(); d.setDate(d.getDate() - 365); return d.toISOString().split('T')[0] })()
+      const firstMonth = firstOfMonth()
+      const todayStr = today()
 
-    // Use allSettled so missing legacy tables (zyron_wallet etc.) don't crash the page
-    const results = await Promise.allSettled([
-      supabase.from('habits').select('*').eq('user_id', uid),
-      supabase.from('activity_log').select('*').eq('user_id', uid).gte('completed_date', since365),
-      supabase.from('user_streaks').select('*').eq('user_id', uid),
-      supabase.from('zyron_wallet').select('*').eq('user_id', uid).maybeSingle(),
-      supabase.from('zyron_transactions').select('*').eq('user_id', uid).gte('created_at', since30),
-      supabase.from('money_expenses').select('*').eq('user_id', uid).gte('expense_date', firstMonth),
-      supabase.from('money_settings').select('*').eq('user_id', uid).maybeSingle(),
-      supabase.from('study_sessions').select('*, study_subjects(name, color)').eq('user_id', uid).gte('session_date', firstMonth),
-      supabase.from('study_exams').select('*').eq('user_id', uid).gte('exam_date', todayStr),
-      supabase.from('diary_entries').select('entry_date, mood').eq('user_id', uid).gte('entry_date', since30),
-      supabase.from('diary_settings').select('*').eq('user_id', uid).maybeSingle(),
-      supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
-    ])
+      // Use allSettled so missing legacy tables (zyron_wallet etc.) don't crash the page
+      const results = await Promise.allSettled([
+        supabase.from('habits').select('*').eq('user_id', uid),
+        supabase.from('activity_log').select('*').eq('user_id', uid).gte('completed_date', since365),
+        supabase.from('user_streaks').select('*').eq('user_id', uid),
+        supabase.from('zyron_wallet').select('*').eq('user_id', uid).maybeSingle(),
+        supabase.from('zyron_transactions').select('*').eq('user_id', uid).gte('created_at', since30),
+        supabase.from('money_expenses').select('*').eq('user_id', uid).gte('expense_date', firstMonth),
+        supabase.from('wealth_settings').select('*').eq('user_id', uid).maybeSingle(),
+        supabase.from('growth_focus_sessions').select('*, growth_projects(name, color)').eq('user_id', uid).gte('session_date', firstMonth),
+        supabase.from('study_exams').select('*').eq('user_id', uid).gte('exam_date', todayStr),
+        supabase.from('orbit_journal').select('entry_date, mood').eq('user_id', uid).gte('entry_date', since30),
+        supabase.from('dexos_streaks').select('*').eq('user_id', uid).maybeSingle(),
+        supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
+      ])
 
-    const safeData = (idx, fallback = null) =>
-      results[idx].status === 'fulfilled' ? (results[idx].value?.data ?? fallback) : fallback
+      const safeData = (idx, fallback = null) =>
+        results[idx].status === 'fulfilled' ? (results[idx].value?.data ?? fallback) : fallback
 
-    const hData  = safeData(0, [])
-    const alData = safeData(1, [])
-    const stData = safeData(2, [])
-    const wData  = safeData(3)
-    const txData = safeData(4, [])
-    const expData= safeData(5, [])
-    const msData = safeData(6)
-    const ssData = safeData(7, [])
-    const seData = safeData(8, [])
-    const deData = safeData(9, [])
-    const dsData = safeData(10)
-    const profData=safeData(11)
+      const hData  = safeData(0, [])
+      const alData = safeData(1, [])
+      const stData = safeData(2, [])
+      const wData  = safeData(3)
+      const txData = safeData(4, [])
+      const expData= safeData(5, [])
+      const msData = safeData(6)
+      const ssData = safeData(7, [])
+      const seData = safeData(8, [])
+      const deData = safeData(9, [])
+      const dsData = safeData(10)
+      const profData=safeData(11)
 
-    setHabits(hData)
-    setActivityLog(alData)
-    setUserStreaks(stData)
-    setWallet(wData)
-    setTransactions(txData)
-    setExpenses(expData)
-    setMoneySettings(msData)
-    setStudySessions(ssData)
-    setStudyExams(seData)
-    setDiaryEntries(deData)
-    setDiarySettings(dsData)
-    setProfile(profData)
+      setHabits(hData)
+      setActivityLog(alData)
+      setUserStreaks(stData)
+      setWallet(wData)
+      setTransactions(txData)
+      setExpenses(expData)
+      setMoneySettings(msData)
+      setStudySessions(ssData)
+      setStudyExams(seData)
+      setDiaryEntries(deData)
+      setDiarySettings(dsData)
+      setProfile(profData)
+      
       // Load cached weekly report
       const weekKey = getWeekKey()
       const cached = localStorage.getItem(`zyrbit_weekly_report_${weekKey}`)
@@ -338,32 +357,13 @@ export default function Stats() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [generateWeeklyReport])
 
-  const getWeekKey = () => {
-    const d = new Date()
-    const jan1 = new Date(d.getFullYear(), 0, 1)
-    const weekNum = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7)
-    return `${d.getFullYear()}-W${weekNum}`
-  }
-
-  const generateWeeklyReport = async (uid, hData, alData, wData, txData, stData) => {
-    setLoadingReport(true)
-    try {
-      const since30Str = thirtyDaysAgo()
-      const completions = alData?.filter(l => l.completed_date >= since30Str && l.status === 'completed').length || 0
-      const balance = wData?.balance || 0
-      const bestStreak = (stData || []).reduce((max, s) => Math.max(max, s.current_streak || 0), 0) || 0
-      const context = `Habits tracked: ${hData?.length || 0}. Completions in 30 days: ${completions}. Zyrons balance: ${balance}. Best streak: ${bestStreak} days. This week's earned: ${wData?.daily_earned || 0} Zyrons.`
-      const prompt = [{ role: 'user', text: `You are Zyra, AI coach inside Zyrbit. Write a warm, specific weekly report in under 80 words. Include actionable insight. Context: ${context}` }]
-      const report = await askZyra(prompt)
-      setWeeklyReport(report)
-      localStorage.setItem(`zyrbit_weekly_report_${getWeekKey()}`, report)
-    } catch (e) {
-      setWeeklyReport('Keep growing consistently — every habit you complete adds to your gravity score! 🪐')
-    }
-    setLoadingReport(false)
-  }
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) { setUser(session.user); fetchAll(session.user.id) }
+    })
+  }, [fetchAll])
 
   const refreshReport = async () => {
     if (!user) return
@@ -422,13 +422,13 @@ export default function Stats() {
 
   // --- Zyrons ---
   const rankId = wallet?.rank_id || 0
-  const rankInfo = RANKS[Math.min(rankId, RANKS.length - 1)]
-  const nextRank = RANKS[Math.min(rankId + 1, RANKS.length - 1)]
-  const toNextRank = rankId < RANKS.length - 1
+  const RankInfo = RANKS[Math.min(rankId, RANKS.length - 1)]
+  const NextRank = RANKS[Math.min(rankId + 1, RANKS.length - 1)]
+  const ToNextRank = rankId < RANKS.length - 1
     ? (RANK_THRESHOLDS[rankId + 1] || 0) - (wallet?.total_earned || 0)
     : 0
 
-  const zyronGrowth = (() => {
+  const ZyronGrowth = (() => {
     const txMap = {}
     for (let i = 29; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i)
@@ -445,7 +445,7 @@ export default function Stats() {
     })
   })()
 
-  const earnSources = (() => {
+  const EarnSources = (() => {
     const src = {}
     transactions.filter(t => t.amount > 0 && t.created_at >= sevenDaysAgo()).forEach(t => {
       const cat = t.category || 'general'
@@ -455,14 +455,15 @@ export default function Stats() {
   })()
 
   // --- Money ---
-  const sym = moneySettings?.currency_symbol || '$'
+  const currencySymbols = { 'INR': '₹', 'USD': '$', 'EUR': '€', 'GBP': '£' }
+  const sym = currencySymbols[moneySettings?.currency] || '$'
   const budget = moneySettings?.monthly_budget || 0
   const totalSpent = expenses.reduce((s, e) => s + (e.amount || 0), 0)
   const remaining = budget - totalSpent
-  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+  const DaysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
   const daysPassed = new Date().getDate()
-  const dailyAvg = daysPassed > 0 ? (totalSpent / daysPassed).toFixed(1) : 0
-  const topCatEntry = (() => {
+  const DailyAvg = daysPassed > 0 ? (totalSpent / daysPassed).toFixed(1) : 0
+  const TopCatEntry = (() => {
     const cats = {}
     expenses.forEach(e => { cats[e.category] = (cats[e.category] || 0) + (e.amount || 0) })
     const sorted = Object.entries(cats).sort((a, b) => b[1] - a[1])
@@ -482,19 +483,19 @@ export default function Stats() {
   const weekdaySpend = spendByDay.filter(d => ![0,6].includes(new Date(d.date).getDay()))
   const avgWE = weekendSpend.reduce((s,d) => s + d.value, 0) / (weekendSpend.length || 1)
   const avgWD = weekdaySpend.reduce((s,d) => s + d.value, 0) / (weekdaySpend.length || 1)
-  const peaksOnWeekend = avgWE > avgWD * 1.5
+  const PeaksOnWeekend = avgWE > avgWD * 1.5
 
   // --- Study ---
   const studyHoursMonth = studySessions.reduce((s, ss) => s + (ss.duration_minutes || 0) / 60, 0)
   const studyStreak = 0 // no streak column – placeholder
-  const pomodorosCount = studySessions.filter(ss => ss.notes === 'Pomodoro').length
-  const examsUpcoming = studyExams.length
+  const PomodorosCount = studySessions.filter(ss => ss.notes === 'Pomodoro').length
+  const ExamsUpcoming = studyExams.length
 
   const subjectPie = (() => {
     const subs = {}
     studySessions.forEach(ss => {
-      const name = ss.study_subjects?.name || 'General'
-      const color = ss.study_subjects?.color
+      const name = ss.growth_projects?.name || 'General'
+      const color = ss.growth_projects?.color
       if (!subs[name]) subs[name] = { name, value: 0, color }
       subs[name].value += ss.duration_minutes / 60
     })
@@ -507,7 +508,7 @@ export default function Stats() {
 
   // --- Diary ---
   const diaryCount = diaryEntries.length
-  const diaryStreak = diarySettings?.writing_streak || 0
+  const DiaryStreak = diarySettings?.current_streak || 0
   const moodScores = diaryEntries.filter(d => d.mood).map(d => {
     const map = { happy: 5, great: 5, calm: 4, neutral: 3, sad: 2, angry: 1 }
     return map[d.mood] || 3
@@ -532,7 +533,7 @@ export default function Stats() {
 
   const moodFirst7 = moodTrend.slice(0,7).reduce((s,d) => s + d.value, 0) / (moodTrend.slice(0,7).length || 1)
   const moodLast7 = moodTrend.slice(-7).reduce((s,d) => s + d.value, 0) / (moodTrend.slice(-7).length || 1)
-  const moodImproving = moodLast7 >= moodFirst7
+  const MoodImproving = moodLast7 >= moodFirst7
 
   const writingByDay = (() => {
     const days = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
@@ -543,10 +544,10 @@ export default function Stats() {
       color: '#9C27B0'
     }))
   })()
-  const mostWrittenDay = writingByDay.reduce((max, d) => d.value > max.value ? d : max, writingByDay[0])?.label || '—'
+  const MostWrittenDay = writingByDay.reduce((max, d) => d.value > max.value ? d : max, writingByDay[0])?.label || '—'
 
   // --- Community ---
-  const friendTag = profile?.friend_tag || '—'
+  const FriendTag = profile?.friend_tag || '—'
 
   // ─── RENDER ──────────────────────────────────────────
   if (error) {

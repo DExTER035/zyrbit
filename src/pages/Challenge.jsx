@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import BottomNav from '../components/BottomNav'
@@ -19,15 +19,7 @@ export default function Challenge() {
   // New challenge form
   const [form, setForm] = useState({ name: '', duration: 21, habitIds: [] })
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { navigate('/goals'); return }
-      setUser(session.user)
-      loadData(session.user.id)
-    })
-  }, [])
-
-  const loadData = async (uid) => {
+  const loadData = useCallback(async (uid) => {
     setLoading(true)
     try {
       const [{ data: hData }, { data: alData }, { data: cData }] = await Promise.all([
@@ -38,11 +30,19 @@ export default function Challenge() {
       if (hData) setHabits(hData)
       if (alData) setActivityLog(alData)
       if (cData) setChallenges(cData)
-    } catch (e) {
+    } catch {
       // challenges table may not exist yet — that's fine
     }
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) { navigate('/login'); return }
+      setUser(session.user)
+      loadData(session.user.id)
+    })
+  }, [navigate, loadData])
 
   const createChallenge = async () => {
     if (!form.name.trim() || form.habitIds.length === 0 || !user) return
@@ -63,7 +63,7 @@ export default function Challenge() {
       setShowNew(false)
       setForm({ name: '', duration: 21, habitIds: [] })
       await loadData(user.id)
-    } catch (e) {
+    } catch {
       showToast('⚠️ Could not create challenge. Run the challenges SQL first.', 'warning')
     }
   }

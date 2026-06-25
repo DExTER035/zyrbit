@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react';
 
 export default function InstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isStandalone, setIsStandalone] = useState(true); // default true to avoid flash
+  const [isStandalone, setIsStandalone] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return !!(
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone ||
+      (typeof document !== 'undefined' && document.referrer?.includes('android-app://'))
+    );
+  });
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Check if app is already installed
-    const isAppInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
-    setIsStandalone(isAppInstalled);
-
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
