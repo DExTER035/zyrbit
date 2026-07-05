@@ -2,8 +2,8 @@
   "id": "/",
   "dir": "ltr",
   "lang": "en",
-  "name": "Zyrbit",
-  "short_name": "Zyrbit",
+  "name": "DexOS",
+  "short_name": "DexOS",
   "description": "Build habits that break gravity — AI-powered life OS",
   "start_url": "/",
   "display": "standalone",
@@ -110,7 +110,7 @@
   "prefer_related_applications": false,
   "protocol_handlers": [
     {
-      "protocol": "web+zyrbit",
+      "protocol": "web+dexos",
       "url": "/?action=%s"
     }
   ],

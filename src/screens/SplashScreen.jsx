@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ZyrbitMark, ZyrbitWordmark } from '../components/Logo.jsx';
+import { DexOSMark, DexOSWordmark } from '../components/Logo.jsx';
 
 /* ─── Pillar Icons ─────────────────────────────────────────── */
 const PillarIcon = ({ type }) => {
@@ -168,7 +168,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
             transform: logoReveal ? 'translateY(0)' : 'translateY(12px)',
             transition: 'opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1)',
           }}>
-            <ZyrbitMark size={52} variant="default" />
+            <DexOSMark size={52} variant="default" />
           </div>
 
           {/* Four pillars */}
@@ -229,7 +229,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           height: 60,
         }}>
-          <ZyrbitWordmark iconSize={26} />
+          <DexOSWordmark iconSize={26} />
 
           <nav style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <button
@@ -312,7 +312,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
             lineHeight: 1.7,
             letterSpacing: '-0.01em',
           }}>
-            Zyrbit brings your mind, health, wealth, and growth into one calm, connected system — so you stop managing five apps and start running one life.
+            DexOS brings your mind, health, wealth, and growth into one calm, connected system — so you stop managing five apps and start running one life.
           </p>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -549,7 +549,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
       >
         <div style={{ maxWidth: 780, margin: '0 auto', textAlign: 'center' }}>
           <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#5EE6F5', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-            Why Zyrbit?
+            Why DexOS?
           </p>
           <h2 style={{
             fontFamily: "'Space Grotesk', sans-serif",
@@ -567,7 +567,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
             maxWidth: 600,
             margin: '0 auto 3rem',
           }}>
-            Zyrbit replaces a stack of isolated apps — habit trackers, budget tools, journals, planners — with a single unified Life Operating System. One workspace. Complete clarity. Zero distraction.
+            DexOS replaces a stack of isolated apps — habit trackers, budget tools, journals, planners — with a single unified Life Operating System. One workspace. Complete clarity. Zero distraction.
           </p>
 
           {/* Three-column stat grid */}
@@ -627,9 +627,9 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
             gap: '1rem',
           }}>
             {[
-              { quote: '"Zyrbit completely replaced my habit app, my budget tracker, and my journal. It\'s the only tool I open every morning."', name: 'Alex M.', role: 'Software Engineer' },
+              { quote: '"DexOS completely replaced my habit app, my budget tracker, and my journal. It\'s the only tool I open every morning."', name: 'Alex M.', role: 'Software Engineer' },
               { quote: '"The AI Planner alone is worth it. It actually understands how I work and builds a schedule that fits my energy."', name: 'Priya K.', role: 'Founder & Builder' },
-              { quote: '"I\'ve tried everything. Nothing stuck until Zyrbit — the four-pillar system makes growth feel like a game I\'m winning."', name: 'Jordan T.', role: 'Student & Athlete' },
+              { quote: '"I\'ve tried everything. Nothing stuck until DexOS — the four-pillar system makes growth feel like a game I\'m winning."', name: 'Jordan T.', role: 'Student & Athlete' },
             ].map((t, i) => (
               <div key={i} style={{
                 background: '#121214',
@@ -834,7 +834,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
           alignItems: 'center',
           gap: '1.5rem',
         }}>
-          <ZyrbitWordmark iconSize={20} />
+          <DexOSWordmark iconSize={20} />
           <nav style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             {['About', 'Privacy', 'Terms', 'Contact'].map(link => (
               <a key={link} href="#" style={{
@@ -852,7 +852,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
             ))}
           </nav>
           <p style={{ fontSize: '0.75rem', color: '#3F3F46' }}>
-            © 2026 Zyrbit — All rights reserved.
+            © 2026 DexOS — All rights reserved.
           </p>
         </div>
       </footer>

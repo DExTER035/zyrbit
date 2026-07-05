@@ -26,6 +26,7 @@ import TodayTab from '../components/growth/TodayTab.jsx';
 import ProjectsTab from '../components/growth/ProjectsTab.jsx';
 import FocusSessionView from '../components/growth/FocusSessionView.jsx';
 import ProjectDetailView from '../components/growth/ProjectDetailView.jsx';
+import { earnZyrons } from '../lib/zyrons.js';
 
 export default function Growth() {
   const navigate = useNavigate();
@@ -51,8 +52,9 @@ export default function Growth() {
   // ── Focus Session ──────────────────────────────────────────────────────────
   const [focusMode,      setFocusMode]      = useState(null); // null | setup | active | done
   const [focusProject,   setFocusProject]   = useState(null);
+  const [focusNotes,     setFocusNotes]     = useState('');
   const [focusType,      setFocusType]      = useState('open'); // open | timed
-  const [focusTimedMin,  setFocusTimedMin]  = useState(45);
+  const [focusTimedMin,  setFocusTimedMin]  = useState(25);
   const [focusElapsed,   setFocusElapsed]   = useState(0);
   const [focusPaused,    setFocusPaused]    = useState(false);
   const [focusDoneMin,   setFocusDoneMin]   = useState(0);
@@ -60,11 +62,9 @@ export default function Growth() {
 
   // ── Modals ─────────────────────────────────────────────────────────────────
   const [modalProject,   setModalProject]   = useState(false);
-  const [modalQuickTask, setModalQuickTask] = useState(false);
 
   // ── Forms ──────────────────────────────────────────────────────────────────
   const [formProject, setFormProject] = useState({ name: '', icon: '📁', deadline: '' });
-  const [formQuick,   setFormQuick]   = useState({ name: '', project_id: '', priority: 3, due_date: '' });
 
   const loadData = useCallback(async (uid) => {
     setLoading(true);
@@ -194,6 +194,14 @@ export default function Growth() {
     return 'Every focused session compounds. Open a project and start.';
   }, [projects, sessions, todayView.overdue, streak, mountTime]);
 
+  const handleInstantFocus = (type, minutes, notes, project = null) => {
+    setFocusType(type);
+    setFocusTimedMin(minutes);
+    setFocusProject(project);
+    setFocusNotes(notes);
+    startFocusSession();
+  };
+
   const startFocusSession = () => {
     setFocusElapsed(0);
     setFocusPaused(false);
@@ -215,34 +223,44 @@ export default function Growth() {
         session_date: todayStr(),
         started_at:  new Date(Date.now() - elapsed * 1000).toISOString(),
         ended_at:    new Date().toISOString(),
+        notes:       focusNotes || null,
       }]);
+      try {
+        await earnZyrons(user.id, mins, `Focused work on "${focusNotes || 'Task'}"`, 'focus', 'growth');
+      } catch (err) {
+        console.warn('Error awarding XP:', err);
+      }
       try {
         await supabase.rpc('update_streak', { p_user_id: user.id, p_date: todayStr() });
       } catch { /* optional */ }
     } catch (e) { console.warn('Session save error:', e.message); }
-  }, [user, focusProject]);
+  }, [user, focusProject, focusNotes]);
 
   // ─── Focus Timer ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (focusMode === 'active' && !focusPaused) {
       timerRef.current = setInterval(() => {
-        setFocusElapsed(p => {
-          if (focusType === 'timed' && p >= focusTimedMin * 60 - 1) {
-            endFocusSession(p + 1); return p + 1;
-          }
-          return p + 1;
-        });
+        setFocusElapsed(p => p + 1);
       }, 1000);
     } else {
       clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
-  }, [focusMode, focusPaused, focusType, focusTimedMin, endFocusSession]);
+  }, [focusMode, focusPaused]);
+
+  useEffect(() => {
+    if (focusMode === 'active' && focusType === 'timed' && focusElapsed >= focusTimedMin * 60) {
+      setTimeout(() => {
+        endFocusSession(focusElapsed);
+      }, 0);
+    }
+  }, [focusElapsed, focusMode, focusType, focusTimedMin, endFocusSession]);
 
   const closeFocusDone = () => {
     setFocusMode(null);
     setFocusProject(null);
     setFocusDoneMin(0);
+    setFocusNotes('');
     if (user) loadData(user.id);
   };
 
@@ -271,19 +289,31 @@ export default function Growth() {
     } catch { showToast('Error creating task', 'error'); }
   };
 
-  const createQuickTask = async () => {
-    if (!formQuick.name.trim() || !formQuick.project_id || !user) return;
+  const addTask = async (name, projectId = null) => {
+    if (!name.trim() || !user) return;
     try {
       await supabase.from('growth_tasks').insert([{
-        name: formQuick.name, priority: formQuick.priority,
-        due_date: formQuick.due_date || null,
-        user_id: user.id, project_id: formQuick.project_id,
+        name,
+        priority: 3,
+        user_id: user.id,
+        project_id: projectId || null,
       }]);
       showToast('✅ Task added!', 'success');
-      setModalQuickTask(false);
-      setFormQuick({ name: '', project_id: '', priority: 3, due_date: '' });
       loadData(user.id);
-    } catch { showToast('Error creating task', 'error'); }
+    } catch {
+      showToast('Error creating task', 'error');
+    }
+  };
+
+  const deleteTask = async (task) => {
+    try {
+      setTasks(prev => prev.filter(t => t.id !== task.id));
+      await supabase.from('growth_tasks').delete().eq('id', task.id);
+      showToast('🗑 Task deleted', 'success');
+    } catch {
+      showToast('Error deleting task', 'error');
+      loadData(user.id);
+    }
   };
 
   const completeTask = async (task) => {
@@ -343,6 +373,8 @@ export default function Growth() {
         skills={[]}
         focusProject={focusProject}
         setFocusProject={setFocusProject}
+        focusNotes={focusNotes}
+        setFocusNotes={setFocusNotes}
         focusSkill={null}
         setFocusSkill={() => null}
         focusType={focusType}
@@ -385,7 +417,18 @@ export default function Growth() {
 
   // ─── RENDER — Main Growth Screen ───────────────────────────────────────────
   return (
-    <div className="app-container page-enter" style={{ background: C.bg, minHeight: '100vh', color: C.text }}>
+    <div className="app-container page-enter" style={{
+      background: 'var(--bg-root)',
+      minHeight: '100vh',
+      color: 'var(--text-primary)',
+      position: 'relative',
+      '--color-accent': '#14B8A6',
+      '--color-accent-dim': 'rgba(20, 184, 166, 0.15)',
+      '--color-accent-glow': 'rgba(20, 184, 166, 0.08)',
+      '--color-accent-cyan': '#14B8A6',
+      '--color-accent-cyan-dim': 'rgba(20, 184, 166, 0.15)',
+      '--color-accent-cyan-glow': 'rgba(20, 184, 166, 0.08)',
+    }}>
 
       {/* ── HEADER ──────────────────────────────────────────────────── */}
       <div style={{ padding: '28px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -435,10 +478,15 @@ export default function Growth() {
             dexosInsight={dexosInsight}
             setTab={setTab}
             completeTask={completeTask}
-            setModalProject={setModalProject}
+            deleteTask={deleteTask}
+            addTask={addTask}
+            projects={projects}
             projectMap={projectMap}
             heatmapData={heatmapData}
             navigate={navigate}
+            onInstantFocus={handleInstantFocus}
+            focusProject={focusProject}
+            setFocusProject={setFocusProject}
           />
         )}
         {tab === 'projects' && (
@@ -452,53 +500,7 @@ export default function Growth() {
         )}
       </div>
 
-      {/* ── FABs ────────────────────────────────────────────────────── */}
-      {/* Quick add task (bottom left, Today tab only) */}
-      {tab === 'today' && (
-        <button onClick={() => setModalQuickTask(true)}
-          style={{ position: 'fixed', left: '20px', bottom: '84px', background: C.surface, border: `1px solid ${C.border2}`, borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.4)', zIndex: 50 }}>
-          <Plus size={20} color={C.growth} />
-        </button>
-      )}
-      {/* Focus Session FAB (bottom right) */}
-      <button id="growth-focus-fab" onClick={() => setFocusMode('setup')}
-        style={{ position: 'fixed', right: '20px', bottom: '84px', background: `linear-gradient(135deg, ${C.focus}, #5048C8)`, border: 'none', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: `0 0 0 4px ${C.focus}18, 0 8px 24px ${C.focus}40`, zIndex: 50 }}
-        aria-label="Start Focus Session">
-        <Timer size={22} color="#fff" />
-      </button>
-
       {/* ── MODALS ──────────────────────────────────────────────────── */}
-
-      {/* Quick Task */}
-      {modalQuickTask && (
-        <Modal title="Quick Add Task" onClose={() => setModalQuickTask(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <FInput placeholder="Task name..." value={formQuick.name} onChange={e => setFormQuick(p => ({ ...p, name: e.target.value }))} />
-            <div>
-              <FLabel>PROJECT</FLabel>
-              <FSelect value={formQuick.project_id} onChange={e => setFormQuick(p => ({ ...p, project_id: e.target.value }))}>
-                <option value="">Select project...</option>
-                {projects.map(p => <option key={p.id} value={p.id}>{p.icon} {p.name}</option>)}
-              </FSelect>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <div style={{ flex: 1 }}>
-                <FLabel>PRIORITY</FLabel>
-                <FSelect value={formQuick.priority} onChange={e => setFormQuick(p => ({ ...p, priority: Number(e.target.value) }))}>
-                  <option value={1}>🔥 Critical</option>
-                  <option value={2}>⬆ High</option>
-                  <option value={3}>Normal</option>
-                </FSelect>
-              </div>
-              <div style={{ flex: 1 }}>
-                <FLabel>DUE DATE</FLabel>
-                <FInput type="date" value={formQuick.due_date} onChange={e => setFormQuick(p => ({ ...p, due_date: e.target.value }))} />
-              </div>
-            </div>
-            <BtnPrimary label="Add Task" onClick={createQuickTask} disabled={!formQuick.name.trim() || !formQuick.project_id} />
-          </div>
-        </Modal>
-      )}
 
       {/* New Project */}
       {modalProject && (
@@ -514,8 +516,6 @@ export default function Growth() {
           </div>
         </Modal>
       )}
-
-
 
       <BottomNav activeTab="growth" onTabChange={t => navigate(`/${t}`)} />
     </div>

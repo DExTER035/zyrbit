@@ -29,7 +29,6 @@ const firstOfMonth = () => {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`
 }
-const today = () => new Date().toISOString().split('T')[0]
 
 const getWeekKey = () => {
   const d = new Date()
@@ -262,9 +261,7 @@ export default function Stats() {
   const [expenses, setExpenses] = useState([])
   const [moneySettings, setMoneySettings] = useState(null)
   const [studySessions, setStudySessions] = useState([])
-  const [studyExams, setStudyExams] = useState([])
   const [diaryEntries, setDiaryEntries] = useState([])
-  const [diarySettings, setDiarySettings] = useState(null)
   const [profile, setProfile] = useState(null)
 
   // AI report
@@ -279,7 +276,7 @@ export default function Stats() {
       const balance = wData?.balance || 0
       const bestStreak = (stData || []).reduce((max, s) => Math.max(max, s.current_streak || 0), 0) || 0
       const context = `Habits tracked: ${hData?.length || 0}. Completions in 30 days: ${completions}. Zyrons balance: ${balance}. Best streak: ${bestStreak} days. This week's earned: ${wData?.daily_earned || 0} Zyrons.`
-      const prompt = [{ role: 'user', text: `You are Zyra, AI coach inside Zyrbit. Write a warm, specific weekly report in under 80 words. Include actionable insight. Context: ${context}` }]
+      const prompt = [{ role: 'user', text: `You are Zyra, AI coach inside DexOS. Write a warm, specific weekly report in under 80 words. Include actionable insight. Context: ${context}` }]
       const report = await askZyra(prompt)
       setWeeklyReport(report)
       localStorage.setItem(`zyrbit_weekly_report_${getWeekKey()}`, report)
@@ -296,7 +293,6 @@ export default function Stats() {
       const since30 = thirtyDaysAgo()
       const since365 = (() => { const d = new Date(); d.setDate(d.getDate() - 365); return d.toISOString().split('T')[0] })()
       const firstMonth = firstOfMonth()
-      const todayStr = today()
 
       // Use allSettled so missing legacy tables (zyron_wallet etc.) don't crash the page
       const results = await Promise.allSettled([
@@ -308,7 +304,6 @@ export default function Stats() {
         supabase.from('money_expenses').select('*').eq('user_id', uid).gte('expense_date', firstMonth),
         supabase.from('wealth_settings').select('*').eq('user_id', uid).maybeSingle(),
         supabase.from('growth_focus_sessions').select('*, growth_projects(name, color)').eq('user_id', uid).gte('session_date', firstMonth),
-        supabase.from('study_exams').select('*').eq('user_id', uid).gte('exam_date', todayStr),
         supabase.from('orbit_journal').select('entry_date, mood').eq('user_id', uid).gte('entry_date', since30),
         supabase.from('dexos_streaks').select('*').eq('user_id', uid).maybeSingle(),
         supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
@@ -325,10 +320,8 @@ export default function Stats() {
       const expData= safeData(5, [])
       const msData = safeData(6)
       const ssData = safeData(7, [])
-      const seData = safeData(8, [])
-      const deData = safeData(9, [])
-      const dsData = safeData(10)
-      const profData=safeData(11)
+      const deData = safeData(8, [])
+      const profData=safeData(10)
 
       setHabits(hData)
       setActivityLog(alData)
@@ -338,9 +331,7 @@ export default function Stats() {
       setExpenses(expData)
       setMoneySettings(msData)
       setStudySessions(ssData)
-      setStudyExams(seData)
       setDiaryEntries(deData)
-      setDiarySettings(dsData)
       setProfile(profData)
       
       // Load cached weekly report
@@ -488,8 +479,6 @@ export default function Stats() {
   // --- Study ---
   const studyHoursMonth = studySessions.reduce((s, ss) => s + (ss.duration_minutes || 0) / 60, 0)
   const studyStreak = 0 // no streak column – placeholder
-  const PomodorosCount = studySessions.filter(ss => ss.notes === 'Pomodoro').length
-  const ExamsUpcoming = studyExams.length
 
   const subjectPie = (() => {
     const subs = {}
@@ -508,7 +497,6 @@ export default function Stats() {
 
   // --- Diary ---
   const diaryCount = diaryEntries.length
-  const DiaryStreak = diarySettings?.current_streak || 0
   const moodScores = diaryEntries.filter(d => d.mood).map(d => {
     const map = { happy: 5, great: 5, calm: 4, neutral: 3, sad: 2, angry: 1 }
     return map[d.mood] || 3

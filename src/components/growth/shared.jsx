@@ -164,7 +164,7 @@ export const FSelect = ({ value, onChange, children }) => (
 );
 
 // ─── TaskRow ──────────────────────────────────────────────────────────────────
-export function TaskRow({ task, onComplete, projectName }) {
+export function TaskRow({ task, onComplete, onDelete, projectName }) {
   const days = daysUntil(task.due_date);
   const isOverdue = days !== null && days < 0 && task.status !== 'done';
   const isDueToday = days === 0 && task.status !== 'done';
@@ -173,26 +173,44 @@ export function TaskRow({ task, onComplete, projectName }) {
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'flex-start', gap: '10px',
+      display: 'flex', alignItems: 'center', gap: '10px',
       background: done ? 'transparent' : C.surface,
       border: `1px solid ${isOverdue ? C.danger + '60' : done ? C.border : C.border2}`,
       borderRadius: '14px', padding: '12px 14px',
       opacity: done ? 0.45 : 1, transition: 'all 0.2s',
     }}>
-      <div onClick={() => !done && onComplete(task)} style={{ cursor: done ? 'default' : 'pointer', flexShrink: 0, marginTop: '1px' }}>
+      <div onClick={() => !done && onComplete(task)} style={{ cursor: done ? 'default' : 'pointer', flexShrink: 0 }}>
         {done ? <CheckCircle2 size={18} color={C.goal} /> : <Circle size={18} color={C.border2} />}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: C.text, textDecoration: done ? 'line-through' : 'none', lineHeight: 1.4 }}>{task.name}</div>
-        <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {projectName && <span style={{ fontSize: '10px', color: C.muted }}>📁 {projectName}</span>}
-          {isOverdue && <span style={{ fontSize: '10px', fontWeight: 800, color: C.danger }}>{Math.abs(days)}d overdue</span>}
-          {isDueToday && <span style={{ fontSize: '10px', fontWeight: 800, color: C.warn }}>Due today</span>}
-          {isDueSoon && <span style={{ fontSize: '10px', fontWeight: 700, color: C.warn }}>In {days}d</span>}
-        </div>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: C.text, textDecoration: done ? 'line-through' : 'none', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</div>
+        {(projectName || isOverdue || isDueToday || isDueSoon) && (
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {projectName && <span style={{ fontSize: '10px', color: C.muted }}>📁 {projectName}</span>}
+            {isOverdue && <span style={{ fontSize: '10px', fontWeight: 800, color: C.danger }}>{Math.abs(days)}d overdue</span>}
+            {isDueToday && <span style={{ fontSize: '10px', fontWeight: 800, color: C.warn }}>Due today</span>}
+            {isDueSoon && <span style={{ fontSize: '10px', fontWeight: 700, color: C.warn }}>In {days}d</span>}
+          </div>
+        )}
       </div>
-      {task.priority === 1 && !done && <Flame size={13} color={C.danger} style={{ flexShrink: 0, marginTop: '3px' }} />}
-      {task.priority === 2 && !done && <Flame size={13} color={C.warn} style={{ flexShrink: 0, marginTop: '3px' }} />}
+      {task.priority === 1 && !done && <Flame size={13} color={C.danger} style={{ flexShrink: 0 }} />}
+      {task.priority === 2 && !done && <Flame size={13} color={C.warn} style={{ flexShrink: 0 }} />}
+      
+      {onDelete && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(task); }}
+          style={{
+            background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
+            color: C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            outline: 'none', transition: 'color 0.2s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = C.danger}
+          onMouseLeave={e => e.currentTarget.style.color = C.muted}
+          aria-label="Delete Task"
+        >
+          <X size={14} />
+        </button>
+      )}
     </div>
   );
 }

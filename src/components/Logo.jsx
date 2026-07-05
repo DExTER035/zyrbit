@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * ZyrbitMark — Monolith Z icon mark.
+ * DexOSMark — Monolith Z icon mark.
  * Three-element wedge slash and Z-shape.
  * Scales from 16px (favicon) to any size.
  *
@@ -10,7 +10,7 @@ import React from 'react';
  *   variant   — 'default' | 'monochrome' | 'accent'
  *   className / style — forwarded to outer svg
  */
-export const ZyrbitMark = ({
+export const DexOSMark = ({
   size = 32,
   variant = 'default',
   className = '',
@@ -29,7 +29,7 @@ export const ZyrbitMark = ({
       viewBox="0 0 40 32"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      aria-label="Zyrbit"
+      aria-label="DexOS"
       className={className}
       style={style}
     >
@@ -44,10 +44,10 @@ export const ZyrbitMark = ({
 };
 
 /**
- * ZyrbitIcon — Monolith Z inside a rounded-square container.
+ * DexOSIcon — Monolith Z inside a rounded-square container.
  * Styled after Apple/Linear squircle style: graphite dark surface, subtle top-light, white mark.
  */
-export const ZyrbitIcon = ({ size = 48 }) => {
+export const DexOSIcon = ({ size = 48 }) => {
   const radius = Math.round(size * 0.215);
   const markH  = Math.round(size * 0.58);
   const markW  = Math.round(markH * 1.25);
@@ -61,7 +61,7 @@ export const ZyrbitIcon = ({ size = 48 }) => {
       viewBox={`0 0 ${size} ${size}`}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      aria-label="Zyrbit App Icon"
+      aria-label="DexOS App Icon"
     >
       <defs>
         {/* Top-light gradient highlight */}
@@ -89,24 +89,24 @@ export const ZyrbitIcon = ({ size = 48 }) => {
         strokeWidth="1.5"
       />
 
-      {/* Monochrome White Zyrbit Mark */}
+      {/* Monochrome White DexOS Mark */}
       <g transform={`translate(${offX}, ${offY})`}>
-        <ZyrbitMark size={markH} variant="monochrome" />
+        <DexOSMark size={markH} variant="monochrome" />
       </g>
     </svg>
   );
 };
 
 /**
- * ZyrbitWordmark — Icon + "Zyrbit" text lockup.
+ * DexOSWordmark — Icon + "DexOS" text lockup.
  * Used for: navbar, landing header, splash screen, footer.
  *
  * Props:
  *   iconSize   — icon height in px (default: 26)
  *   showIcon   — toggle icon visibility
- *   variant    — 'default' | 'monochrome' — passed to ZyrbitMark
+ *   variant    — 'default' | 'monochrome' — passed to DexOSMark
  */
-export const ZyrbitWordmark = ({
+export const DexOSWordmark = ({
   iconSize = 26,
   showIcon = true,
   variant = 'default',
@@ -118,7 +118,7 @@ export const ZyrbitWordmark = ({
     lineHeight: 1,
     userSelect: 'none',
   }}>
-    {showIcon && <ZyrbitMark size={iconSize} variant={variant} />}
+    {showIcon && <DexOSMark size={iconSize} variant={variant} />}
     <span style={{
       fontFamily: "'Space Grotesk', 'Inter', sans-serif",
       fontSize: iconSize > 40 ? '1.35rem' : iconSize > 28 ? '1.1rem' : '0.95rem',
@@ -127,26 +127,26 @@ export const ZyrbitWordmark = ({
       letterSpacing: '-0.03em',
       lineHeight: 1,
     }}>
-      Zyrbit
+      DexOS
     </span>
   </div>
 );
 
 /**
  * Default export — backward-compatible <Logo />
- * Renders ZyrbitIcon by default; pass showWordmark for lockup.
+ * Renders DexOSIcon by default; pass showWordmark for lockup.
  */
 export default function Logo({ size = 48, className = '', showWordmark = false }) {
   if (showWordmark) {
     return (
       <div className={className}>
-        <ZyrbitWordmark iconSize={Math.round(size * 0.6)} />
+        <DexOSWordmark iconSize={Math.round(size * 0.6)} />
       </div>
     );
   }
   return (
     <div className={className}>
-      <ZyrbitIcon size={size} />
+      <DexOSIcon size={size} />
     </div>
   );
 }

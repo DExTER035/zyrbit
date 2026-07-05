@@ -1,4 +1,4 @@
-/* src/design/theme.css — Zyrbit Brand Tokens v2 */
+/* src/design/theme.css — DexOS Brand Tokens v2 */
 /* Direction: Linear · Arc Browser · Raycast · Apple · Notion */
 
 :root {
@@ -39,10 +39,15 @@
 
   /* ── Typography Colors ── */
   --text-primary:   #FFFFFF;
-  --text-secondary: #A1A1AA;
-  --text-muted:     #71717A;
-  --text-dim:       #3F3F46;
-  --text-hint:      #27272A;
+  --text-secondary: #B0B0BA;  /* ↑ from #A1A1AA — AA on dark bg */
+  --text-muted:     #8A8A96;  /* ↑ from #71717A — 4.6:1 WCAG AA */
+  --text-dim:       #52525B;
+  --text-hint:      #3F3F46;
+
+  /* ── Letter-Spacing Tokens ── */
+  --ls-tight: -0.02em;
+  --ls-body:   0em;
+  --ls-caps:   0.08em;
 
   /* ── Accent Colors ── */
   --color-accent:      #8B7FFF;  /* Violet */

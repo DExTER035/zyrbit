@@ -10,19 +10,20 @@ import AppLayout from './components/AppLayout.jsx'
 import Logo from './components/Logo.jsx'
 import InstallBanner from './components/InstallBanner.jsx'
 import GoalSetupScreen from './screens/GoalSetupScreen.jsx'
-import { BlackoutProvider } from './lib/BlackoutContext.jsx'
+
 import { SubscriptionProvider } from './context/SubscriptionContext.jsx'
 import PaywallOverlay from './components/PaywallOverlay.jsx'
 import { useHabitReminders } from './hooks/useHabitReminders.js'
 import FeedbackWidget from './components/FeedbackWidget.jsx'
 import { trackPageView, recordMilestone } from './lib/analytics.js'
+import { useOfflineDetector } from './hooks/useOfflineDetector.js'
 
 const Zenith = lazy(() => import('./pages/Zenith.jsx'))
 
 const Growth = lazy(() => import('./pages/Growth.jsx'))
 const Health = lazy(() => import('./pages/Health.jsx'))
 const Wealth = lazy(() => import('./pages/Wealth.jsx'))
-const Dex = lazy(() => import('./pages/Dex.jsx'))
+const Food = lazy(() => import('./pages/Food.jsx'))
 const Profile = lazy(() => import('./pages/Profile.jsx'))
 const Challenge = lazy(() => import('./pages/Challenge.jsx'))
 const Stats = lazy(() => import('./pages/Stats.jsx'))
@@ -96,7 +97,6 @@ function RedirectToLogin({ onSignOut }) {
 
 function MainApp({ handleSignOut, currentUserId }) {
   return (
-    <BlackoutProvider>
     <BrowserRouter>
       <AppPageTracker userId={currentUserId} />
       <Routes>
@@ -104,7 +104,7 @@ function MainApp({ handleSignOut, currentUserId }) {
         <Route path="/growth" element={<ProtectedRoute onSignOut={handleSignOut}><Growth /></ProtectedRoute>} />
         <Route path="/health" element={<ProtectedRoute onSignOut={handleSignOut}><Health /></ProtectedRoute>} />
         <Route path="/wealth" element={<ProtectedRoute onSignOut={handleSignOut}><Wealth /></ProtectedRoute>} />
-        <Route path="/dex" element={<ProtectedRoute onSignOut={handleSignOut}><Dex /></ProtectedRoute>} />
+        <Route path="/food" element={<ProtectedRoute onSignOut={handleSignOut}><Food /></ProtectedRoute>} />
         <Route path="/challenge" element={<ProtectedRoute onSignOut={handleSignOut}><Challenge /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute onSignOut={handleSignOut}><Profile /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute onSignOut={handleSignOut}><Stats /></ProtectedRoute>} />
@@ -112,7 +112,8 @@ function MainApp({ handleSignOut, currentUserId }) {
         {/* Legacy route redirects */}
         <Route path="/orbit" element={<Navigate to="/zenith" replace />} />
         <Route path="/goals" element={<Navigate to="/zenith" replace />} />
-        <Route path="/jarvis" element={<Navigate to="/dex" replace />} />
+        <Route path="/dex"   element={<Navigate to="/food"   replace />} />
+        <Route path="/jarvis" element={<Navigate to="/food" replace />} />
         <Route path="/" element={<Navigate to="/zenith" replace />} />
         <Route path="*" element={<Navigate to="/zenith" replace />} />
       </Routes>
@@ -121,15 +122,42 @@ function MainApp({ handleSignOut, currentUserId }) {
         <FeedbackWidget userId={currentUserId} currentPage={window.location.pathname} />
       )}
     </BrowserRouter>
-    </BlackoutProvider>
   )
 }
+
+const OfflineBanner = () => (
+  <div style={{
+    position: 'fixed',
+    bottom: '90px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: 'rgba(239, 68, 68, 0.95)',
+    color: '#FFFFFF',
+    padding: '8px 16px',
+    borderRadius: '20px',
+    fontSize: '11px',
+    fontWeight: 700,
+    letterSpacing: '1.2px',
+    textTransform: 'uppercase',
+    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+    zIndex: 1000,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontFamily: "'Inter', sans-serif",
+    backdropFilter: 'blur(8px)',
+  }}>
+    <span style={{ fontSize: '12px' }}>📡</span> Offline Mode
+  </div>
+)
 
 export default function App() {
   const [screen, setScreen] = useState('splash') // 'splash' | 'onboarding' | 'login' | 'welcome' | 'goal-setup' | 'app'
   const [isInitializing, setIsInitializing] = useState(true)
   const [currentUserId, setCurrentUserId] = useState(null)
   const [currentUserName, setCurrentUserName] = useState('Builder')
+
+  const isOffline = useOfflineDetector()
 
   useHabitReminders(currentUserId)
 
@@ -202,6 +230,7 @@ export default function App() {
   return (
     <SubscriptionProvider>
       <div className="app-container">
+        {isOffline && <OfflineBanner />}
         {screen !== 'splash' && screen !== 'welcome' && <InstallBanner />}
         {screen === 'splash' && <SplashScreen onGetStarted={() => setScreen('onboarding')} onLogin={() => setScreen('login')} />}
         {screen === 'onboarding' && <OnboardingScreen onComplete={handleOnboardingComplete} />}

@@ -115,8 +115,8 @@ export default function PaywallOverlay() {
               <ShieldCheck size={16} />
             </div>
             <div>
-              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#FFF' }}>Biometric PIN-Encrypted Vault</h4>
-              <p style={{ fontSize: '11px', color: '#888899' }}>Secure encryption key layers for diary and private logs.</p>
+              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#FFF' }}>Advanced Focus & Habits</h4>
+              <p style={{ fontSize: '11px', color: '#888899' }}>Unlimited habits tracking, custom focus session timers, and reminders.</p>
             </div>
           </div>
 

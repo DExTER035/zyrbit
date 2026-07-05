@@ -2,10 +2,10 @@ import React, { useState, useRef, useMemo, useEffect } from 'react'
 import HeatmapGrid from './HeatmapGrid.jsx'
 
 const ZONE_COLORS = {
-  mind: 'var(--color-zone-mind)',
-  body: 'var(--color-zone-body)',
-  growth: 'var(--color-zone-growth)',
-  soul: 'var(--color-zone-soul)',
+  mind: 'var(--color-accent)',
+  body: 'var(--color-accent)',
+  growth: 'var(--color-accent)',
+  soul: 'var(--color-accent)',
 }
 
 const DAY_LABELS = ['S','M','T','W','T','F','S']
@@ -108,9 +108,9 @@ export default function HabitCard({
     <div
       style={{
         margin: '0 14px 10px',
-        background: isCompleted ? `color-mix(in srgb, ${zoneColor} 8%, #0E0E14)` : '#0E0E14',
+        background: isCompleted ? 'color-mix(in srgb, var(--color-success) 4%, #0E0E14)' : '#0E0E14',
         borderRadius: '20px',
-        borderLeft: `3px solid ${zoneColor}`,
+        borderLeft: `3px solid ${isCompleted ? 'var(--color-success)' : zoneColor}`,
         borderTop: '1px solid var(--color-border)',
         borderRight: '1px solid var(--color-border)',
         borderBottom: '1px solid var(--color-border)',
@@ -118,7 +118,7 @@ export default function HabitCard({
         borderBottomLeftRadius: 0,
         padding: '14px',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        boxShadow: isCompleted ? `0 0 20px color-mix(in srgb, ${zoneColor} 10%, transparent)` : 'none',
+        boxShadow: isCompleted ? '0 0 20px color-mix(in srgb, var(--color-success) 8%, transparent)' : 'none',
         cursor: 'pointer',
         animation: 'scaleIn 0.25s ease forwards',
         position: 'relative'
@@ -128,7 +128,7 @@ export default function HabitCard({
     >
       {showMenu && (
         <div ref={menuRef} style={{
-          position: 'absolute', top: '10px', right: '10px',
+          position: 'absolute', top: '46px', right: '14px',
           background: '#111118', border: '1px solid #1E1E28', borderRadius: '14px',
           padding: '6px', boxShadow: '0 8px 32px #00000080', animation: 'fadeSlideUp 0.2s ease', zIndex: 10,
           display: 'flex', flexDirection: 'column', minWidth: '150px'
@@ -181,26 +181,66 @@ export default function HabitCard({
           </div>
         </div>
 
-        {/* Checkbox */}
-        <button
-          className={isCompleted ? 'animate-checkBounce' : ''}
-          disabled={checking}
-          style={{
-            width: '28px', height: '28px', minWidth: '28px', minHeight: '28px', borderRadius: '50%', flexShrink: 0,
-            border: isCompleted ? 'none' : `2px solid color-mix(in srgb, ${zoneColor} 40%, transparent)`,
-            background: isCompleted ? zoneColor : 'transparent',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: checking ? 'default' : 'pointer', transition: 'all 0.2s',
-            outline: 'none', padding: 0, opacity: checking ? 0.5 : 1
-          }}
-          onClick={handleCheck}
-        >
-          {isCompleted && (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M2.5 7.5L5 10L11.5 3.5" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        {/* Actions Container */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+          {/* Ellipsis Menu Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMenu(p => !p);
+            }}
+            aria-label="Habit options"
+            style={{
+              width: '44px', height: '44px',
+              borderRadius: '50%',
+              border: 'none',
+              background: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              outline: 'none',
+              padding: 0,
+              transition: 'background-color 0.2s, color 0.2s'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+              e.currentTarget.style.color = zoneColor;
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ pointerEvents: 'none' }}>
+              <circle cx="12" cy="12" r="1.5"/>
+              <circle cx="12" cy="5" r="1.5"/>
+              <circle cx="12" cy="19" r="1.5"/>
             </svg>
-          )}
-        </button>
+          </button>
+
+          {/* Checkbox */}
+          <button
+            className={isCompleted ? 'animate-checkBounce' : ''}
+            disabled={checking}
+            style={{
+              width: '28px', height: '28px', minWidth: '28px', minHeight: '28px', borderRadius: '50%', flexShrink: 0,
+              border: isCompleted ? 'none' : `2px solid color-mix(in srgb, ${zoneColor} 40%, transparent)`,
+              background: isCompleted ? 'var(--color-success)' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: checking ? 'default' : 'pointer', transition: 'all 0.2s',
+              outline: 'none', padding: 0, opacity: checking ? 0.5 : 1
+            }}
+            onClick={handleCheck}
+          >
+            {isCompleted && (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M2.5 7.5L5 10L11.5 3.5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Streak Stats Row */}

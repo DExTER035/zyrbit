@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ZyrbitIcon } from '../components/Logo.jsx'
+import { DexOSIcon } from '../components/Logo.jsx'
 
 const CYAN = '#5EE6F5'
 const BG = '#121214'
@@ -236,9 +236,9 @@ const Slide4 = () => (
 // ─── Slide 5: Ready for launch ─────────────────────────────────────────────────
 const Slide5 = () => (
   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, paddingBottom: 4 }}>
-    {/* Zyrbit Icon Accent Container */}
+    {/* DexOS Icon Accent Container */}
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <ZyrbitIcon size={80} />
+      <DexOSIcon size={80} />
     </div>
 
     {/* Text */}

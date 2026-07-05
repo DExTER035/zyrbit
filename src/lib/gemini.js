@@ -1,4 +1,4 @@
-// ── Zyrbit Unified AI Service ─────────────────────────────────────────────────
+// ── DexOS Unified AI Service ─────────────────────────────────────────────────
 // Single source of truth for all Gemini API calls in the app.
 // Model: gemini-2.0-flash (latest supported in free tier)
 
@@ -81,7 +81,7 @@ export const generateContent = async (prompt) => {
 export const getZyraCoaching = async (context) => {
   return askZyra([{
     role: 'user',
-    text: `You are Dex, AI wellness coach inside Zyrbit Life OS.
+    text: `You are Dex, AI wellness coach inside DexOS Life OS.
 Give warm motivational coaching under 100 words.
 Reference user rank and active habits when relevant.
 End with: "This is general wellness advice, not medical advice."
@@ -95,7 +95,7 @@ Context: ${context}`
 export const getWeeklyReport = async (context) => {
   return askZyra([{
     role: 'user',
-    text: `You are Dex inside Zyrbit Life OS.
+    text: `You are Dex inside DexOS Life OS.
 Generate a weekly progress report under 150 words.
 Be specific about the user's habits, tasks, and overall progress.
 Context: ${context}`

@@ -5,7 +5,7 @@ import GravityRing from '../components/GravityRing.jsx'
 import RankBanner from '../components/RankBanner.jsx'
 import { showToast } from '../components/Toast.jsx'
 import { supabase } from '../lib/supabase.js'
-import { spendZyrons, getWallet } from '../lib/zyrons.js'
+import { getWallet } from '../lib/zyrons.js'
 import { getRankByZyrons, getNextRank, getProgressToNext, getVisibleRanks, RANKS } from '../lib/ranks.js'
 import { computeGravityScore } from '../lib/gravity.js'
 import { useInstallPrompt } from '../hooks/useInstallPrompt.js'
@@ -14,16 +14,6 @@ import ErrorState from '../components/ErrorState.jsx'
 import BetaOnboardingChecklist from '../components/BetaOnboardingChecklist.jsx'
 import AdminAnalytics from '../components/AdminAnalytics.jsx'
 
-const SHOP_ITEMS = [
-  { id: 'cosmos_themes', name: 'Cosmos Themes', icon: '🎨', cost: 400, desc: 'Custom color themes for your zones' },
-  { id: 'orbit_shield', name: 'Streak Shield', icon: '🛡️', cost: 200, desc: 'Protect your streak once' },
-  { id: 'zone_icons', name: 'Zone Icons', icon: '🎯', cost: 300, desc: 'Custom zone icons' },
-  { id: 'friend_battle', name: 'Friend Battle', icon: '👥', cost: 100, desc: 'Challenge a friend' },
-  { id: 'deep_analytics', name: 'Deep Analytics', icon: '📊', cost: 500, desc: 'Advanced habit and focus insights' },
-  { id: 'rank_boost', name: 'Rank Boost', icon: '⚡', cost: 1000, desc: 'Double Zyrons for 24h' },
-  { id: 'ai_session', name: 'AI Session', icon: '🤖', cost: 150, desc: 'Extended AI coaching' },
-  { id: 'rank_badge', name: 'Rank Badge', icon: '🏆', cost: 800, desc: 'Exclusive rank avatar badge' },
-]
 
 const ZONE_COLORS = { mind: '#00BCD4', body: '#4CAF50', growth: '#FF9800', soul: '#E91E63' }
 
@@ -40,8 +30,6 @@ export default function Profile() {
   const [habits, setHabits] = useState([])
   const [streaks, setStreaks] = useState([])
   const [activeSection, setActiveSection] = useState('profile')
-  const [purchases, setPurchases] = useState(new Set())
-  const [confirmPurchase, setConfirmPurchase] = useState(null)
   const [rankBanner, setRankBanner] = useState(null)
   const [zoneBreakdown, setZoneBreakdown] = useState({})
   const [loading, setLoading] = useState(true)
@@ -55,6 +43,7 @@ export default function Profile() {
     user.email.includes('admin') ||
     user.email.includes('insan') ||
     user.email.includes('zyrbit') ||
+    user.email.includes('dexos') ||
     user.email.includes('builder') ||
     user.email.includes('test')
   )
@@ -63,7 +52,6 @@ export default function Profile() {
     { id: 'profile', label: 'Identity', icon: '👤' },
     { id: 'wallet', label: 'Assets', icon: '⚡' },
     { id: 'ranks', label: 'Echelon', icon: '🏆' },
-    { id: 'shop', label: 'Market', icon: '🛍️' }
   ]
   if (isAdmin) {
     tabs.push({ id: 'admin', label: 'Admin', icon: '⚙️' })
@@ -88,8 +76,6 @@ export default function Profile() {
       setZoneBreakdown(zb)
       const { data: st } = await supabase.from('user_streaks').select('current_streak').eq('user_id', uid)
       setStreaks(st || [])
-      const { data: pur } = await supabase.from('shop_purchases').select('item_id').eq('user_id', uid)
-      setPurchases(new Set((pur || []).map(p => p.item_id)))
       const { data: txs } = await supabase.from('zyron_transactions').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(10)
       setRecentTxs(txs || [])
     } catch (e) {
@@ -136,21 +122,6 @@ export default function Profile() {
   const bestStreak = streaks.reduce((m, s) => Math.max(m, s.current_streak || 0), 0)
   const totalHabits = habits.length
 
-  const handlePurchase = async (item) => {
-    if (!user) return
-    setConfirmPurchase(null)
-    if (purchases.has(item.id)) { showToast('✅ Already owned!', 'info'); return }
-    const result = await spendZyrons(user.id, item.cost)
-    if (!result.success) {
-      showToast(`⚡ Need ${item.cost - (wallet.balance || 0)} more!`, 'warning')
-      return
-    }
-    await supabase.from('shop_purchases').insert({ user_id: user.id, item_id: item.id, cost: item.cost })
-    await supabase.from('zyron_transactions').insert({ user_id: user.id, amount: -item.cost, reason: `Purchased: ${item.name}` })
-    setPurchases(prev => new Set([...prev, item.id]))
-    setWallet(w => ({ ...w, balance: result.newBalance }))
-    showToast(`🎉 ${item.name} unlocked!`, 'success')
-  }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -460,70 +431,14 @@ export default function Profile() {
         </div>
       )}
 
-      {/* SHOP SECTION */}
-      {activeSection === 'shop' && (
-        <div>
-          <div className="card-base" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-24)', padding: 'var(--space-24)' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-sm)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>Balance</span>
-            <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 900, color: 'var(--text-primary)' }}>⚡ {wallet.balance?.toLocaleString() || 0}</div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-16)' }}>
-            {SHOP_ITEMS.map(item => {
-              const owned = purchases.has(item.id)
-              const canAfford = (wallet.balance || 0) >= item.cost
-              return (
-                <div key={item.id} className="card-base" style={{ padding: 'var(--space-16)', textAlign: 'center', position: 'relative' }}>
-                  {owned && (
-                    <div style={{ position: 'absolute', top: 'var(--space-12)', right: 'var(--space-12)', background: 'var(--text-primary)', borderRadius: 'var(--radius-badge)', padding: '2px var(--space-8)', fontSize: '9px', color: 'var(--bg-root)', fontWeight: 900 }}>OWNED</div>
-                  )}
-                  <div style={{ fontSize: 40, marginBottom: 'var(--space-12)' }}>{item.icon}</div>
-                  <div style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: 'var(--fs-base)', marginBottom: 'var(--space-4)' }}>{item.name}</div>
-                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', marginBottom: 'var(--space-16)', lineHeight: 1.5, fontWeight: 600 }}>{item.desc}</div>
-                  
-                  <button onClick={() => !owned && setConfirmPurchase(item)}
-                    style={{
-                      width: '100%', padding: 'var(--space-12)', borderRadius: 'var(--radius-button)',
-                      background: owned ? 'var(--bg-elevated)' : canAfford ? 'var(--text-primary)' : 'var(--bg-root)',
-                      color: owned ? 'var(--text-muted)' : canAfford ? 'var(--bg-root)' : 'var(--text-dim)',
-                      border: 'none', cursor: owned ? 'default' : canAfford ? 'pointer' : 'not-allowed', 
-                      fontWeight: 900, fontSize: 'var(--fs-sm)', transition: 'all 0.2s'
-                    }}>
-                    {owned ? 'EQUIPPED' : `⚡ ${item.cost}`}
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ADMIN SECTION */}
       {activeSection === 'admin' && isAdmin && (
         <AdminAnalytics />
       )}
 
-      {/* Purchase modal */}
-      {confirmPurchase && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }} onClick={() => setConfirmPurchase(null)}>
-          <div style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border-primary)', borderRadius: 'var(--radius-card) var(--radius-card) 0 0', padding: 'var(--space-32)', width: '100%' }} onClick={e => e.stopPropagation()}>
-            <div style={{ textAlign: 'center', marginBottom: 'var(--space-32)' }}>
-              <div style={{ fontSize: 64, marginBottom: 'var(--space-16)' }}>{confirmPurchase.icon}</div>
-              <h3 style={{ color: 'var(--text-primary)', fontWeight: 900, fontSize: 'var(--fs-xl)' }}>Unlock Data?</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-sm)', marginTop: 'var(--space-12)', fontWeight: 600 }}>{confirmPurchase.name} — ⚡ {confirmPurchase.cost}</p>
-            </div>
-            {(wallet.balance || 0) < confirmPurchase.cost && (
-              <div style={{ textAlign: 'center', color: 'var(--color-error)', fontWeight: 900, marginBottom: 'var(--space-20)', fontSize: 'var(--fs-sm)' }}>INSUFFICIENT ZYRONS</div>
-            )}
-            <div style={{ display: 'flex', gap: 'var(--space-12)' }}>
-              <button className="btn-secondary" style={{ flex: 1, padding: 'var(--space-16)' }} onClick={() => setConfirmPurchase(null)}>CANCEL</button>
-              <button className="btn-primary" style={{ flex: 1, padding: 'var(--space-16)' }} onClick={() => handlePurchase(confirmPurchase)} disabled={(wallet.balance || 0) < confirmPurchase.cost}>CONFIRM</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <BottomNav activeTab="profile" onTabChange={(t) => navigate(t === 'zenith' ? '/' : `/${t}`)} />
     </div>
   )
 }
+

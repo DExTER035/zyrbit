@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
@@ -7,7 +8,6 @@ import { showToast } from '../components/Toast.jsx';
 import { CheckCircle2 } from 'lucide-react';
 import HabitCard from '../components/HabitCard.jsx';
 import ZoneTab from '../components/ZoneTab.jsx';
-import StreakShield from '../components/StreakShield.jsx';
 import HeatmapGrid from '../components/HeatmapGrid.jsx';
 import { earnZyrons, getWallet } from '../lib/zyrons.js';
 import ErrorState from '../components/ErrorState.jsx';
@@ -157,7 +157,7 @@ const compileTopPriorities = (
   if (recoveryScore < 50) {
     candidates.push({
       id: 'low_recovery_protocol',
-      name: `Active Recovery Protocol: Focus sleep & water (${recoveryScore}% Recovery)`,
+      name: `Rest day — focus on sleep and water (${recoveryScore}% recovery)`,
       pScore: 95,
       type: 'health_action'
     });
@@ -166,7 +166,7 @@ const compileTopPriorities = (
   if (monthlyBudgetExceeded) {
     candidates.push({
       id: 'discretionary_freeze',
-      name: 'Freeze Discretionary Capital: Monthly budget exceeded',
+      name: 'Monthly budget reached — slow down spending today',
       pScore: 90,
       type: 'wealth_action'
     });
@@ -176,7 +176,7 @@ const compileTopPriorities = (
   if (sprintActive && sprintDeficit > 0) {
     candidates.push({
       id: 'sprint_deficit',
-      name: `Sprint Deficit: Log ${sprintDeficit}m focus target today`,
+      name: `Log ${sprintDeficit}m of focus to stay on sprint track`,
       pScore: 75 + Math.min(20, sprintDeficit / 10),
       type: 'growth_action'
     });
@@ -188,7 +188,7 @@ const compileTopPriorities = (
     const priorityWeight = priority === 1 ? 10 : priority === 2 ? 5 : 0;
     candidates.push({
       id: t.id,
-      name: `Overdue: ${t.name} (${t.growth_projects?.name || 'Project'})`,
+      name: `${t.name} — overdue${daysOverdue > 1 ? ` ${daysOverdue}d` : ''}`,
       pScore: Math.min(93, 80 + priorityWeight + daysOverdue),
       type: 'task',
       taskObj: t
@@ -200,7 +200,7 @@ const compileTopPriorities = (
     const priorityWeight = priority === 1 ? 10 : priority === 2 ? 5 : 0;
     candidates.push({
       id: t.id,
-      name: `${t.name} (${t.growth_projects?.name || 'Project'})`,
+      name: t.name,
       pScore: 60 + priorityWeight,
       type: 'task',
       taskObj: t
@@ -350,6 +350,16 @@ export default function Zenith() {
     
     return Math.max(0, Math.min(100, Math.round(sleepContribution + hydrationContribution - strainPenalty)));
   }, [sleepLogs, waterLogs, moveLogs, today]);
+
+  const oneInsight = React.useMemo(() => {
+    if (recoveryScore >= 80) {
+      return "Your recovery is high today. It's a great day for deep work.";
+    } else if (recoveryScore >= 50) {
+      return "Steady recovery today. Maintain focus on your main priority.";
+    } else {
+      return "Your capacity is low today. Prioritize rest and active recovery.";
+    }
+  }, [recoveryScore]);
 
   const { osScore, osBreakdown } = React.useMemo(() => {
     const focusMins = focusSessions ? focusSessions.reduce((s, f) => s + (f.duration_minutes || 0), 0) : 0;
@@ -584,123 +594,116 @@ export default function Zenith() {
   }, [activity, habits, streaks]);
 
   const loadHabitsAndStreaks = useCallback(async (uid) => {
-    try {
-      const since365 = (() => { const d = new Date(); d.setDate(d.getDate() - 365); return d.toLocaleDateString('en-CA') })()
-      const [habitsRes, activityRes, streaksRes] = await Promise.all([
-        supabase.from('habits').select('*').eq('user_id', uid).order('created_at', { ascending: true }),
-        supabase.from('activity_log').select('*').eq('user_id', uid).gte('completed_date', since365),
-        supabase.from('user_streaks').select('*').eq('user_id', uid)
-      ]);
-      if (habitsRes.data) setHabits(habitsRes.data);
-      if (activityRes.data) setActivity(activityRes.data);
-      const streaksData = streaksRes.data || [];
-      const smap = {};
-      const lmap = {};
-      streaksData.forEach(s => {
-        smap[s.habit_id] = s.current_streak;
-        lmap[s.habit_id] = s.longest_streak || s.current_streak || 0;
-      });
-      setStreaks(smap);
-      setLongestStreaks(lmap);
-      const streakVal = streaksData.reduce((max, s) => Math.max(max, s.current_streak || 0), 0) || 0;
-      setBestStreak(streakVal);
-    } catch (e) {
-      console.error('Error loading habits/streaks:', e);
-    }
+    const since365 = (() => { const d = new Date(); d.setDate(d.getDate() - 365); return d.toLocaleDateString('en-CA') })()
+    const results = await Promise.allSettled([
+      supabase.from('habits').select('*').eq('user_id', uid).order('created_at', { ascending: true }),
+      supabase.from('activity_log').select('*').eq('user_id', uid).gte('completed_date', since365),
+      supabase.from('user_streaks').select('*').eq('user_id', uid)
+    ]);
+
+    const habitsRes = results[0].status === 'fulfilled' ? results[0].value : { data: [] };
+    const activityRes = results[1].status === 'fulfilled' ? results[1].value : { data: [] };
+    const streaksRes = results[2].status === 'fulfilled' ? results[2].value : { data: [] };
+
+    setHabits(habitsRes?.data || []);
+    setActivity(activityRes?.data || []);
+
+    const streaksData = streaksRes?.data || [];
+    const smap = {};
+    const lmap = {};
+    streaksData.forEach(s => {
+      smap[s.habit_id] = s.current_streak;
+      lmap[s.habit_id] = s.longest_streak || s.current_streak || 0;
+    });
+    setStreaks(smap);
+    setLongestStreaks(lmap);
+    const streakVal = streaksData.reduce((max, s) => Math.max(max, s.current_streak || 0), 0) || 0;
+    setBestStreak(streakVal);
   }, []);
 
   const loadGrowthData = useCallback(async (uid) => {
-    try {
-      const [tasksRes, focusRes, sprintRes, goalsRes] = await Promise.all([
-        supabase.from('growth_tasks').select('*, growth_projects(name)').eq('user_id', uid),
-        supabase.from('growth_focus_sessions').select('started_at, duration_minutes, session_date').eq('user_id', uid).eq('session_date', today),
-        supabase.from('growth_sprints').select('*').eq('user_id', uid).eq('status', 'active').limit(1),
-        supabase.from('study_goals').select('*').eq('user_id', uid)
-      ]);
-      if (tasksRes.data) setTasks(tasksRes.data);
-      if (focusRes.data) setFocusSessions(focusRes.data);
-      if (sprintRes.data) setSprintData(sprintRes.data);
-      if (goalsRes.data) setGoals(goalsRes.data);
-    } catch (e) {
-      console.error('Error loading growth data:', e);
-    }
+    const results = await Promise.allSettled([
+      supabase.from('growth_tasks').select('*, growth_projects(name)').eq('user_id', uid),
+      supabase.from('growth_focus_sessions').select('started_at, duration_minutes, session_date').eq('user_id', uid).eq('session_date', today),
+      supabase.from('growth_sprints').select('*').eq('user_id', uid).eq('status', 'active').limit(1),
+      supabase.from('study_goals').select('*').eq('user_id', uid)
+    ]);
+
+    const tasksRes = results[0].status === 'fulfilled' ? results[0].value : { data: [] };
+    const focusRes = results[1].status === 'fulfilled' ? results[1].value : { data: [] };
+    const sprintRes = results[2].status === 'fulfilled' ? results[2].value : { data: [] };
+    const goalsRes = results[3].status === 'fulfilled' ? results[3].value : { data: [] };
+
+    setTasks(tasksRes?.data || []);
+    setFocusSessions(focusRes?.data || []);
+    setSprintData(sprintRes?.data || []);
+    setGoals(goalsRes?.data || []);
   }, [today]);
 
   const loadHealthData = useCallback(async (uid) => {
-    try {
-      const startOfWeekStr = getStartOfWeekStr();
-      const [sleepRes, waterRes, moveRes] = await Promise.all([
-        supabase.from('health_sleep_logs').select('*').eq('user_id', uid).gte('sleep_date', startOfWeekStr).order('sleep_date', { ascending: false }),
-        supabase.from('health_water_logs').select('*').eq('user_id', uid).eq('log_date', today),
-        supabase.from('health_move_logs').select('*').eq('user_id', uid).gte('log_date', startOfWeekStr).order('log_date', { ascending: false })
-      ]);
-      if (sleepRes.data) setSleepLogs(sleepRes.data);
-      if (waterRes.data) setWaterLogs(waterRes.data);
-      if (moveRes.data) setMoveLogs(moveRes.data);
-    } catch (e) {
-      console.error('Error loading health data:', e);
-    }
+    const startOfWeekStr = getStartOfWeekStr();
+    const results = await Promise.allSettled([
+      supabase.from('health_sleep_logs').select('*').eq('user_id', uid).gte('sleep_date', startOfWeekStr).order('sleep_date', { ascending: false }),
+      supabase.from('health_water_logs').select('*').eq('user_id', uid).eq('log_date', today),
+      supabase.from('health_move_logs').select('*').eq('user_id', uid).gte('log_date', startOfWeekStr).order('log_date', { ascending: false })
+    ]);
+
+    const sleepRes = results[0].status === 'fulfilled' ? results[0].value : { data: [] };
+    const waterRes = results[1].status === 'fulfilled' ? results[1].value : { data: [] };
+    const moveRes = results[2].status === 'fulfilled' ? results[2].value : { data: [] };
+
+    setSleepLogs(sleepRes?.data || []);
+    setWaterLogs(waterRes?.data || []);
+    setMoveLogs(moveRes?.data || []);
   }, [today]);
 
   const loadWealthData = useCallback(async (uid) => {
-    try {
-      const [settingsRes, incomeRes, expensesRes, billsRes] = await Promise.all([
-        supabase.from('wealth_settings').select('monthly_budget').eq('user_id', uid).maybeSingle(),
-        supabase.from('wealth_income').select('amount').eq('user_id', uid),
-        supabase.from('money_expenses').select('amount, created_at, note, category, expense_date').eq('user_id', uid),
-        supabase.from('wealth_bills').select('*').eq('user_id', uid)
-      ]);
-      if (settingsRes.data) setExpSettings(settingsRes.data);
-      if (incomeRes.data) setIncome(incomeRes.data);
-      if (expensesRes.data) setExpenses(expensesRes.data);
-      if (billsRes.data) setBills(billsRes.data);
-    } catch (e) {
-      console.error('Error loading wealth data:', e);
-    }
+    const results = await Promise.allSettled([
+      supabase.from('wealth_settings').select('monthly_budget').eq('user_id', uid).maybeSingle(),
+      supabase.from('wealth_income').select('amount').eq('user_id', uid),
+      supabase.from('money_expenses').select('amount, created_at, note, category, expense_date').eq('user_id', uid),
+      supabase.from('wealth_bills').select('*').eq('user_id', uid)
+    ]);
+
+    const settingsRes = results[0].status === 'fulfilled' ? results[0].value : { data: null };
+    const incomeRes = results[1].status === 'fulfilled' ? results[1].value : { data: [] };
+    const expensesRes = results[2].status === 'fulfilled' ? results[2].value : { data: [] };
+    const billsRes = results[3].status === 'fulfilled' ? results[3].value : { data: [] };
+
+    setExpSettings(settingsRes?.data || null);
+    setIncome(incomeRes?.data || []);
+    setExpenses(expensesRes?.data || []);
+    setBills(billsRes?.data || []);
   }, []);
 
   const loadData = useCallback(async (uid) => {
-    console.log('Zenith.jsx: loadData started for uid:', uid);
     setLoading(true);
     setError(null);
-    try {
-      await Promise.all([
-        supabase.from('profiles').select('*').eq('id', uid).single().then(res => { if (res.data) setProfile(res.data); }),
-        loadHabitsAndStreaks(uid),
-        loadGrowthData(uid),
-        loadHealthData(uid),
-        loadWealthData(uid),
-        getWallet(uid).then(w => { if (w) setWallet(w); }).catch(() => null)
-      ]);
-      console.log('Zenith.jsx: loadData successful!');
-    } catch (e) {
-      console.error('Zenith load error:', e);
-      setError(e.message);
-    } finally {
-      console.log('Zenith.jsx: loadData finally block, setting loading to false.');
-      setLoading(false);
-    }
+    await Promise.allSettled([
+      supabase.from('profiles').select('*').eq('id', uid).single().then(res => { if (res.data) setProfile(res.data); }),
+      loadHabitsAndStreaks(uid),
+      loadGrowthData(uid),
+      loadHealthData(uid),
+      loadWealthData(uid),
+      getWallet(uid).then(w => { if (w) setWallet(w); }).catch(() => null)
+    ]);
+    setLoading(false);
   }, [loadHabitsAndStreaks, loadGrowthData, loadHealthData, loadWealthData]);
 
   // ── load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    console.log('Zenith.jsx: useEffect checking user auth status...');
     supabase.auth.getUser().then(({ data: { user } }) => {
-      console.log('Zenith.jsx: useEffect auth check completed, user is:', user?.id || null);
       if (user) {
         userRef.current = user;
         setUser(user);
         loadData(user.id);
       } else {
-        console.log('Zenith.jsx: user is null, checking if there is a session...');
         supabase.auth.getSession().then(({ data: { session } }) => {
-          console.log('Zenith.jsx: session checked, session user is:', session?.user?.id || null);
           if (session?.user) {
             userRef.current = session.user;
             setUser(session.user);
             loadData(session.user.id);
           } else {
-            console.log('Zenith.jsx: No active session. Transitioning loading to false.');
             setLoading(false);
           }
         });
@@ -711,7 +714,7 @@ export default function Zenith() {
     const now = new Date();
     if (now.getDay() === 0) {
       const weekKey = `${now.getFullYear()}-W${Math.ceil(now.getDate() / 7)}`;
-      const alreadySeen = localStorage.getItem(`zyrbit_weekly_review_${weekKey}`);
+      const alreadySeen = localStorage.getItem(`dexos_weekly_review_${weekKey}`);
       if (!alreadySeen) {
         setTimeout(() => setShowWeeklyReview(true), 2000);
       }
@@ -957,46 +960,27 @@ export default function Zenith() {
 
   // ── Greeting ──────────────────────────────────────────────────────────────
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  const name = profile?.username || profile?.full_name || 'Commander';
-
-  // Recommendations for briefing box
-  let HealthAction = "Physical indicators stable. Maintain status.";
-  if (ctx.water < 2000) {
-    HealthAction = "Hydrate: Drink 500ml water to restore capacity.";
-  } else if (ctx.sleepDebt > 2.0) {
-    HealthAction = "Prioritize a 8-hour sleep window tonight.";
-  } else {
-    HealthAction = "Execute a 15-minute active recovery walk.";
-  }
-
-  let GrowthAction = "Growth targets nominal. Focus when ready.";
-  if (ctx.overdueTasksCount > 0) {
-    GrowthAction = "Resolve oldest overdue task.";
-  } else if (ctx.sprintActive && (ctx.sprintLoggedToDate < ctx.sprintTargetToDate)) {
-    GrowthAction = "Log focus session to meet daily sprint target.";
-  } else if (ctx.totalTasks > ctx.completedTasks) {
-    GrowthAction = "Complete your high-priority growth tasks.";
-  }
-
-  // Quick stat cards for the dashboard
-  const statCards = [
-    { label: 'FOCUS', value: `${ctx.focusHours}h`, icon: '🎯', color: 'var(--color-accent)' },
-    { label: 'SLEEP', value: `${ctx.sleep}h`, icon: '🌙', color: '#8B5CF6' },
-    { label: 'WATER', value: `${(ctx.water/1000).toFixed(1)}L`, icon: '💧', color: 'var(--color-accent-cyan)' },
-  ];
+  const finalGreeting = (hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening') + '.';
 
   return (
-    <div className="app-container page-enter" style={{ background: 'var(--bg-root)', minHeight: '100vh', color: 'var(--text-primary)', position: 'relative' }}>
-
+    <div className="app-container page-enter" style={{
+      background: '#0B0D0F',
+      minHeight: '100vh',
+      color: '#FFFFFF',
+      position: 'relative',
+      padding: '40px 24px 120px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '24px',
+    }}>
       {/* XP POPUP */}
       {xpPopup && (
         <div style={{
           position: 'fixed', bottom: 170, right: 24, zIndex: 9999,
-          background: 'var(--bg-elevated)', border: `1px solid var(--color-accent)`,
-          borderRadius: 'var(--radius-badge)', padding: 'var(--space-8) var(--space-16)',
-          fontSize: 'var(--fs-sm)', fontWeight: 900, color: 'var(--color-accent)',
-          boxShadow: `0 0 20px var(--color-accent-glow)`,
+          background: '#15181B', border: '1px solid #14B8A6',
+          borderRadius: '100px', padding: '8px 16px',
+          fontSize: '12px', fontWeight: 900, color: '#14B8A6',
+          boxShadow: '0 0 20px rgba(20, 184, 166, 0.1)',
           animation: 'fadeUp 0.3s ease both',
           pointerEvents: 'none'
         }}>
@@ -1004,624 +988,113 @@ export default function Zenith() {
         </div>
       )}
 
-      {/* ── HEADER ─────────────────────────────────────────────────────── */}
-      <div style={{ padding: 'var(--space-32) var(--space-24) 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div style={{ fontSize: '9px', color: 'var(--color-accent)', fontWeight: 800, letterSpacing: '2.5px', marginBottom: 'var(--space-8)', opacity: 0.8 }}>ZENITH · COMMAND CENTER</div>
-          <h1 style={{ fontSize: 'var(--fs-xxl)', fontWeight: 900, lineHeight: 1.15, margin: 0 }}>
-            <span style={{ color: 'var(--text-primary)' }}>{greeting},</span><br />
-            <span style={{ background: `linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-cyan) 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{name}.</span>
-          </h1>
-        </div>
-        <div
-          onClick={() => navigate('/profile')}
-          style={{
-            width: '48px', height: '48px', borderRadius: '50%',
-            background: 'var(--bg-card)', border: `1.5px solid var(--border-primary)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', overflow: 'hidden', flexShrink: 0, marginTop: 'var(--space-4)',
-            boxShadow: `0 4px 16px rgba(0,0,0,0.3)`,
-            transition: 'border-color 0.3s, box-shadow 0.3s',
-          }}
-        >
-          {profile?.avatar_url
-            ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="avatar" />
-            : <span style={{ fontSize: '18px' }}>👤</span>
-          }
-        </div>
+      {/* Greeting */}
+      <div>
+        <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#FFFFFF', margin: 0, letterSpacing: '-0.5px' }}>
+          {finalGreeting}
+        </h1>
       </div>
 
-      {/* ── ALERTS WARNING SYSTEM ──────────────────────────────────────── */}
-      {(() => {
-        const warnings = [];
-        if (recoveryScore < 50) warnings.push(`Capacity Alert: Recovery depleted (${recoveryScore}%). Rest protocol enforced.`);
-        if (ctx.runwayMonths < 3.0) warnings.push(`Runway Alert: ${ctx.runwayMonths.toFixed(1)} months remaining. Freeze discretionary spend.`);
-        if (ctx.spent > ctx.limit * 30) warnings.push("Budget Cap Exceeded: Monthly limit crossed.");
-        
-        if (warnings.length === 0) return null;
-        
-        return (
-          <div style={{ padding: '0 var(--space-24)', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)', marginTop: 'var(--space-16)' }}>
-            <div style={{
-              padding: 'var(--space-12) var(--space-16)', background: 'var(--color-error-dim)',
-              border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-inner)',
-              borderLeft: '4px solid var(--color-error)',
-              display: 'flex', alignItems: 'flex-start', gap: 'var(--space-8)',
-              animation: 'pageEnter 0.3s ease forwards',
-            }}>
-              <span style={{ fontSize: '14px', flexShrink: 0, marginTop: '1px' }}>⚠️</span>
-              <div style={{ fontSize: 'var(--fs-xs)', color: '#F87171', fontWeight: 700, lineHeight: 1.45 }}>
-                {warnings.map((w, idx) => <div key={idx}>{w}</div>)}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      <div style={{ borderBottom: '1px solid #1C1D21' }} />
 
-      {/* ── OS SCORE RING + BRIEFING ────────────────────────────────────── */}
-      <div style={{ padding: 'var(--space-24) var(--space-24) 0', display: 'flex', gap: 'var(--space-16)', alignItems: 'stretch' }}>
+      {/* Body Status */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Body</div>
+        <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>Recovered</div>
+        <div style={{ fontSize: '32px', fontWeight: 900, color: '#14B8A6', marginTop: '2px' }}>{recoveryScore}%</div>
+      </div>
 
-        {/* Score Ring */}
-        <div style={{
-          flex: '0 0 112px', height: '112px',
-          background: `linear-gradient(145deg, var(--bg-card) 0%, var(--bg-elevated) 100%)`,
-          borderRadius: 'var(--radius-card)', border: `1px solid var(--border-primary)`,
-          borderLeft: `4px solid var(--color-accent)`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
-          boxShadow: `0 8px 32px var(--color-accent-glow), inset 0 1px 0 rgba(255,255,255,0.03)`,
-        }}>
-          <GravityRing score={osScore} size={84} />
-          <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{
-              fontSize: 'var(--fs-xl)', fontWeight: 900, lineHeight: 1,
-              background: `linear-gradient(135deg, #fff 0%, var(--color-accent) 100%)`,
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            }}>{osScore}</span>
-            <span style={{ fontSize: '7px', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '1.5px', marginTop: '3px' }}>DEX INDEX</span>
-          </div>
-        </div>
+      <div style={{ borderBottom: '1px solid #1C1D21' }} />
 
-        {/* Briefing Card */}
-        <div style={{
-          flex: 1,
-          background: `linear-gradient(145deg, var(--bg-card) 0%, var(--bg-elevated) 100%)`,
-          borderRadius: 'var(--radius-card)', border: `1px solid var(--border-primary)`,
-          borderLeft: `4px solid var(--color-accent-cyan)`,
-          padding: 'var(--space-16)',
-          display: 'flex', flexDirection: 'column', gap: 'var(--space-8)',
-          boxShadow: `0 8px 32px var(--color-accent-cyan-glow), inset 0 1px 0 rgba(255,255,255,0.03)`,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '8px', color: 'var(--color-accent-cyan)', fontWeight: 800, letterSpacing: '1.5px' }}>DEXOS BRIEFING</span>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-success)', boxShadow: `0 0 6px var(--color-success)`, animation: 'glowPulse 2s ease-in-out infinite' }} />
-          </div>
-          <p style={{ fontSize: 'var(--fs-xs)', lineHeight: 1.55, color: 'var(--text-secondary)', margin: 0 }}>{aiBriefing}</p>
+      {/* Money Status */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Money</div>
+        <div style={{ fontSize: '24px', fontWeight: 900, color: '#FFFFFF', marginTop: '2px' }}>
+          {ctx.runwayDays >= 999 ? 'Stable' : `${ctx.runwayDays} Safe Days`}
         </div>
       </div>
 
-      {/* ── TELEMETRY BREAKDOWN & STREAKS ────────────────────────────────── */}
-      <div style={{ padding: 'var(--space-16) var(--space-24) 0' }}>
-        <div style={{
-          background: `linear-gradient(145deg, var(--bg-card) 0%, var(--bg-elevated) 100%)`,
-          borderRadius: 'var(--radius-card)', border: `1px solid var(--border-primary)`,
-          padding: 'var(--space-16) var(--space-24)',
-          display: 'flex', flexDirection: 'column', gap: 'var(--space-16)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.02)',
-        }}>
-          {/* Header row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '9px', color: 'var(--color-accent)', fontWeight: 800, letterSpacing: '2.5px', textTransform: 'uppercase' }}>OS TELEMETRY BREAKDOWN</span>
-            <div style={{ display: 'flex', gap: 'var(--space-8)' }}>
-              <span className="badge badge-success">
-                🏆 {winsCount} {winsCount === 1 ? 'WIN' : 'WINS'} TODAY
-              </span>
-              <span className="badge badge-warning">
-                🔥 {bestStreak} DAY STREAK
-              </span>
-            </div>
-          </div>
+      <div style={{ borderBottom: '1px solid #1C1D21' }} />
 
-          {/* Breakdown bars */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
-            {/* Growth */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-xs)', fontWeight: 800, marginBottom: 'var(--space-4)' }}>
-                <span style={{ color: 'var(--text-primary)' }}>🚀 Growth Engine</span>
-                <span style={{ color: 'var(--text-secondary)' }}>{osBreakdown.growth} / 40</span>
-              </div>
-              <div style={{ height: '6px', background: 'var(--border-primary)', borderRadius: 'var(--radius-badge)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${(osBreakdown.growth / 40) * 100}%`, background: `linear-gradient(90deg, var(--color-accent), var(--color-accent-cyan))`, borderRadius: 'var(--radius-badge)' }} />
-              </div>
-            </div>
+      {/* Focus Status */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Focus</div>
+        <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>{ctx.lastFocusTopic}</div>
+        <div style={{ fontSize: '24px', fontWeight: 900, color: '#14B8A6', marginTop: '2px' }}>{ctx.lastFocusMins} min</div>
+      </div>
 
-            {/* Health */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-xs)', fontWeight: 800, marginBottom: 'var(--space-4)' }}>
-                <span style={{ color: 'var(--text-primary)' }}>❤️ Bio telemetry</span>
-                <span style={{ color: 'var(--text-secondary)' }}>{osBreakdown.health} / 30</span>
-              </div>
-              <div style={{ height: '6px', background: 'var(--border-primary)', borderRadius: 'var(--radius-badge)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${(osBreakdown.health / 30) * 100}%`, background: 'var(--color-success)', borderRadius: 'var(--radius-badge)' }} />
-              </div>
-            </div>
+      <div style={{ borderBottom: '1px solid #1C1D21' }} />
 
-            {/* Wealth */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-xs)', fontWeight: 800, marginBottom: 'var(--space-4)' }}>
-                <span style={{ color: 'var(--text-primary)' }}>💰 Capital runway</span>
-                <span style={{ color: 'var(--text-secondary)' }}>{osBreakdown.wealth} / 30</span>
-              </div>
-              <div style={{ height: '6px', background: 'var(--border-primary)', borderRadius: 'var(--radius-badge)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${(osBreakdown.wealth / 30) * 100}%`, background: 'var(--color-warning)', borderRadius: 'var(--radius-badge)' }} />
-              </div>
-            </div>
-          </div>
+      {/* Today's Priorities */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>
+          Today's Priorities
         </div>
-      </div>
-
-      {/* ── QUICK STATS ROW ────────────────────────────────────────────── */}
-      <div style={{ padding: 'var(--space-16) var(--space-24) 0', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-8)' }}>
-        {statCards.map((s) => (
-          <div key={s.label} style={{
-            background: 'var(--bg-card)', borderRadius: 'var(--radius-inner)', border: `1px solid var(--border-primary)`,
-            padding: 'var(--space-16) var(--space-8)', textAlign: 'center',
-            transition: 'border-color 0.2s',
-          }}>
-            <div style={{ fontSize: '14px', marginBottom: 'var(--space-4)' }}>{s.icon}</div>
-            <div style={{ fontSize: 'var(--fs-base)', fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.value}</div>
-            <div style={{ fontSize: '7px', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '1px', marginTop: 'var(--space-4)' }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── STREAK SHIELD ── */}
-      <div style={{ padding: 'var(--space-16) var(--space-24) 0' }}>
-        <StreakShield user={user} habits={habits} activity={activity} streaks={streaks} />
-      </div>
-
-      {/* ── TODAY'S HABITS CHECKLIST ── */}
-      <div style={{ padding: 'var(--space-24) var(--space-24) 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-16)' }}>
-          <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase' }}>Daily Habits</span>
-          <button 
-            onClick={() => { setEditHabit(null); setForm({ name:'', zone:'mind', icon:'🌱', frequency:'daily', reminder_enabled: false, reminder_time: '' }); setShowModal(true); }}
-            style={{ 
-              background: 'transparent', border: `1px solid var(--color-accent-cyan)`, color: 'var(--color-accent-cyan)', 
-              padding: 'var(--space-8) var(--space-16)', borderRadius: 'var(--radius-button)', fontSize: '9px', fontWeight: 800, 
-              cursor: 'pointer', transition: 'all 0.2s', textTransform: 'uppercase', letterSpacing: '0.5px' 
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = `var(--color-accent-cyan-dim)`; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-          >
-            + Add Habit
-          </button>
-        </div>
-
-        {/* ZONE FILTERS */}
-        <div style={{ marginBottom: 'var(--space-16)' }}>
-          <ZoneTab active={activeZone} onChange={setActiveZone} />
-        </div>
-
-        {/* HABITS LIST */}
-        {(() => {
-          const filteredHabits = activeZone === 'all' ? habits : habits.filter(h => h.zone === activeZone)
-          if (filteredHabits.length === 0) {
-            return (
-              <div className="empty-state">
-                <div className="empty-state-emoji">🌱</div>
-                <div className="empty-state-title">No habits in this domain.</div>
-                <div className="empty-state-subtitle">Add a target to begin.</div>
-              </div>
-            )
-          }
-
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
-              {filteredHabits.map((habit) => {
-                const completedToday = new Set(
-                  activity.filter(log => log.completed_date === today && log.status === 'completed').map(l => l.habit_id)
-                )
-                const done = completedToday.has(habit.id)
-
-                // Compute monthly score for this habit
-                const habitLogs = activity.filter(log => log.habit_id === habit.id)
-                const thirtyDaysAgoStr = (() => { const d = new Date(); d.setDate(d.getDate() - 29); return d.toLocaleDateString('en-CA') })()
-                const monthlyDone = habitLogs.filter(l => l.completed_date >= thirtyDaysAgoStr && l.status === 'completed').length
-                const monthlyScore = Math.round((monthlyDone / 30) * 100)
-
-                return (
-                  <div key={habit.id} style={{ opacity: done ? 0.62 : 1, transition: 'opacity 0.3s' }}>
-                    <HabitCard
-                      habit={habit}
-                      logs={habitLogs}
-                      streak={streaks[habit.id] || 0}
-                      longestStreak={longestStreaks[habit.id] || 0}
-                      monthlyScore={monthlyScore}
-                      isCompleted={done}
-                      onToggle={handleToggle}
-                      onLongPress={setSkipTarget}
-                      onDelete={deleteHabit}
-                      onStats={() => showToast('Open habit history', 'info')}
-                      onEdit={() => { setEditHabit(habit); setForm({ name: habit.name, zone: habit.zone, icon: habit.icon||'🌱', frequency: habit.frequency||'daily', reminder_enabled: habit.reminder_enabled||false, reminder_time: habit.reminder_time||'' }); setShowModal(true) }}
-                    />
-                  </div>
-                )
-              })}
-            </div>
-          )
-        })()}
-      </div>
-
-      {/* ── CONSISTENCY HEATMAP ── */}
-      <div style={{ padding: 'var(--space-16) var(--space-24) 0' }}>
-        <div style={{
-          background: `linear-gradient(145deg, var(--bg-card) 0%, var(--bg-elevated) 100%)`,
-          borderRadius: 'var(--radius-card)', border: `1px solid var(--border-primary)`,
-          padding: 'var(--space-20) var(--space-24)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.02)',
-        }}>
-          <span style={{ fontSize: '9px', color: 'var(--color-accent-cyan)', fontWeight: 800, letterSpacing: '2.5px', textTransform: 'uppercase', display: 'block', marginBottom: 'var(--space-16)' }}>Yearly Consistency Map</span>
-          <HeatmapGrid color="var(--color-accent-cyan)" dataMap={yearlyCompletionsMap} days={365} />
-        </div>
-      </div>
-
-      {/* ── STREAK SUMMARY & INSIGHTS ── */}
-      <div style={{ padding: 'var(--space-16) var(--space-24) 0' }}>
-        <div style={{
-          background: `linear-gradient(145deg, var(--bg-card) 0%, var(--bg-elevated) 100%)`,
-          borderRadius: 'var(--radius-card)', border: `1px solid var(--border-primary)`,
-          padding: 'var(--space-20) var(--space-24)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.02)',
-          display: 'flex', flexDirection: 'column', gap: 'var(--space-16)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '9px', color: 'var(--color-accent)', fontWeight: 800, letterSpacing: '2.5px', textTransform: 'uppercase' }}>Streak Summary</span>
-            <span className="badge badge-warning">🔥 {bestStreak} Day Streak</span>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-12)' }}>
-            <div style={{ background: 'var(--bg-root)', padding: 'var(--space-12)', borderRadius: 'var(--radius-inner)', border: '1px solid var(--border-primary)', textAlign: 'center' }}>
-              <div style={{ fontSize: 'var(--fs-base)', fontWeight: 900, color: 'var(--color-warning)' }}>{bestStreak}d</div>
-              <div style={{ fontSize: '8px', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '1px', marginTop: '2px', textTransform: 'uppercase' }}>Best Streak</div>
-            </div>
-            <div style={{ background: 'var(--bg-root)', padding: 'var(--space-12)', borderRadius: 'var(--radius-inner)', border: '1px solid var(--border-primary)', textAlign: 'center' }}>
-              <div style={{ fontSize: 'var(--fs-base)', fontWeight: 900, color: 'var(--color-accent-cyan)' }}>{habits.filter(h => streaks[h.id] > 0).length}</div>
-              <div style={{ fontSize: '8px', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '1px', marginTop: '2px', textTransform: 'uppercase' }}>Active Streaks</div>
-            </div>
-          </div>
-
-          {/* Habit Insights */}
-          <div style={{ borderTop: '1px solid var(--border-primary)', paddingTop: 'var(--space-12)' }}>
-            <div style={{ fontSize: '8px', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 'var(--space-8)' }}>HABIT INSIGHTS</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-xs)' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>🏆 Most Consistent:</span>
-                <span style={{ fontWeight: 700, color: 'var(--color-accent-cyan)', textAlign: 'right' }}>{habitInsights.mostConsistent}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-xs)' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>⚡ Best Day:</span>
-                <span style={{ fontWeight: 700, color: 'var(--color-accent)', textAlign: 'right' }}>{habitInsights.bestDay}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-xs)' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>⚠️ Missed Yesterday:</span>
-                <span style={{ fontWeight: 700, color: habitInsights.missedYesterday !== 'None!' ? 'var(--color-error)' : 'var(--color-success)', textAlign: 'right' }}>{habitInsights.missedYesterday}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── WEEKLY PROGRESS ── */}
-      <div style={{ padding: 'var(--space-16) var(--space-24) 0' }}>
-        <div style={{
-          background: `linear-gradient(145deg, var(--bg-card) 0%, var(--bg-elevated) 100%)`,
-          borderRadius: 'var(--radius-card)', border: `1px solid var(--border-primary)`,
-          padding: 'var(--space-20) var(--space-24)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.02)',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-12)' }}>
-            <span style={{ fontSize: '9px', color: 'var(--color-success)', fontWeight: 800, letterSpacing: '2.5px', textTransform: 'uppercase' }}>Weekly Progress</span>
-            <span className="badge badge-success">{weeklyCompletionScore}% completion</span>
-          </div>
-          <div style={{ height: '8px', background: 'var(--border-primary)', borderRadius: 'var(--radius-badge)', overflow: 'hidden', marginBottom: 'var(--space-8)' }}>
-            <div style={{ height: '100%', width: `${weeklyCompletionScore}%`, background: 'var(--color-success)', borderRadius: 'var(--radius-badge)', transition: 'width 0.4s' }} />
-          </div>
-          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            You completed {weeklyCompletionScore}% of your target habit tasks in the last 7 cycles. Keep it up!
-          </div>
-        </div>
-      </div>
-
-      {/* ── TOP 3 PRIORITIES ───────────────────────────────────────────── */}
-      <div style={{ padding: 'var(--space-24) var(--space-24) 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-16)' }}>
-          <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase' }}>Top Priorities</span>
-          <span style={{ fontSize: '9px', color: 'var(--color-accent)', fontWeight: 800 }}>{priorities.filter(p=>p.done).length}/{priorities.length}</span>
-        </div>
-
-        {priorities.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-emoji">🎯</div>
-            <div className="empty-state-title">No priorities active today.</div>
-            <div className="empty-state-subtitle">Maintain steady focus.</div>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
-            {priorities.map((p, idx) => (
-              <div
-                key={p.id}
-                id={`priority-item-${idx}`}
-                onClick={() => togglePriority(p)}
-                style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  background: p.done ? 'var(--color-success-dim)' : 'var(--bg-card)',
-                  border: `1px solid ${p.done ? 'rgba(16, 185, 129, 0.25)' : 'var(--border-primary)'}`,
-                  borderLeft: p.done ? '4px solid var(--color-success)' : '4px solid var(--border-primary)',
-                  padding: 'var(--space-16)', borderRadius: 'var(--radius-inner)',
-                  cursor: p.done ? 'default' : 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: p.done ? `0 4px 16px rgba(16, 185, 129, 0.1)` : 'none',
-                }}
-              >
-                <div style={{ display: 'flex', gap: 'var(--space-16)', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    width: '32px', height: '32px', borderRadius: 'var(--radius-button)', flexShrink: 0,
-                    background: p.done ? 'var(--color-success-dim)' : 'var(--color-accent-dim)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <span style={{ fontSize: '14px' }}>{p.done ? '✅' : '🎯'}</span>
-                  </div>
-                  <span style={{
-                    fontSize: 'var(--fs-sm)', fontWeight: 700,
-                    color: p.done ? 'var(--text-muted)' : 'var(--text-primary)',
-                    textDecoration: p.done ? 'line-through' : 'none',
-                    transition: 'all 0.25s ease',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{p.name}</span>
-                </div>
-                {p.type === 'task' ? (
-                  <CheckCircle2 size={20} style={{ color: p.done ? 'var(--color-success)' : 'var(--border-primary)', transition: 'color 0.25s ease', flexShrink: 0 }} />
-                ) : (
-                  <span className="badge badge-accent">GO ➔</span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── UNIFIED TIMELINE ───────────────────────────────────────────── */}
-      <div style={{ padding: 'var(--space-24) var(--space-24) 120px' }}>
-        <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase' }}>Today's Timeline</span>
-
-        {timeline.length === 0 ? (
-          <div className="empty-state" style={{ marginTop: 'var(--space-16)' }}>
-            <div className="empty-state-emoji">📊</div>
-            <div className="empty-state-title">Timeline awaiting entries.</div>
-            <div className="empty-state-subtitle">Start logging to see your day unfold.</div>
-          </div>
-        ) : (
-          <div style={{ marginTop: 'var(--space-16)', display: 'flex', flexDirection: 'column', gap: '0', borderLeft: `2px solid var(--border-primary)`, marginLeft: '7px', paddingLeft: 'var(--space-16)' }}>
-            {timeline.map((item, idx) => (
-              <div key={idx} style={{ position: 'relative', paddingBottom: 'var(--space-24)' }}>
-                {/* Dot */}
-                <div style={{
-                  position: 'absolute', left: '-23px', top: '4px',
-                  width: '10px', height: '10px', borderRadius: '50%',
-                  background: nodeColor[item.type] || 'var(--text-muted)',
-                  border: `2.5px solid var(--bg-root)`,
-                  boxShadow: `0 0 8px ${nodeColor[item.type] || 'var(--text-muted)'}60`,
-                }} />
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, marginBottom: 'var(--space-4)', letterSpacing: '0.5px' }}>{item.time}</div>
-                <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.4 }}>{item.text}</div>
-              </div>
-            ))}
-            {/* "now" marker */}
-            <div style={{ position: 'relative' }}>
-              <div style={{
-                position: 'absolute', left: '-23px', top: '3px',
-                width: '10px', height: '10px', borderRadius: '50%',
-                background: 'var(--color-accent)', border: `2.5px solid var(--bg-root)`,
-                boxShadow: `0 0 12px var(--color-accent)`,
-                animation: 'glowPulse 2s ease-in-out infinite',
-              }} />
-              <div style={{ fontSize: '9px', color: 'var(--color-accent)', fontWeight: 800, letterSpacing: '2px' }}>NOW</div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* DAILY REFLECTION POPUP */}
-      {showReflection && (
-        <div className="modal-overlay" style={{ background: '#000000B0', zIndex: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', inset: 0 }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #0D0D18, #111128)',
-            border: `1px solid var(--color-accent-dim)`,
-            borderRadius: 'var(--radius-card)', padding: 'var(--space-32) var(--space-24)',
-            textAlign: 'center', animation: 'scaleIn 0.4s ease',
-            maxWidth: '320px', width: '90%'
-          }}>
-            <div style={{ fontSize: '40px', marginBottom: 'var(--space-16)' }}>✏️</div>
-            <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 800, color: 'var(--color-accent)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 'var(--space-8)' }}>Daily Reflection</div>
-            <div style={{ fontSize: 'var(--fs-md)', fontWeight: 700, color: '#FFF', lineHeight: 1.5, marginBottom: 'var(--space-24)' }}>{reflectionQuestion}</div>
-            <textarea
-              autoFocus
-              value={reflectionText}
-              onChange={e => setReflectionText(e.target.value)}
-              placeholder="Type something short..."
-              rows={3}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {priorities.map((p) => (
+            <div
+              key={p.id}
+              onClick={() => togglePriority(p)}
               style={{
-                width: '100%', background: '#0A0A12', border: `1px solid var(--border-primary)`,
-                borderRadius: 'var(--radius-inner)', padding: 'var(--space-16)', color: '#FFF', fontSize: 'var(--fs-sm)',
-                resize: 'none', outline: 'none', fontFamily: 'inherit', marginBottom: 'var(--space-16)',
-                boxSizing: 'border-box', lineHeight: 1.5
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                userSelect: 'none',
+                opacity: p.done ? 0.6 : 1,
+                transition: 'opacity 0.2s',
               }}
-            />
-            <button
-              onClick={saveReflection}
-              className="btn-primary"
-              style={{ width: '100%', marginBottom: 'var(--space-8)' }}
             >
-              Save & Continue 🚀
-            </button>
-            <button
-              onClick={() => { setShowReflection(false); setTimeout(() => setShowCelebration(true), 300) }}
-              className="btn-ghost"
-              style={{ border: 'none', background: 'transparent', fontSize: 'var(--fs-xs)', width: '100%' }}
-            >
-              Skip for now
-            </button>
-          </div>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                border: `2px solid ${p.done ? '#14B8A6' : '#2E2F35'}`,
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: p.done ? '#14B8A6' : '#15181B',
+                transition: 'all 0.2s',
+              }}>
+                {p.done && <span style={{ fontSize: '12px', color: '#0B0D0F', fontWeight: 900 }}>✓</span>}
+              </div>
+              <span style={{
+                fontSize: '16px',
+                fontWeight: 700,
+                color: '#FFFFFF',
+                textDecoration: p.done ? 'line-through' : 'none',
+              }}>
+                {p.name}
+              </span>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
+
+      <div style={{ borderBottom: '1px solid #1C1D21' }} />
+
+      {/* One Insight */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>One Insight</div>
+        <p style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          color: '#E4E4E7',
+          lineHeight: 1.5,
+          margin: 0,
+        }}>
+          {oneInsight}
+        </p>
+      </div>
 
       {/* PERFECT DAY CELEBRATION */}
       {showCelebration && (
         <div className="modal-overlay" style={{ background: '#000000B0', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', inset: 0 }}>
-          <div style={{ background: 'var(--bg-card)', border: `1px solid var(--color-accent-cyan-dim)`, borderRadius: 'var(--radius-card)', padding: 'var(--space-24)', textAlign: 'center', animation: 'scaleIn 0.5s ease', maxWidth: '300px' }}>
-            <div style={{ fontSize: '52px', marginBottom: 'var(--space-8)' }}>🏆</div>
-            <div style={{ fontSize: 'var(--fs-xl)', color: 'var(--color-accent-cyan)', fontWeight: 900, marginBottom: 'var(--space-4)' }}>Perfect Day!</div>
-            <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-24)' }}>All habits completed today!</div>
-            
-            <div style={{ display: 'flex', gap: 'var(--space-8)', justifyContent: 'center', marginBottom: 'var(--space-24)' }}>
-              <span className="badge badge-cyan">💫 Perfect Day</span>
-              <span className="badge badge-success">{habits.length}/{habits.length} Done ✅</span>
-            </div>
-
-            <button onClick={() => setShowCelebration(false)} className="btn-primary" style={{ width: '100%' }}>Keep Going 🚀</button>
-          </div>
-        </div>
-      )}
-
-      {/* SKIP DIALOG */}
-      {skipTarget && (
-        <div className="modal-overlay" onClick={() => setSkipTarget(null)} style={{ background: '#000000B0', zIndex: 220, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', position: 'fixed', inset: 0 }}>
-          <div className="animate-slideUpModal" style={{ background: 'var(--bg-card)', borderTop: `1px solid var(--border-primary)`, borderRadius: '24px 24px 0 0', padding: 'var(--space-24)', width: '100%', maxWidth: '430px' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: 'var(--fs-lg)', marginBottom: 'var(--space-16)' }}>Skip today?</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-sm)', lineHeight: 1.6, marginBottom: 'var(--space-24)' }}>"{skipTarget.name}" — skipping won't break your streak today, but honesty maintains gravity.</p>
-            <div style={{ display: 'flex', gap: 'var(--space-8)' }}>
-              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setSkipTarget(null)}>Cancel</button>
-              <button className="btn-primary" style={{ flex: 1, background: 'var(--color-warning)' }} onClick={() => handleSkip(skipTarget)}>Skip Today</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* HABIT MODAL */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)} style={{ background: '#000000B0', zIndex: 220, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', position: 'fixed', inset: 0 }}>
-          <div className="animate-slideUpModal" style={{ background: 'var(--bg-card)', borderTop: `1px solid var(--border-primary)`, borderRadius: '24px 24px 0 0', padding: 'var(--space-24)', width: '100%', maxWidth: '430px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-24)' }}>
-              <h3 style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: 'var(--fs-lg)' }}>{editHabit ? 'Edit Habit' : 'New Habit'}</h3>
-              <div onClick={() => setShowModal(false)} style={{ color: 'var(--text-muted)', fontSize: '24px', cursor: 'pointer' }}>×</div>
-            </div>
-
-            <div style={{ marginBottom: 'var(--space-24)' }}>
-              <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-8)', letterSpacing: '1px' }}>HABIT NAME</label>
-              <input 
-                autoFocus 
-                placeholder="e.g., Read 10 pages" 
-                value={form.name} 
-                onChange={e => setForm({...form, name: e.target.value})} 
-                className="input"
-              />
-            </div>
-
-            <div style={{ marginBottom: 'var(--space-24)' }}>
-               <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-8)', letterSpacing: '1px' }}>ZONE</label>
-               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)' }}>
-                 {Object.entries({ mind: '🧠 Mind', body: '💪 Body', growth: '🌱 Growth', soul: '🔮 Soul' }).map(([k, v]) => (
-                   <div 
-                     key={k} 
-                     onClick={() => setForm({...form, zone: k})} 
-                     style={{ 
-                       padding: 'var(--space-16)', borderRadius: 'var(--radius-button)', 
-                       border: form.zone === k ? `1px solid ${ZONE_COLORS[k]}` : `1px solid var(--border-primary)`, 
-                       background: form.zone === k ? `${ZONE_COLORS[k]}10` : 'var(--bg-elevated)', 
-                       color: form.zone === k ? ZONE_COLORS[k] : 'var(--text-muted)', 
-                       textAlign: 'center', cursor: 'pointer', fontSize: 'var(--fs-sm)', fontWeight: 600, transition: 'all 0.2s' 
-                     }}
-                   >
-                     {v}
-                   </div>
-                 ))}
-               </div>
-            </div>
-
-            <div style={{ marginBottom: 'var(--space-24)' }}>
-              <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-8)', letterSpacing: '1px' }}>ICON</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 'var(--space-8)', maxHeight: '150px', overflowY: 'auto', padding: '4px' }}>
-                {['💧','🏃','📖','🧘','✍️','😴','💪','🔥','⭐','🎯','🌱','💡','🎨','🎵','🧠','❤️','🙏','💰','📚','🤝','🌊','☀️','🍎','🚴','🏋️'].map(e => (
-                  <div 
-                     key={e} 
-                     onClick={() => setForm({...form, icon: e})}
-                     style={{
-                       display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40px', borderRadius: '10px',
-                       background: form.icon === e ? `var(--color-accent-dim)` : 'var(--bg-elevated)',
-                       border: form.icon === e ? `1.5px solid var(--color-accent)` : `1px solid var(--border-primary)`,
-                       fontSize: '20px', cursor: 'pointer', transition: 'all 0.2s'
-                     }}
-                  >
-                    {e}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 'var(--space-24)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-16)' }}>
-                <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '1px' }}>SET REMINDER TIME</label>
-                <div 
-                  style={{ 
-                    width: '40px', height: '24px', 
-                    background: form.reminder_enabled ? 'var(--color-accent-cyan)' : 'var(--border-primary)', 
-                    borderRadius: '100px', position: 'relative', cursor: 'pointer', transition: '0.2s' 
-                  }} 
-                  onClick={() => setForm({...form, reminder_enabled: !form.reminder_enabled})}
-                >
-                  <div style={{ position: 'absolute', top: '2px', left: form.reminder_enabled ? '18px' : '2px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: '0.2s', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }} />
-                </div>
-              </div>
-              {form.reminder_enabled && (
-                <input 
-                  type="time" 
-                  value={form.reminder_time || ''} 
-                  onChange={e => setForm({...form, reminder_time: e.target.value})} 
-                  className="input"
-                />
-              )}
-            </div>
-
-            <button 
-              onClick={saveHabit}
-              className="btn-primary"
-              style={{ width: '100%', marginBottom: 'var(--space-8)' }}
-            >
-              {editHabit ? 'Save Changes' : 'Add Habit ✓'}
-            </button>
-            {editHabit && (
-              <button 
-                onClick={() => deleteHabit()}
-                className="btn-ghost"
-                style={{ width: '100%', color: 'var(--color-error)' }}
-              >
-                Delete Habit
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* DELETE CONFIRM MODAL */}
-      {deleteTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteTarget(null)} style={{ background: '#000000B0', zIndex: 220, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', position: 'fixed', inset: 0 }}>
-          <div className="animate-slideUpModal" style={{ background: 'var(--bg-card)', borderTop: `1px solid var(--border-primary)`, borderRadius: '24px 24px 0 0', padding: 'var(--space-24)', width: '100%', maxWidth: '430px' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: 'var(--fs-lg)', marginBottom: 'var(--space-16)' }}>Delete Habit?</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-sm)', lineHeight: 1.6, marginBottom: 'var(--space-24)' }}>"{deleteTarget.name}" will be permanently removed along with all its history.</p>
-            <div style={{ display: 'flex', gap: 'var(--space-8)' }}>
-              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setDeleteTarget(null)}>Cancel</button>
-              <button className="btn-primary" style={{ flex: 1, background: 'var(--color-error)' }} onClick={confirmDelete}>Delete</button>
-            </div>
+          <div style={{ background: '#15181B', border: '1px solid rgba(20, 184, 166, 0.2)', borderRadius: '16px', padding: '24px', textAlign: 'center', animation: 'scaleIn 0.5s ease', maxWidth: '300px' }}>
+            <div style={{ fontSize: '52px', marginBottom: '8px' }}>🏆</div>
+            <div style={{ fontSize: '20px', color: '#14B8A6', fontWeight: 900, marginBottom: '4px' }}>Perfect Day!</div>
+            <div style={{ fontSize: '14px', color: '#71717A', marginBottom: '24px' }}>All habits completed today!</div>
+            <button onClick={() => setShowCelebration(false)} className="btn-primary" style={{ width: '100%', padding: '10px', background: '#14B8A6', border: 'none', borderRadius: '8px', color: '#0B0D0F', fontWeight: 800, cursor: 'pointer' }}>Keep Going 🚀</button>
           </div>
         </div>
       )}
@@ -1630,60 +1103,35 @@ export default function Zenith() {
       {showWeeklyReview && (
         <div className="modal-overlay" style={{ background: '#000000D0', zIndex: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', inset: 0 }}>
           <div style={{
-            background: 'var(--bg-card)',
-            border: `1px solid var(--color-accent-dim)`, borderRadius: 'var(--radius-card)',
-            padding: 'var(--space-32) var(--space-24)', maxWidth: '340px', width: '92%',
+            background: '#15181B',
+            border: '1px solid rgba(20, 184, 166, 0.2)', borderRadius: '16px',
+            padding: '32px 24px', maxWidth: '340px', width: '92%',
             animation: 'scaleIn 0.4s ease'
           }}>
-            <div style={{ textAlign: 'center', marginBottom: 'var(--space-24)' }}>
-              <div style={{ fontSize: '42px', marginBottom: 'var(--space-8)' }}>📊</div>
-              <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 900, color: '#FFF', marginBottom: 'var(--space-4)' }}>Week Wrapped</div>
-              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>Your weekly report</div>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{ fontSize: '42px', marginBottom: '8px' }}>📊</div>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: '#FFF', marginBottom: '4px' }}>Week Wrapped</div>
+              <div style={{ fontSize: '10px', color: '#71717A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>Your weekly report</div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', marginBottom: 'var(--space-24)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '24px' }}>
               {[
-                { label: 'Completions', value: activity.filter(l => {
-                  const thisWeekDates = Array.from({ length: 7 }, (_, i) => {
-                    const d = new Date(); d.setDate(d.getDate() - (6 - i))
-                    return d.toLocaleDateString('en-CA')
-                  })
-                  return thisWeekDates.includes(l.completed_date) && l.status === 'completed'
-                }).length, color: 'var(--color-accent-cyan)', icon: '✅' },
-                { label: 'Best Streak', value: `${bestStreak}d`, color: 'var(--color-warning)', icon: '🔥' },
-                { label: 'Gravity', value: osScore, color: 'var(--color-accent)', icon: '⚡' },
+                { label: 'Streak', value: `${bestStreak}d`, color: '#F59E0B', icon: '🔥' },
+                { label: 'Gravity', value: osScore, color: '#14B8A6', icon: '⚡' },
               ].map((s, i) => (
-                <div key={i} style={{ background: 'var(--bg-elevated)', border: `1px solid var(--border-primary)`, borderRadius: 'var(--radius-inner)', padding: 'var(--space-16)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '18px', marginBottom: 'var(--space-4)' }}>{s.icon}</div>
-                  <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 900, color: s.color, marginBottom: '2px' }}>{s.value}</div>
-                  <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</div>
+                <div key={i} style={{ background: '#1C1D21', border: '1px solid #2E2F35', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '18px', marginBottom: '4px' }}>{s.icon}</div>
+                  <div style={{ fontSize: '18px', fontWeight: 900, color: s.color, marginBottom: '2px' }}>{s.value}</div>
+                  <div style={{ fontSize: '9px', color: '#71717A', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</div>
                 </div>
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: 'var(--space-8)' }}>
-              <button
-                onClick={() => {
-                  const weekComps = activity.filter(l => {
-                    const thisWeekDates = Array.from({ length: 7 }, (_, i) => {
-                      const d = new Date(); d.setDate(d.getDate() - (6 - i))
-                      return d.toLocaleDateString('en-CA')
-                    })
-                    return thisWeekDates.includes(l.completed_date) && l.status === 'completed'
-                  }).length
-                  const text = `🏆 My Zyrbit Week Wrapped!\n✅ ${weekComps} habits done\n🔥 ${bestStreak} day streak\n⚡ DEX Index: ${osScore}\n\nBuilding habits, one day at a time. #Zyrbit`
-                  if (navigator.share) navigator.share({ text }).catch(() => {})
-                  else { navigator.clipboard.writeText(text); showToast('📋 Copied to clipboard!', 'success') }
-                }}
-                className="btn-primary"
-                style={{ flex: 1 }}
-              >
-                Share 📤
-              </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={dismissWeeklyReview}
                 className="btn-secondary"
-                style={{ flex: 1 }}
+                style={{ flex: 1, padding: '10px', background: '#2E2F35', border: 'none', borderRadius: '8px', color: '#FFF', fontWeight: 800, cursor: 'pointer' }}
               >
                 Done ✓
               </button>
@@ -1693,10 +1141,6 @@ export default function Zenith() {
       )}
 
       <BottomNav activeTab="zenith" onTabChange={(t) => navigate(`/${t}`)} />
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 }

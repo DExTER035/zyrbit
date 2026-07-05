@@ -1,4 +1,4 @@
-// ── Zyrbit Analytics & Beta Tracking ────────────────────────────────────────
+// ── DexOS Analytics & Beta Tracking ────────────────────────────────────────
 // Lightweight event tracking system for beta monitoring.
 // All events are stored in Supabase analytics_events table.
 

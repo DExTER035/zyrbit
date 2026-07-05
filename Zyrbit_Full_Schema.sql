@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS growth_projects (
 CREATE TABLE IF NOT EXISTS growth_tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
-  project_id UUID REFERENCES growth_projects ON DELETE CASCADE NOT NULL,
+  project_id UUID REFERENCES growth_projects ON DELETE CASCADE,
   name TEXT NOT NULL,
   priority INT DEFAULT 3, -- 1=critical, 2=high, 3=normal
   status TEXT DEFAULT 'todo', -- todo | done

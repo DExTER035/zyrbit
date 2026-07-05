@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ZyrbitMark } from '../components/Logo.jsx'
+import { DexOSMark } from '../components/Logo.jsx'
 
 const CYAN = '#5EE6F5'
 
@@ -103,7 +103,7 @@ export default function WelcomeAnimation({ userName, onComplete }) {
             animation: phase >= 1 ? 'popIn 0.5s ease forwards' : 'none',
             opacity: phase >= 1 ? 1 : 0,
           }}>
-            <ZyrbitMark size={64} variant="default" />
+            <DexOSMark size={64} variant="default" />
           </div>
         </div>
 
@@ -115,14 +115,14 @@ export default function WelcomeAnimation({ userName, onComplete }) {
           boxSizing: 'border-box',
           marginTop: -12,
         }}>
-          {/* "Welcome to Zyrbit," */}
+          {/* "Welcome to DexOS," */}
           <div style={{
             fontSize: 13, color: 'var(--text-muted)',
             fontWeight: 500, letterSpacing: '0.3px',
             marginBottom: 10,
             ...fadeIn(2),
           }}>
-            Welcome to Zyrbit,
+            Welcome to DexOS,
           </div>
 
           {/* User name */}

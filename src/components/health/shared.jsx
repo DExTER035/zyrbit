@@ -3,27 +3,27 @@ import React from 'react';
 import { X } from 'lucide-react';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
+// Aligned with DexOS Design System v1 finalised spec
 export const C = {
-  bg:      '#05050B',
-  surface: '#0B0B14',
-  elev:    '#111118',
-  border:  '#1A1A28',
-  border2: '#242436',
-  text:    '#E8E8F0',
-  sub:     '#9292AA',
-  muted:   '#525270',
-  dim:     '#32324A',
-  
-  // Health specific colors
-  recovery:  '#10B981', // emerald
-  sleep:     '#8B5CF6', // purple
-  water:     '#06B6D4', // cyan
-  nutrition: '#F59E0B', // amber
-  activity:  '#EC4899', // pink
-  weight:    '#3B82F6', // blue
-  
-  // Capacity states
-  optimal:   '#10B981',
+  bg:      '#0B0D0F',
+  surface: '#15181B',
+  elev:    '#1B1F23',
+  border:  '#1E2126',
+  border2: '#262B31',
+  text:    '#F8FAFC',
+  sub:     '#94A3B8',
+  muted:   '#64748B',
+  dim:     '#2A3038',
+
+  // Health pillar accent
+  recovery:  '#14B8A6', // teal — brand accent for Health
+  sleep:     '#818CF8', // indigo
+  water:     '#38BDF8', // sky blue
+  nutrition: '#FBBF24', // amber
+  activity:  '#34D399', // emerald green
+
+  // Capacity state indicators
+  optimal:   '#22C55E',
   moderate:  '#F59E0B',
   depleted:  '#EF4444',
 };
@@ -45,11 +45,14 @@ export function fmtHours(hours) {
 // ─── Shared UI Elements ────────────────────────────────────────────────────────
 export const Card = ({ children, accent, onClick, style = {} }) => (
   <div onClick={onClick} style={{
-    background: C.surface, border: `1px solid ${C.border}`,
-    borderLeft: accent ? `3.5px solid ${accent}` : `1px solid ${C.border}`,
-    borderRadius: '20px', padding: '16px 18px',
+    background: C.surface,
+    border: `1px solid ${C.border}`,
+    borderLeft: accent ? `3px solid ${accent}` : `1px solid ${C.border}`,
+    borderRadius: '20px',
+    padding: '16px 18px',
     cursor: onClick ? 'pointer' : 'default',
-    transition: 'border-color 0.2s', ...style,
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    ...style,
   }}>
     {children}
   </div>
@@ -71,11 +74,11 @@ export const Pill = ({ label, color = C.muted }) => (
 );
 
 export const Modal = ({ title, onClose, children }) => (
-  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-    <div style={{ background: C.surface, border: `1px solid ${C.border2}`, borderRadius: '24px 24px 0 0', width: '100%', maxWidth: '430px', padding: '20px 20px 48px', animation: 'slideUpModal 0.25s cubic-bezier(0.4,0,0.2,1)', maxHeight: '85vh', overflowY: 'auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <span style={{ fontSize: '15px', fontWeight: 800, color: C.text }}>{title}</span>
-        <button onClick={onClose} style={{ background: C.dim, border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: C.sub }}>
+  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(16px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+    <div style={{ background: C.surface, border: `1px solid ${C.border2}`, borderRadius: '24px 24px 0 0', width: '100%', maxWidth: '430px', padding: '24px 20px 52px', animation: 'slideUpModal 0.25s cubic-bezier(0.4,0,0.2,1)', maxHeight: '85vh', overflowY: 'auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <span style={{ fontSize: '16px', fontWeight: 800, color: C.text }}>{title}</span>
+        <button onClick={onClose} style={{ background: C.dim, border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: C.sub }}>
           <X size={14} />
         </button>
       </div>
@@ -83,8 +86,8 @@ export const Modal = ({ title, onClose, children }) => (
     </div>
     <style>{`
       @keyframes slideUpModal {
-        from { transform: translateY(100%); }
-        to { transform: translateY(0); }
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
       }
     `}</style>
   </div>
@@ -96,7 +99,7 @@ export const FInput = ({ placeholder, value, onChange, type = 'text', style = {}
 );
 
 export const FLabel = ({ children }) => (
-  <div style={{ fontSize: '10px', color: C.muted, fontWeight: 700, marginBottom: '6px', letterSpacing: '0.5px' }}>{children}</div>
+  <div style={{ fontSize: '10px', color: C.muted, fontWeight: 700, marginBottom: '8px', letterSpacing: '0.8px', textTransform: 'uppercase' }}>{children}</div>
 );
 
 export const FSelect = ({ value, onChange, children, style = {} }) => (

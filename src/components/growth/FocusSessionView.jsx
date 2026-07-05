@@ -1,26 +1,17 @@
-import React from 'react';
-import { ChevronLeft, CheckCircle2, Play, Pause, Square, Timer } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Play, Pause, Check } from 'lucide-react';
 import {
   C,
   fmtTime,
-  fmtHours,
-  FLabel,
   BtnPrimary
 } from './shared.jsx';
 
 export default function FocusSessionView({
   focusMode,
-  setFocusMode,
-  projects,
-  skills,
   focusProject,
-  setFocusProject,
-  focusSkill,
-  setFocusSkill,
+  focusNotes,
   focusType,
-  setFocusType,
   focusTimedMin,
-  setFocusTimedMin,
   focusElapsed,
   focusPaused,
   setFocusPaused,
@@ -29,133 +20,231 @@ export default function FocusSessionView({
   endFocusSession,
   closeFocusDone
 }) {
-  // ─── Setup Screen ─────────────────────────────────────────────────────────
-  if (focusMode === 'setup') {
-    return (
-      <div style={{ background: C.bg, minHeight: '100vh', padding: '28px 20px', display: 'flex', flexDirection: 'column', gap: '20px', color: C.text }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button onClick={() => setFocusMode(null)} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '8px 10px', cursor: 'pointer', color: C.sub }}>
-            <ChevronLeft size={18} />
-          </button>
-          <span style={{ fontSize: '18px', fontWeight: 800 }}>Start Focus</span>
-        </div>
+  // If we ever get directed to the legacy setup state, instantly trigger the session
+  useEffect(() => {
+    if (focusMode === 'setup') {
+      startFocusSession();
+    }
+  }, [focusMode, startFocusSession]);
 
-        <div>
-          <FLabel>PROJECT (REQUIRED)</FLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {projects.length === 0 && <div style={{ color: C.muted, fontSize: '12px' }}>Create a project first.</div>}
-            {projects.map(p => (
-              <div key={p.id} onClick={() => setFocusProject(focusProject?.id === p.id ? null : p)}
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', background: focusProject?.id === p.id ? `${C.focus}18` : C.surface, border: `1px solid ${focusProject?.id === p.id ? C.focus : C.border}`, borderRadius: '14px', padding: '12px 14px', cursor: 'pointer', transition: 'all 0.2s' }}>
-                <span style={{ fontSize: '18px' }}>{p.icon}</span>
-                <span style={{ fontSize: '13px', fontWeight: 700, flex: 1 }}>{p.name}</span>
-                {focusProject?.id === p.id && <CheckCircle2 size={16} color={C.focus} />}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <FLabel>SKILL — EARNS HOURS (OPTIONAL)</FLabel>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {skills.map(s => (
-              <button key={s.id} onClick={() => setFocusSkill(focusSkill?.id === s.id ? null : s)}
-                style={{ background: focusSkill?.id === s.id ? `${C.skill}20` : C.surface, border: `1px solid ${focusSkill?.id === s.id ? C.skill : C.border}`, borderRadius: '10px', padding: '6px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: focusSkill?.id === s.id ? C.skill : C.sub, transition: 'all 0.2s' }}>
-                {s.icon} {s.name}
-              </button>
-            ))}
-            {skills.length === 0 && <span style={{ fontSize: '12px', color: C.muted }}>Add skills in the Skills tab.</span>}
-          </div>
-        </div>
-
-        <div>
-          <FLabel>TIMER MODE</FLabel>
-          <div style={{ display: 'flex', gap: '10px', marginBottom: focusType === 'timed' ? '10px' : 0 }}>
-            {[{ id: 'open', label: 'Open Session', sub: 'End when done', icon: '∞' }, { id: 'timed', label: 'Timed', sub: `${focusTimedMin}m`, icon: '⏱' }].map(m => (
-              <div key={m.id} onClick={() => setFocusType(m.id)}
-                style={{ flex: 1, background: focusType === m.id ? `${C.focus}15` : C.surface, border: `1px solid ${focusType === m.id ? C.focus : C.border}`, borderRadius: '14px', padding: '14px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}>
-                <div style={{ fontSize: '18px', marginBottom: '4px' }}>{m.icon}</div>
-                <div style={{ fontSize: '12px', fontWeight: 800, color: focusType === m.id ? C.focus : C.text }}>{m.label}</div>
-                <div style={{ fontSize: '10px', color: C.muted, marginTop: '2px' }}>{m.sub}</div>
-              </div>
-            ))}
-          </div>
-          {focusType === 'timed' && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {[25, 45, 60, 90].map(m => (
-                <button key={m} onClick={() => setFocusTimedMin(m)}
-                  style={{ flex: 1, background: focusTimedMin === m ? C.focus : C.surface, border: `1px solid ${focusTimedMin === m ? C.focus : C.border}`, borderRadius: '10px', padding: '8px', fontSize: '12px', fontWeight: 800, color: focusTimedMin === m ? '#fff' : C.sub, cursor: 'pointer' }}>
-                  {m}m
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <BtnPrimary label="⚡ Start Session" onClick={startFocusSession} color={C.focus} disabled={!focusProject} />
-      </div>
-    );
-  }
+  // Color tokens aligned to specification
+  const ACCENT = '#14B8A6';
+  const BG_COLOR = '#0B0D0F';
+  const SURFACE_COLOR = '#15181B';
 
   // ─── Active Screen ────────────────────────────────────────────────────────
   if (focusMode === 'active') {
+    const isTimed = focusType === 'timed';
+    const displaySecs = isTimed 
+      ? Math.max(0, focusTimedMin * 60 - focusElapsed) 
+      : focusElapsed;
+
     return (
-      <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '32px', padding: '40px 20px', color: C.text }}>
-        <div style={{ position: 'relative', width: '200px', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `2px solid ${C.focus}30`, animation: 'pulse-ring 2s ease-in-out infinite' }} />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '44px', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '-2px' }}>{fmtTime(focusElapsed)}</div>
-            <div style={{ fontSize: '10px', color: focusPaused ? C.warn : C.focus, fontWeight: 800, letterSpacing: '2px', marginTop: '4px' }}>
-              {focusPaused ? 'PAUSED' : 'FOCUSED'}
-            </div>
+      <div style={{
+        background: BG_COLOR,
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '60px 24px 80px',
+        color: C.text,
+        fontFamily: 'Inter, sans-serif'
+      }}>
+        {/* Topic Header */}
+        <div style={{ textAlign: 'center', width: '100%', maxWidth: '360px' }}>
+          <div style={{ fontSize: '11px', color: ACCENT, fontWeight: 800, letterSpacing: 'var(--ls-caps)', textTransform: 'uppercase', marginBottom: '8px' }}>
+            {focusProject ? `${focusProject.icon} ${focusProject.name}` : 'General Focus'}
+          </div>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: C.text, wordBreak: 'break-word', lineHeight: 1.4 }}>
+            {focusNotes || 'Focused Work'}
+          </h2>
+        </div>
+
+        {/* Hero Large Timer */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{
+            fontSize: '76px',
+            fontWeight: 900,
+            fontFamily: 'monospace',
+            letterSpacing: '-2px',
+            color: focusPaused ? C.sub : '#fff',
+            lineHeight: 1,
+            transition: 'color 0.3s'
+          }}>
+            {fmtTime(displaySecs)}
+          </div>
+          <div style={{
+            fontSize: '11px',
+            color: focusPaused ? C.warn : ACCENT,
+            fontWeight: 800,
+            letterSpacing: '2.5px',
+            marginTop: '16px',
+            textTransform: 'uppercase'
+          }}>
+            {focusPaused ? 'PAUSED' : 'FOCUSED'}
           </div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '16px', fontWeight: 800 }}>{focusProject?.icon} {focusProject?.name}</div>
-          {focusSkill && <div style={{ fontSize: '12px', color: C.skill, fontWeight: 700, marginTop: '4px' }}>+Hours → {focusSkill.icon} {focusSkill.name}</div>}
-        </div>
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <button onClick={() => setFocusPaused(p => !p)} style={{ width: '64px', height: '64px', borderRadius: '50%', background: C.surface, border: `1px solid ${C.border2}`, color: C.sub, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            {focusPaused ? <Play size={22} /> : <Pause size={22} />}
+
+        {/* Exactly 3 Controls (Pause, Resume, Finish) */}
+        <div style={{ display: 'flex', gap: '16px', width: '100%', maxWidth: '320px', justifyContent: 'center' }}>
+          {!focusPaused ? (
+            <button
+              onClick={() => setFocusPaused(true)}
+              style={{
+                flex: 1,
+                padding: '16px',
+                borderRadius: '16px',
+                background: SURFACE_COLOR,
+                border: `1px solid ${C.border}`,
+                color: C.text,
+                fontSize: '14px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                outline: 'none',
+                transition: 'all 0.2s'
+              }}
+            >
+              <Pause size={16} /> Pause
+            </button>
+          ) : (
+            <button
+              onClick={() => setFocusPaused(false)}
+              style={{
+                flex: 1,
+                padding: '16px',
+                borderRadius: '16px',
+                background: `${ACCENT}15`,
+                border: `1px solid ${ACCENT}`,
+                color: ACCENT,
+                fontSize: '14px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                outline: 'none',
+                transition: 'all 0.2s'
+              }}
+            >
+              <Play size={16} /> Resume
+            </button>
+          )}
+
+          <button
+            onClick={() => endFocusSession(focusElapsed)}
+            style={{
+              flex: 1,
+              padding: '16px',
+              borderRadius: '16px',
+              background: C.danger,
+              border: 'none',
+              color: '#fff',
+              fontSize: '14px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              outline: 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Check size={16} /> Finish
           </button>
-          <button onClick={() => endFocusSession()} style={{ width: '64px', height: '64px', borderRadius: '50%', background: C.danger, border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <Square size={22} />
-          </button>
         </div>
-        {focusType === 'timed' && (
-          <div style={{ fontSize: '11px', color: C.dim }}>{Math.max(0, Math.ceil((focusTimedMin * 60 - focusElapsed) / 60))}m remaining</div>
-        )}
-        <style>{`
-          @keyframes pulse-ring {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50%       { transform: scale(1.05); opacity: 1; }
-          }
-        `}</style>
       </div>
     );
   }
 
   // ─── Completed Screen ─────────────────────────────────────────────────────
   if (focusMode === 'done') {
+    const encouragement = focusDoneMin >= 45 
+      ? "Exceptional focus. You are building momentum." 
+      : focusDoneMin >= 25 
+        ? "Great session. Consistency is the secret." 
+        : "Every minute counts. Keep going.";
+
     return (
-      <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', gap: '24px', color: C.text }}>
-        <div style={{ fontSize: '13px', color: C.muted, fontWeight: 800, letterSpacing: '2px' }}>SESSION COMPLETE</div>
-        <div style={{ width: '140px', height: '140px', borderRadius: '50%', border: `3px solid ${C.focus}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 48px ${C.focus}30` }}>
-          <span style={{ fontSize: '42px', fontWeight: 900, color: C.focus }}>{focusDoneMin}</span>
-          <span style={{ fontSize: '11px', color: C.muted, fontWeight: 800 }}>MINUTES</span>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '15px', fontWeight: 800 }}>{focusProject?.icon} {focusProject?.name}</div>
-          {focusSkill && (
-            <div style={{ marginTop: '10px', background: `${C.skill}12`, border: `1px solid ${C.skill}40`, borderRadius: '12px', padding: '8px 16px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 800, color: C.skill }}>+{fmtHours(focusDoneMin)} → {focusSkill.icon} {focusSkill.name}</span>
-            </div>
-          )}
-          <div style={{ fontSize: '12px', color: C.muted, marginTop: '10px', lineHeight: 1.5 }}>
-            {focusDoneMin >= 90 ? 'Deep work done. Rest, then go again.' : focusDoneMin >= 45 ? 'Good session. Keep building the habit.' : 'Every minute counts. Come back soon.'}
+      <div style={{
+        background: BG_COLOR,
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 24px',
+        color: C.text,
+        fontFamily: 'Inter, sans-serif'
+      }}>
+        <div style={{
+          width: '100%',
+          maxWidth: '360px',
+          background: SURFACE_COLOR,
+          border: `1px solid ${C.border}`,
+          borderRadius: '24px',
+          padding: '32px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '24px',
+          boxShadow: '0 12px 48px rgba(0,0,0,0.4)'
+        }}>
+          <div style={{ fontSize: '11px', color: ACCENT, fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase' }}>
+            Session Complete
           </div>
+
+          <div style={{
+            width: '110px',
+            height: '110px',
+            borderRadius: '50%',
+            border: `3px solid ${ACCENT}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: `0 0 32px ${ACCENT}20`
+          }}>
+            <span style={{ fontSize: '38px', fontWeight: 900, color: ACCENT }}>{focusDoneMin}m</span>
+          </div>
+
+          {/* Calm Telemetry Summary */}
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: `1px solid ${C.border2}`, fontSize: '13px' }}>
+              <span style={{ color: C.sub }}>Focus Time</span>
+              <strong style={{ color: C.text }}>{focusDoneMin} mins</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: `1px solid ${C.border2}`, fontSize: '13px' }}>
+              <span style={{ color: C.sub }}>XP Earned</span>
+              <strong style={{ color: ACCENT }}>+{focusDoneMin} XP</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: '13px' }}>
+              <span style={{ color: C.sub }}>Topic</span>
+              <strong style={{ color: C.text, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '160px' }}>
+                {focusNotes || 'Focused Work'}
+              </strong>
+            </div>
+          </div>
+
+          {/* Encourage sentence */}
+          <p style={{
+            fontSize: '13px',
+            color: C.sub,
+            lineHeight: 1.5,
+            textAlign: 'center',
+            margin: '8px 0 0',
+            fontStyle: 'italic'
+          }}>
+            "{encouragement}"
+          </p>
+
+          <BtnPrimary label="Done" onClick={closeFocusDone} color={ACCENT} style={{ marginTop: '8px' }} />
         </div>
-        <BtnPrimary label="Done" onClick={closeFocusDone} color={C.growth} style={{ maxWidth: '340px' }} />
       </div>
     );
   }

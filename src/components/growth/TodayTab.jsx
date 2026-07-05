@@ -1,5 +1,5 @@
-import React from 'react';
-import { Bolt, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bolt, AlertTriangle, Plus } from 'lucide-react';
 import {
   C,
   fmtHours,
@@ -18,35 +18,348 @@ export default function TodayTab({
   dexosInsight,
   setTab,
   completeTask,
-  setModalProject,
+  deleteTask,
+  addTask,
+  projects,
   projectMap,
   heatmapData = {},
-  navigate
+  navigate,
+  onInstantFocus,
+  focusProject,
+  setFocusProject
 }) {
   const sp = sprintProgress;
+  const ACCENT = '#14B8A6';
+  const CARD_BG = '#1B1F23';
+  const SURFACE_BG = '#15181B';
+
+  // State for Today's Focus Hero Card
+  const [topic, setTopic] = useState('');
+  const [duration, setDuration] = useState(25);
+  const [showCustomSetup, setShowCustomSetup] = useState(false);
+
+  // State for inline task creator
+  const [taskName, setTaskName] = useState('');
+  const [selectedTaskProject, setSelectedTaskProject] = useState('');
+
+  const handleStartSession = () => {
+    onInstantFocus('timed', duration, topic || 'General Focus', focusProject);
+  };
+
+  const handleStartPreset = (mins) => {
+    onInstantFocus('timed', mins, 'General Focus', null);
+  };
+
+  const handleAddTaskSubmit = (e) => {
+    e.preventDefault();
+    if (!taskName.trim()) return;
+    addTask(taskName, selectedTaskProject || null);
+    setTaskName('');
+    setSelectedTaskProject('');
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Cold start onboarding project CTA */}
-      {Object.keys(projectMap).length === 0 && (
-        <div onClick={() => setModalProject(true)}
-          style={{
-            background: `linear-gradient(135deg, ${C.growth}15, ${C.focus}08)`,
-            border: `1.5px dashed ${C.growth}40`,
-            borderRadius: '20px',
-            padding: '24px 20px',
-            textAlign: 'center',
-            cursor: 'pointer',
-            transition: 'border-color 0.2s'
-          }}
-        >
-          <div style={{ fontSize: '32px', marginBottom: '8px' }}>🌱</div>
-          <div style={{ fontSize: '15px', fontWeight: 800, color: C.text, marginBottom: '6px' }}>Create Your First Project</div>
-          <p style={{ fontSize: '12px', color: C.muted, lineHeight: 1.5, margin: '0 auto', maxWidth: '320px' }}>
-            Growth tracking requires projects. Define a skill, area, or focus to start logging tasks and focus sessions.
-          </p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', fontFamily: 'Inter, sans-serif' }}>
+      
+      {/* ── HERO: TODAY'S FOCUS ── */}
+      <div style={{
+        background: CARD_BG,
+        border: `1px solid ${C.border}`,
+        borderRadius: '24px',
+        padding: '24px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+      }}>
+        <div>
+          <div style={{ fontSize: '10px', color: ACCENT, fontWeight: 800, letterSpacing: 'var(--ls-caps)', textTransform: 'uppercase', marginBottom: '4px' }}>
+            Today's Focus
+          </div>
+          <div style={{ fontSize: '12px', color: C.sub }}>Start a focused session in one tap</div>
         </div>
-      )}
+
+        {/* 1-Tap Preset Focus Pills */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          {[25, 45, 60, 90].map(mins => (
+            <button
+              key={mins}
+              type="button"
+              onClick={() => handleStartPreset(mins)}
+              style={{
+                padding: '12px',
+                borderRadius: '12px',
+                background: SURFACE_BG,
+                border: `1px solid ${C.border}`,
+                color: C.text,
+                fontSize: '13px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                outline: 'none',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = ACCENT;
+                e.currentTarget.style.background = `${ACCENT}08`;
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = C.border;
+                e.currentTarget.style.background = SURFACE_BG;
+              }}
+            >
+              ⚡ {mins}m
+            </button>
+          ))}
+        </div>
+
+        {/* Divider & Custom Expander Button */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
+          <button
+            type="button"
+            onClick={() => setShowCustomSetup(p => !p)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: ACCENT,
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              outline: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            {showCustomSetup ? '▲ Hide Custom Options' : '▼ Custom Session Setup'}
+          </button>
+        </div>
+
+        {/* Collapsible Custom Setup Section */}
+        {showCustomSetup && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '10px', borderTop: `1px solid ${C.border2}`, animation: 'fadeSlideUp 0.2s ease-out' }}>
+            {/* Focus Topic Input */}
+            <div>
+              <div style={{ fontSize: '10px', color: C.muted, fontWeight: 700, letterSpacing: 'var(--ls-caps)', textTransform: 'uppercase', marginBottom: '6px' }}>Topic</div>
+              <input
+                type="text"
+                placeholder="What are you working on?..."
+                value={topic}
+                onChange={e => setTopic(e.target.value)}
+                style={{
+                  background: SURFACE_BG,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: '12px',
+                  color: C.text,
+                  padding: '12px 14px',
+                  fontSize: '14px',
+                  width: '100%',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+              />
+            </div>
+
+            {/* Optional Project Selector */}
+            {projects && projects.length > 0 && (
+              <div>
+                <div style={{ fontSize: '10px', color: C.muted, fontWeight: 700, letterSpacing: 'var(--ls-caps)', textTransform: 'uppercase', marginBottom: '6px' }}>Project</div>
+                <select
+                  value={focusProject?.id || ''}
+                  onChange={e => {
+                    const found = projects.find(p => p.id === e.target.value);
+                    setFocusProject(found || null);
+                  }}
+                  style={{
+                    background: SURFACE_BG,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: '12px',
+                    color: C.text,
+                    padding: '12px 14px',
+                    fontSize: '13px',
+                    width: '100%',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="">None (General Focus)</option>
+                  {projects.map(p => (
+                    <option key={p.id} value={p.id}>{p.icon} {p.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Custom Duration Selection */}
+            <div>
+              <div style={{ fontSize: '10px', color: C.muted, fontWeight: 700, letterSpacing: 'var(--ls-caps)', textTransform: 'uppercase', marginBottom: '6px' }}>Duration</div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[25, 45, 60].map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setDuration(m)}
+                    style={{
+                      flex: 1,
+                      padding: '10px 8px',
+                      borderRadius: '10px',
+                      background: duration === m ? `${ACCENT}15` : SURFACE_BG,
+                      border: `1px solid ${duration === m ? ACCENT : C.border}`,
+                      color: duration === m ? ACCENT : C.sub,
+                      fontSize: '12px',
+                      fontWeight: 850,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      outline: 'none'
+                    }}
+                  >
+                    {m} min
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <button
+              onClick={handleStartSession}
+              style={{
+                width: '100%',
+                padding: '14px',
+                borderRadius: '12px',
+                background: ACCENT,
+                border: 'none',
+                color: '#000',
+                fontSize: '14px',
+                fontWeight: 900,
+                cursor: 'pointer',
+                textAlign: 'center',
+                outline: 'none',
+                boxShadow: `0 4px 14px ${ACCENT}30`,
+                transition: 'opacity 0.2s',
+                marginTop: '6px'
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = 0.9}
+              onMouseLeave={e => e.currentTarget.style.opacity = 1}
+            >
+              START CUSTOM SESSION
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── LIGHTWEIGHT TASKS SECTION ── */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <SectionLabel>Tasks</SectionLabel>
+          <span style={{ fontSize: '11px', color: C.muted }}>{todayView.doToday.length} open today</span>
+        </div>
+
+        {/* Inline Task Creator */}
+        <form onSubmit={handleAddTaskSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="text"
+              placeholder="Add a task deserving your focus..."
+              value={taskName}
+              onChange={e => setTaskName(e.target.value)}
+              style={{
+                flex: 1,
+                background: CARD_BG,
+                border: `1px solid ${C.border}`,
+                borderRadius: '12px',
+                color: C.text,
+                padding: '10px 12px',
+                fontSize: '13px',
+                outline: 'none'
+              }}
+            />
+            <button
+              type="submit"
+              disabled={!taskName.trim()}
+              style={{
+                padding: '10px 14px',
+                borderRadius: '12px',
+                background: taskName.trim() ? ACCENT : C.dim,
+                border: 'none',
+                color: taskName.trim() ? '#000' : C.muted,
+                cursor: taskName.trim() ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                outline: 'none'
+              }}
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+
+          {/* Optional inline project assignment for task */}
+          {projects && projects.length > 0 && taskName.trim() && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '4px' }}>
+              <span style={{ fontSize: '10px', color: C.muted }}>Assign Project (optional):</span>
+              <select
+                value={selectedTaskProject}
+                onChange={e => setSelectedTaskProject(e.target.value)}
+                style={{
+                  background: SURFACE_BG,
+                  border: `1px solid ${C.border2}`,
+                  borderRadius: '6px',
+                  color: C.sub,
+                  padding: '2px 6px',
+                  fontSize: '10px',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="">None</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>{p.icon} {p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </form>
+
+        {/* Task Lists */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {todayView.overdue.length === 0 && todayView.doToday.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '20px',
+              border: `1px dashed ${C.border}`,
+              borderRadius: '14px',
+              fontSize: '12px',
+              color: C.muted
+            }}>
+              No tasks left. Focus on your topic above.
+            </div>
+          ) : (
+            <>
+              {todayView.overdue.map(t => (
+                <TaskRow
+                  key={t.id}
+                  task={t}
+                  onComplete={completeTask}
+                  onDelete={deleteTask}
+                  projectName={projectMap[t.project_id]?.name}
+                />
+              ))}
+              {todayView.doToday.map(t => (
+                <TaskRow
+                  key={t.id}
+                  task={t}
+                  onComplete={completeTask}
+                  onDelete={deleteTask}
+                  projectName={projectMap[t.project_id]?.name}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Sprint focus target */}
       {activeSprint && sp && (
@@ -66,33 +379,6 @@ export default function TodayTab({
             </span>
           </div>
           <ProgressBar value={todayFocusMin} max={activeSprint.daily_focus_minutes} color={todayFocusMin >= activeSprint.daily_focus_minutes ? C.goal : C.sprint} height={5} />
-        </div>
-      )}
-
-      {/* Overdue */}
-      {todayView.overdue.length > 0 && (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <AlertTriangle size={13} color={C.danger} />
-            <SectionLabel>OVERDUE ({todayView.overdue.length})</SectionLabel>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {todayView.overdue.map(t => (
-              <TaskRow key={t.id} task={t} onComplete={completeTask} projectName={projectMap[t.project_id]?.name} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Do Today */}
-      {todayView.doToday.length > 0 && (
-        <div>
-          <SectionLabel>📍 DO TODAY</SectionLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {todayView.doToday.map(t => (
-              <TaskRow key={t.id} task={t} onComplete={completeTask} projectName={projectMap[t.project_id]?.name} />
-            ))}
-          </div>
         </div>
       )}
 

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <!--
-    Zyrbit App Icon — Execution 2: Accent Container
+    DexOS App Icon — Execution 2: Accent Container
     Navy-black background (#121214) with subtle radial ambient gradient
     New split logo: 85% white body, 15% cyan accent (right Z element)
     No particles, no orbit rings, no glow explosion — clean and premium
@@ -18,7 +18,7 @@
   <!-- Ambient wash — minimal -->
   <rect width="1024" height="1024" rx="220" fill="url(#ambient)"/>
 
-  <!-- Zyrbit mark — centered, ~480x384 in 1024x1024 -->
+  <!-- DexOS mark — centered, ~480x384 in 1024x1024 -->
   <!-- Offset: x=(1024-480)/2=272, y=(1024-384)/2=320 -->
   <!-- Scale factor = 12 (since viewBox of inner SVG is 40x32, 40*12=480, 32*12=384) -->
   <g transform="translate(272, 320) scale(12)">

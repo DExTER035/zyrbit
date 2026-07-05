@@ -30,7 +30,6 @@ export default function ProjectDetailView({
   createTask,
   createGoal,
   setFocusProject,
-  setFocusMode,
   updateGoalProgress
 }) {
   const ptasks  = tasks.filter(t => t.project_id === selectedProject.id);
@@ -159,7 +158,7 @@ export default function ProjectDetailView({
       </div>
 
       {/* Focus FAB */}
-      <button onClick={() => { setFocusProject(selectedProject); setFocusMode('setup'); }}
+      <button onClick={() => { setFocusProject(selectedProject); setTab('today'); setView('list'); }}
         style={{ position: 'fixed', right: '20px', bottom: '84px', background: `linear-gradient(135deg, ${C.focus}, #5048C8)`, border: 'none', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: `0 8px 24px ${C.focus}50`, zIndex: 50 }}>
         <Timer size={22} color="#fff" />
       </button>

@@ -182,7 +182,7 @@ CREATE POLICY "own_projects" ON growth_projects FOR ALL TO authenticated
 CREATE TABLE IF NOT EXISTS growth_tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
-  project_id UUID REFERENCES growth_projects ON DELETE CASCADE NOT NULL,
+  project_id UUID REFERENCES growth_projects ON DELETE CASCADE,
   name TEXT NOT NULL,
   priority INT DEFAULT 3,
   status TEXT DEFAULT 'todo',
@@ -341,9 +341,42 @@ CREATE POLICY "own_system_goals" ON system_goals FOR ALL TO authenticated
 
 
 -- ─────────────────────────────────────────────────────────────
--- SECTION 9: Reload PostgREST schema cache
--- This is required after adding/creating tables so Supabase
--- REST API recognises them immediately without a restart.
+-- SECTION 9: Create `meal_logs` table (Food module)
+-- Referenced by: Food.jsx
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS meal_logs (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  date        DATE NOT NULL DEFAULT CURRENT_DATE,
+  meal_type   TEXT NOT NULL CHECK (meal_type IN ('breakfast','lunch','dinner','snack')),
+  food_name   TEXT NOT NULL,
+  food_id     TEXT,
+  quantity_g  NUMERIC(6,1) NOT NULL,
+  calories    NUMERIC(6,1) NOT NULL,
+  protein     NUMERIC(5,1) DEFAULT 0,
+  carbs       NUMERIC(5,1) DEFAULT 0,
+  fat         NUMERIC(5,1) DEFAULT 0,
+  fiber       NUMERIC(5,1) DEFAULT 0,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE meal_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own_meal_logs" ON meal_logs;
+CREATE POLICY "own_meal_logs" ON meal_logs FOR ALL TO authenticated
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_meal_logs_user_date
+  ON meal_logs (user_id, date DESC);
+
+-- ─────────────────────────────────────────────────────────────
+-- SECTION 10: Add missing growth_focus_sessions column
+-- `skill_id` is referenced in Growth.jsx insert but not in original schema
+-- ─────────────────────────────────────────────────────────────
+ALTER TABLE growth_focus_sessions ADD COLUMN IF NOT EXISTS skill_id UUID;
+
+-- ─────────────────────────────────────────────────────────────
+-- SECTION 11: Reload PostgREST schema cache
+-- Required after adding/creating tables
 -- ─────────────────────────────────────────────────────────────
 NOTIFY pgrst, 'reload schema';
 
