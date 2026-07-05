@@ -33,6 +33,7 @@ export default function Food() {
     setLoading(true);
     setError(null);
     const today = todayStr();
+    const lsKey = `dexos_food_logs_${uid}_${today}`;
     try {
       const { data, error: dbErr } = await supabase
         .from('meal_logs')
@@ -40,11 +41,18 @@ export default function Food() {
         .eq('user_id', uid)
         .eq('date', today)
         .order('created_at', { ascending: true });
-      if (dbErr) throw dbErr;
-      setLogs(data ?? []);
+      if (dbErr) {
+        console.warn('Food: error loading meal logs from DB, falling back:', dbErr.message);
+        const local = localStorage.getItem(lsKey);
+        setLogs(local ? JSON.parse(local) : []);
+      } else {
+        setLogs(data ?? []);
+        localStorage.setItem(lsKey, JSON.stringify(data ?? []));
+      }
     } catch (e) {
       console.warn('Food: error loading meal logs', e.message);
-      setError(e.message);
+      const local = localStorage.getItem(lsKey);
+      setLogs(local ? JSON.parse(local) : []);
     } finally {
       setLoading(false);
     }
@@ -98,9 +106,9 @@ export default function Food() {
     if (!user || !activePicker) return;
     const today = todayStr();
     const mealType = activePicker;
+    const lsKey = `dexos_food_logs_${user.id}_${today}`;
+    const tempId = crypto.randomUUID ? crypto.randomUUID() : `temp_${Math.random()}`;
 
-    // Optimistic update
-    const tempId = `temp_${Math.random()}`;
     const optimisticLog = {
       id: tempId,
       user_id: user.id,
@@ -116,7 +124,12 @@ export default function Food() {
       fiber,
       created_at: new Date().toISOString(),
     };
-    setLogs(prev => [...prev, optimisticLog]);
+
+    setLogs(prev => {
+      const updated = [...prev, optimisticLog];
+      localStorage.setItem(lsKey, JSON.stringify(updated));
+      return updated;
+    });
 
     try {
       const { data, error: dbErr } = await supabase
@@ -126,32 +139,48 @@ export default function Food() {
         .single();
       if (dbErr) throw dbErr;
 
-      // Replace temp with real row
-      setLogs(prev => prev.map(l => l.id === tempId ? data : l));
+      if (data) {
+        setLogs(prev => {
+          const updated = prev.map(l => l.id === tempId ? data : l);
+          localStorage.setItem(lsKey, JSON.stringify(updated));
+          return updated;
+        });
+      }
       showToast(`🍱 ${food_name} logged!`, 'success');
 
-      // Earn Zyrons once per meal type per day
       if (!earnedMeals.has(mealType)) {
-        await earnZyrons(user.id, 5, `Meal logged: ${mealType}`);
+        try { await earnZyrons(user.id, 5, `Meal logged: ${mealType}`); } catch { /* XP fail ok */ }
         setEarnedMeals(prev => new Set([...prev, mealType]));
       }
-    } catch {
-      showToast('Error saving meal', 'error');
-      setLogs(prev => prev.filter(l => l.id !== tempId));
+    } catch (err) {
+      console.warn('Food DB log failed, falling back:', err.message);
+      showToast(`🍱 ${food_name} logged locally!`, 'success');
+      if (!earnedMeals.has(mealType)) {
+        setEarnedMeals(prev => new Set([...prev, mealType]));
+      }
     }
   }, [user, activePicker, earnedMeals]);
 
   const handleDeleteLog = useCallback(async (logId) => {
-    // Optimistic
-    setLogs(prev => prev.filter(l => l.id !== logId));
+    if (!user) return;
+    const today = todayStr();
+    const lsKey = `dexos_food_logs_${user.id}_${today}`;
+
+    setLogs(prev => {
+      const updated = prev.filter(l => l.id !== logId);
+      localStorage.setItem(lsKey, JSON.stringify(updated));
+      return updated;
+    });
+
     try {
       const { error: dbErr } = await supabase.from('meal_logs').delete().eq('id', logId);
       if (dbErr) throw dbErr;
-    } catch {
-      showToast('Error deleting log', 'error');
-      loadLogs(user?.id);
+      showToast('🗑 Meal deleted', 'success');
+    } catch (err) {
+      console.warn('Food DB delete failed, deleted locally:', err.message);
+      showToast('🗑 Meal deleted locally', 'success');
     }
-  }, [user, loadLogs]);
+  }, [user]);
 
   // ── Repeat Yesterday ──────────────────────────────────────────────────────
   const handleRepeatYesterday = useCallback(async () => {
@@ -159,29 +188,63 @@ export default function Food() {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yStr = yesterday.toISOString().split('T')[0];
+    const today = todayStr();
+    
+    let yLogs = [];
+    const lsKeyToday = `dexos_food_logs_${user.id}_${today}`;
+    const lsKeyYesterday = `dexos_food_logs_${user.id}_${yStr}`;
+
     try {
-      const { data: yLogs, error: dbErr } = await supabase
+      const { data, error: dbErr } = await supabase
         .from('meal_logs')
         .select('*')
         .eq('user_id', user.id)
         .eq('date', yStr);
-      if (dbErr) throw dbErr;
-      if (!yLogs || yLogs.length === 0) {
-        showToast('No logs found for yesterday', 'info');
-        return;
+      if (dbErr) {
+        const local = localStorage.getItem(lsKeyYesterday);
+        yLogs = local ? JSON.parse(local) : [];
+      } else {
+        yLogs = data ?? [];
       }
-      const today = todayStr();
-      const newRows = yLogs.map((log) => {
+    } catch {
+      const local = localStorage.getItem(lsKeyYesterday);
+      yLogs = local ? JSON.parse(local) : [];
+    }
+
+    if (!yLogs || yLogs.length === 0) {
+      showToast('No logs found for yesterday', 'info');
+      return;
+    }
+
+    const newRows = yLogs.map((log) => {
+      // eslint-disable-next-line no-unused-vars
+      const { id, created_at, date, ...rest } = log;
+      return { 
+        ...rest, 
+        id: crypto.randomUUID ? crypto.randomUUID() : `temp_${Math.random()}`,
+        date: today, 
+        user_id: user.id,
+        created_at: new Date().toISOString()
+      };
+    });
+
+    setLogs(prev => {
+      const updated = [...prev, ...newRows];
+      localStorage.setItem(lsKeyToday, JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      const { error: insErr } = await supabase.from('meal_logs').insert(
         // eslint-disable-next-line no-unused-vars
-        const { id, created_at, date, ...rest } = log;
-        return { ...rest, date: today, user_id: user.id };
-      });
-      const { error: insErr } = await supabase.from('meal_logs').insert(newRows);
+        newRows.map(({ id, created_at, ...rest }) => rest)
+      );
       if (insErr) throw insErr;
       showToast('♻️ Yesterday\'s meals repeated!', 'success');
       loadLogs(user.id);
-    } catch {
-      showToast('Could not repeat yesterday', 'error');
+    } catch (err) {
+      console.warn('Food DB repeat failed, repeated locally:', err.message);
+      showToast('♻️ Yesterday\'s meals repeated locally!', 'success');
     }
   }, [user, loadLogs]);
 
