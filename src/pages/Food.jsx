@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase.js';
 import { showToast } from '../components/Toast.jsx';
 import { earnZyrons } from '../lib/zyrons.js';
@@ -9,21 +10,71 @@ import DailyCalorieRing from '../components/food/DailyCalorieRing.jsx';
 import MealSection from '../components/food/MealSection.jsx';
 import FoodPicker from '../components/food/FoodPicker.jsx';
 import NutritionSummary from '../components/food/NutritionSummary.jsx';
+import GoalSettingsModal from '../components/food/GoalSettingsModal.jsx';
+import SavedMealsSection from '../components/food/SavedMealsSection.jsx';
 
-import { DEFAULT_CALORIE_GOAL, DEFAULT_MACRO_GOALS, FOOD_DB } from '../data/indianFoods.js';
+import { DEFAULT_CALORIE_GOAL, DEFAULT_MACRO_GOALS } from '../data/indianFoods.js';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
 
 // ──────────────────────────────────────────────────────────────────────────────
 export default function Food() {
   const navigate = useNavigate();
-  const [user,        setUser]        = useState(null);
-  const [logs,        setLogs]        = useState([]);     // today's meal_logs
-  const [loading,     setLoading]     = useState(true);
-  const [activePicker, setActivePicker] = useState(null); // null | meal_type string
+  const [user,          setUser]          = useState(null);
+  const [logs,          setLogs]          = useState([]);     // today's meal_logs
+  const [loading,       setLoading]       = useState(true);
+  const [activePicker,  setActivePicker]  = useState(null); // null | meal_type string
+  const [showSettings,  setShowSettings]  = useState(false);
+
+  // Goal settings state
+  const [settings, setSettings] = useState({
+    calorie_goal: DEFAULT_CALORIE_GOAL,
+    protein_goal: DEFAULT_MACRO_GOALS.protein,
+    carbs_goal:   DEFAULT_MACRO_GOALS.carbs,
+    fat_goal:     DEFAULT_MACRO_GOALS.fat,
+    fiber_goal:   DEFAULT_MACRO_GOALS.fiber,
+  });
+
+  const [savedMeals, setSavedMeals] = useState([]);
 
   // Track which meal types have already earned Zyrons today
   const [earnedMeals, setEarnedMeals] = useState(new Set());
+
+  // ── Load settings & saved meals ──────────────────────────────────────────────
+  const loadUserData = useCallback(async (uid) => {
+    // 1. Load Settings
+    try {
+      const { data } = await supabase
+        .from('food_settings')
+        .select('*')
+        .eq('user_id', uid)
+        .maybeSingle();
+      if (data) {
+        setSettings(data);
+        localStorage.setItem(`dexos_food_settings_${uid}`, JSON.stringify(data));
+      } else {
+        const local = localStorage.getItem(`dexos_food_settings_${uid}`);
+        if (local) setSettings(JSON.parse(local));
+      }
+    } catch {
+      const local = localStorage.getItem(`dexos_food_settings_${uid}`);
+      if (local) setSettings(JSON.parse(local));
+    }
+
+    // 2. Load Saved Meals
+    try {
+      const { data } = await supabase
+        .from('saved_meals')
+        .select('*')
+        .eq('user_id', uid)
+        .order('created_at', { ascending: false });
+      if (data) {
+        setSavedMeals(data);
+      }
+    } catch (e) {
+      console.warn('Food: error loading saved meals', e.message);
+    }
+  }, []);
 
   // ── Load today's logs ──────────────────────────────────────────────────────
   const loadLogs = useCallback(async (uid) => {
@@ -60,8 +111,9 @@ export default function Food() {
       if (!session) { navigate('/login'); return; }
       setUser(session.user);
       loadLogs(session.user.id);
+      loadUserData(session.user.id);
     });
-  }, [navigate, loadLogs]);
+  }, [navigate, loadLogs, loadUserData]);
 
   // ── Derived totals ─────────────────────────────────────────────────────────
   const totals = useMemo(() => logs.reduce((acc, l) => ({
@@ -71,6 +123,13 @@ export default function Food() {
     fat:     acc.fat     + (l.fat      || 0),
     fiber:   acc.fiber   + (l.fiber    || 0),
   }), { cal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }), [logs]);
+
+  const macroGoals = useMemo(() => ({
+    protein: settings.protein_goal,
+    carbs:   settings.carbs_goal,
+    fat:     settings.fat_goal,
+    fiber:   settings.fiber_goal,
+  }), [settings]);
 
   // Logs grouped by meal type
   const logsByMeal = useMemo(() => {
@@ -156,6 +215,81 @@ export default function Food() {
       }
     }
   }, [user, activePicker, earnedMeals]);
+
+  const handleLogSavedMeal = useCallback(async (savedMeal) => {
+    if (!user) return;
+    const today = todayStr();
+    const lsKey = `dexos_food_logs_${user.id}_${today}`;
+    const items = savedMeal.items || [];
+    
+    const newOptimisticLogs = items.map(item => {
+      const tempId = crypto.randomUUID ? crypto.randomUUID() : `temp_${Math.random()}`;
+      return {
+        id: tempId,
+        user_id: user.id,
+        date: today,
+        meal_type: savedMeal.meal_type,
+        food_id: item.food_id,
+        food_name: item.food_name,
+        quantity_g: item.quantity_g,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        fiber: item.fiber,
+        created_at: new Date().toISOString(),
+      };
+    });
+
+    setLogs(prev => {
+      const updated = [...prev, ...newOptimisticLogs];
+      localStorage.setItem(lsKey, JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      const rows = items.map(item => ({
+        user_id: user.id,
+        date: today,
+        meal_type: savedMeal.meal_type,
+        food_id: item.food_id,
+        food_name: item.food_name,
+        quantity_g: item.quantity_g,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        fiber: item.fiber,
+      }));
+
+      const { data, error } = await supabase.from('meal_logs').insert(rows).select();
+      if (error) throw error;
+
+      if (data) {
+        setLogs(prev => {
+          let updated = [...prev];
+          newOptimisticLogs.forEach((ol, idx) => {
+            const actual = data[idx];
+            if (actual) {
+              updated = updated.map(l => l.id === ol.id ? actual : l);
+            }
+          });
+          localStorage.setItem(lsKey, JSON.stringify(updated));
+          return updated;
+        });
+      }
+
+      if (!earnedMeals.has(savedMeal.meal_type)) {
+        try { await earnZyrons(user.id, 5, `Meal logged: ${savedMeal.meal_type}`); } catch { /* XP fail ok */ }
+        setEarnedMeals(prev => new Set([...prev, savedMeal.meal_type]));
+      }
+    } catch (err) {
+      console.warn('Food DB saved meal log failed, logged locally:', err.message);
+      if (!earnedMeals.has(savedMeal.meal_type)) {
+        setEarnedMeals(prev => new Set([...prev, savedMeal.meal_type]));
+      }
+    }
+  }, [user, earnedMeals]);
 
   const handleDeleteLog = useCallback(async (logId) => {
     if (!user) return;
@@ -279,30 +413,53 @@ export default function Food() {
       }}
     >
       {/* ── HEADER ── */}
-      <div style={{ padding: '28px 20px 0' }}>
-        <div style={{
-          fontSize: '10px',
-          color: FC.food,
-          fontWeight: 800,
-          letterSpacing: '2.5px',
-          textTransform: 'uppercase',
-          marginBottom: '4px',
-        }}>
-          FOOD
+      <div style={{ padding: '28px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{
+            fontSize: '10px',
+            color: FC.food,
+            fontWeight: 800,
+            letterSpacing: '2.5px',
+            textTransform: 'uppercase',
+            marginBottom: '4px',
+          }}>
+            FOOD
+          </div>
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 900,
+            margin: 0,
+            color: FC.text,
+            lineHeight: 1.1,
+            letterSpacing: '-0.5px',
+          }}>
+            What did you eat?
+          </h1>
+          <div style={{ fontSize: '11px', color: FC.muted, marginTop: '3px' }}>
+            {todayDisplay}
+          </div>
         </div>
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: 900,
-          margin: 0,
-          color: FC.text,
-          lineHeight: 1.1,
-          letterSpacing: '-0.5px',
-        }}>
-          What did you eat?
-        </h1>
-        <div style={{ fontSize: '11px', color: FC.muted, marginTop: '3px' }}>
-          {todayDisplay}
-        </div>
+
+        <button
+          onClick={() => setShowSettings(true)}
+          style={{
+            background: FC.elev,
+            border: `1px solid ${FC.border2}`,
+            borderRadius: '12px',
+            padding: '10px',
+            cursor: 'pointer',
+            color: FC.sub,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = FC.food; e.currentTarget.style.color = FC.food; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = FC.border2; e.currentTarget.style.color = FC.sub; }}
+          aria-label="Daily calorie and macro goals settings"
+        >
+          <Settings size={16} />
+        </button>
       </div>
 
       {/* ── MAIN FEED ── */}
@@ -311,8 +468,17 @@ export default function Food() {
         {/* Hero — Calorie Ring */}
         <DailyCalorieRing
           totals={totals}
-          goal={DEFAULT_CALORIE_GOAL}
-          macroGoals={DEFAULT_MACRO_GOALS}
+          goal={settings.calorie_goal}
+          macroGoals={macroGoals}
+        />
+
+        {/* Saved Meals Section */}
+        <SavedMealsSection
+          savedMeals={savedMeals}
+          userId={user?.id}
+          onLogSavedMeal={handleLogSavedMeal}
+          onDelete={(id) => setSavedMeals(prev => prev.filter(m => m.id !== id))}
+          today={todayStr()}
         />
 
         {/* Meal Sections */}
@@ -321,8 +487,10 @@ export default function Food() {
             key={mealType}
             mealType={mealType}
             logs={logsByMeal[mealType]}
+            userId={user?.id}
             onAddFood={(type) => setActivePicker(type)}
             onDeleteLog={handleDeleteLog}
+            onMealSaved={(newMeal) => setSavedMeals(prev => [newMeal, ...prev])}
           />
         ))}
 
@@ -330,7 +498,7 @@ export default function Food() {
         {logs.length > 0 && (
           <NutritionSummary
             totals={totals}
-            macroGoals={DEFAULT_MACRO_GOALS}
+            macroGoals={macroGoals}
             onRepeatYesterday={handleRepeatYesterday}
           />
         )}
@@ -362,6 +530,16 @@ export default function Food() {
           recentFoodIds={recentFoodIds}
           onLog={handleAddFood}
           onClose={() => setActivePicker(null)}
+        />
+      )}
+
+      {/* ── GOAL SETTINGS MODAL ── */}
+      {showSettings && user && (
+        <GoalSettingsModal
+          userId={user.id}
+          currentSettings={settings}
+          onSave={(newSet) => setSettings(newSet)}
+          onClose={() => setShowSettings(false)}
         />
       )}
 

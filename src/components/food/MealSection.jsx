@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { FC } from './shared.jsx';
 import MealLogCard from './MealLogCard.jsx';
+import { SaveMealButton } from './SavedMealsSection.jsx';
 
 const MEAL_META = {
   breakfast: { label: 'Breakfast', emoji: '☀️', time: '7–10 AM' },
@@ -10,7 +11,7 @@ const MEAL_META = {
   snack:     { label: 'Snacks',    emoji: '🍎',  time: 'Anytime'  },
 };
 
-export default function MealSection({ mealType, logs = [], onAddFood, onDeleteLog }) {
+export default function MealSection({ mealType, logs = [], userId, onAddFood, onDeleteLog, onMealSaved }) {
   const [collapsed, setCollapsed] = useState(false);
   const meta = MEAL_META[mealType] ?? { label: mealType, emoji: '🍽️', time: '' };
   const totalCal = logs.reduce((sum, l) => sum + (l.calories || 0), 0);
@@ -104,6 +105,16 @@ export default function MealSection({ mealType, logs = [], onAddFood, onDeleteLo
             <Plus size={14} />
             Add Food
           </button>
+
+          {/* Save meal button — only shows when meal has items */}
+          {!isEmpty && onMealSaved && (
+            <SaveMealButton
+              logs={logs}
+              mealType={mealType}
+              userId={userId}
+              onSaved={onMealSaved}
+            />
+          )}
         </div>
       )}
     </div>

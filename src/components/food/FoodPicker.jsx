@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Search } from 'lucide-react';
+import { Search, PlusCircle, X } from 'lucide-react';
 import { FC, FBottomSheet, FInput, FBtn } from './shared.jsx';
 import {
   FOOD_DB,
@@ -9,7 +9,7 @@ import {
   computeNutrition,
 } from '../../data/indianFoods.js';
 
-// ── Portion presets (shown after food selection) ────────────────────────────
+// ── Portion presets (shown after food selection) ──────────────────────────────
 const PORTION_PRESETS = [
   { label: 'Half',       multiplier: 0.5 },
   { label: '1 Serving',  multiplier: 1.0 },
@@ -20,11 +20,20 @@ export default function FoodPicker({ mealType, recentFoodIds = [], onLog, onClos
   const [query, setQuery]           = useState('');
   const [category, setCategory]     = useState('all');
   const [selectedFood, setSelected] = useState(null);
-  const [portion, setPortion]       = useState(1.0);    // multiplier vs defaultServingG
+  const [portion, setPortion]       = useState(1.0);
   const [customG, setCustomG]       = useState('');
   const [useCustom, setUseCustom]   = useState(false);
 
-  // ── Food list ──────────────────────────────────────────────────────────────
+  // Custom food form state
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customName,    setCustomName]    = useState('');
+  const [customCal,     setCustomCal]     = useState('');
+  const [customProtein, setCustomProtein] = useState('');
+  const [customCarbs,   setCustomCarbs]   = useState('');
+  const [customFat,     setCustomFat]     = useState('');
+  const [customFiber,   setCustomFiber]   = useState('');
+
+  // ── Food list ────────────────────────────────────────────────────────────────
   const displayFoods = useMemo(() => {
     if (query.trim()) return searchFoods(query);
     return getFoodsByCategory(category === 'all' ? null : category);
@@ -39,7 +48,7 @@ export default function FoodPicker({ mealType, recentFoodIds = [], onLog, onClos
 
   const showRecent = !query.trim() && category === 'all' && recentFoods.length > 0;
 
-  // ── Computed nutrition for selected food ───────────────────────────────────
+  // ── Nutrition for selected food ──────────────────────────────────────────────
   const effectiveGrams = useMemo(() => {
     if (!selectedFood) return 0;
     if (useCustom && customG) return parseFloat(customG) || 0;
@@ -51,12 +60,13 @@ export default function FoodPicker({ mealType, recentFoodIds = [], onLog, onClos
     return computeNutrition(selectedFood, effectiveGrams);
   }, [selectedFood, effectiveGrams]);
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleSelectFood = useCallback((food) => {
     setSelected(food);
     setPortion(1.0);
     setUseCustom(false);
     setCustomG('');
+    setShowCustomForm(false);
   }, []);
 
   const handleLog = useCallback(() => {
@@ -74,9 +84,25 @@ export default function FoodPicker({ mealType, recentFoodIds = [], onLog, onClos
     onClose();
   }, [selectedFood, effectiveGrams, preview, onLog, onClose]);
 
+  const handleLogCustom = useCallback(() => {
+    const cal = parseFloat(customCal);
+    if (!customName.trim() || !cal) return;
+    onLog({
+      food_id:    null,
+      food_name:  customName.trim(),
+      quantity_g: 100,
+      calories:   cal,
+      protein:    parseFloat(customProtein) || 0,
+      carbs:      parseFloat(customCarbs)   || 0,
+      fat:        parseFloat(customFat)     || 0,
+      fiber:      parseFloat(customFiber)   || 0,
+    });
+    onClose();
+  }, [customName, customCal, customProtein, customCarbs, customFat, customFiber, onLog, onClose]);
+
   const mealLabel = mealType.charAt(0).toUpperCase() + mealType.slice(1);
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // ────────────────────────────────────────────────────────────────────────────
   return (
     <FBottomSheet title={`Add to ${mealLabel}`} onClose={onClose}>
       {!selectedFood ? (
@@ -121,7 +147,7 @@ export default function FoodPicker({ mealType, recentFoodIds = [], onLog, onClos
             </div>
           )}
 
-          {/* Recent foods (when no search/filter) */}
+          {/* Recent foods */}
           {showRecent && (
             <div>
               <div style={{ fontSize: '10px', color: FC.muted, fontWeight: 700, letterSpacing: '0.8px', marginBottom: '8px', textTransform: 'uppercase' }}>
@@ -137,15 +163,15 @@ export default function FoodPicker({ mealType, recentFoodIds = [], onLog, onClos
 
           {/* Food list */}
           <div>
-            {(showRecent && !query.trim()) && (
+            {showRecent && !query.trim() && (
               <div style={{ fontSize: '10px', color: FC.muted, fontWeight: 700, letterSpacing: '0.8px', marginBottom: '8px', textTransform: 'uppercase' }}>
                 All Foods
               </div>
             )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '320px', overflowY: 'auto' }}>
-              {displayFoods.length === 0 ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: FC.muted, fontSize: '13px' }}>
-                  No foods found for "{query}"
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '280px', overflowY: 'auto' }}>
+              {displayFoods.length === 0 && !query.trim() ? null : displayFoods.length === 0 ? (
+                <div style={{ padding: '16px', textAlign: 'center', color: FC.muted, fontSize: '13px' }}>
+                  No results for "{query}"
                 </div>
               ) : (
                 displayFoods.map(food => (
@@ -154,19 +180,62 @@ export default function FoodPicker({ mealType, recentFoodIds = [], onLog, onClos
               )}
             </div>
           </div>
+
+          {/* ── Create Custom Food ── always visible at bottom */}
+          {!showCustomForm ? (
+            <button
+              onClick={() => setShowCustomForm(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '12px 14px', borderRadius: '14px',
+                background: FC.elev,
+                border: `1px dashed ${FC.border2}`,
+                color: FC.sub, fontSize: '12px', fontWeight: 700,
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = FC.food; e.currentTarget.style.color = FC.food; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = FC.border2; e.currentTarget.style.color = FC.sub; }}
+            >
+              <PlusCircle size={14} />
+              Create Custom Food
+            </button>
+          ) : (
+            /* ── Custom Food Inline Form ── */
+            <div style={{ background: FC.elev, borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', animation: 'fadeSlideUp 0.2s ease' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: FC.text }}>Custom Food</span>
+                <button onClick={() => setShowCustomForm(false)} style={{ background: FC.dim, border: 'none', borderRadius: '50%', width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: FC.sub }}>
+                  <X size={12} />
+                </button>
+              </div>
+
+              <FInput placeholder="Food name *" value={customName} onChange={e => setCustomName(e.target.value)} />
+              <FInput type="number" placeholder="Calories (kcal) *" value={customCal} onChange={e => setCustomCal(e.target.value)} />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                {[
+                  { ph: 'Protein (g)',  val: customProtein, set: setCustomProtein },
+                  { ph: 'Carbs (g)',    val: customCarbs,   set: setCustomCarbs   },
+                  { ph: 'Fat (g)',      val: customFat,     set: setCustomFat     },
+                  { ph: 'Fiber (g)',    val: customFiber,   set: setCustomFiber   },
+                ].map(({ ph, val, set }) => (
+                  <FInput key={ph} type="number" placeholder={ph} value={val} onChange={e => set(e.target.value)} />
+                ))}
+              </div>
+
+              <FBtn
+                label="Log Custom Food +"
+                onClick={handleLogCustom}
+                disabled={!customName.trim() || !customCal}
+              />
+            </div>
+          )}
         </div>
       ) : (
         /* ── PORTION PICKER VIEW ── */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Selected food header */}
-          <div style={{
-            background: FC.elev,
-            borderRadius: '16px',
-            padding: '14px 16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
+          <div style={{ background: FC.elev, borderRadius: '16px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '15px', fontWeight: 800, color: FC.text }}>{selectedFood.name}</div>
               <div style={{ fontSize: '11px', color: FC.muted, marginTop: '2px' }}>
@@ -192,17 +261,11 @@ export default function FoodPicker({ mealType, recentFoodIds = [], onLog, onClos
                   key={p.label}
                   onClick={() => { setPortion(p.multiplier); setUseCustom(false); setCustomG(''); }}
                   style={{
-                    flex: 1,
-                    padding: '12px 6px',
-                    borderRadius: '12px',
+                    flex: 1, padding: '12px 6px', borderRadius: '12px',
                     background: (!useCustom && portion === p.multiplier) ? FC.food : FC.elev,
                     border: `1px solid ${(!useCustom && portion === p.multiplier) ? FC.food : FC.border2}`,
                     color: (!useCustom && portion === p.multiplier) ? '#000' : FC.text,
-                    fontWeight: 800,
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    outline: 'none',
+                    fontWeight: 800, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s', outline: 'none',
                   }}
                 >
                   {p.label}
@@ -230,49 +293,36 @@ export default function FoodPicker({ mealType, recentFoodIds = [], onLog, onClos
 
           {/* Nutrition preview */}
           {preview && (
-            <div style={{
-              background: `${FC.food}0D`,
-              border: `1px solid ${FC.food}22`,
-              borderRadius: '14px',
-              padding: '14px 16px',
-              display: 'flex',
-              justifyContent: 'space-around',
-            }}>
-              <NutritionPill label="Cals" value={Math.round(preview.cal)} color={FC.food} />
+            <div style={{ background: `${FC.food}0D`, border: `1px solid ${FC.food}22`, borderRadius: '14px', padding: '14px 16px', display: 'flex', justifyContent: 'space-around' }}>
+              <NutritionPill label="Cals"   value={Math.round(preview.cal)}            color={FC.food}    />
               <NutritionPill label="Protein" value={`${Math.round(preview.protein)}g`} color={FC.protein} />
-              <NutritionPill label="Carbs" value={`${Math.round(preview.carbs)}g`} color={FC.carbs} />
-              <NutritionPill label="Fat" value={`${Math.round(preview.fat)}g`} color={FC.fat} />
+              <NutritionPill label="Carbs"   value={`${Math.round(preview.carbs)}g`}   color={FC.carbs}   />
+              <NutritionPill label="Fat"     value={`${Math.round(preview.fat)}g`}     color={FC.fat}     />
             </div>
           )}
 
-          {/* Log button */}
           <FBtn
-            label={`Log ${selectedFood.name} +5 ⚡`}
+            label={`Log ${selectedFood.name} ⚡`}
             onClick={handleLog}
             disabled={!preview || effectiveGrams <= 0}
           />
         </div>
       )}
+      <style>{`@keyframes fadeSlideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </FBottomSheet>
   );
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 function FoodRow({ food, onSelect }) {
   return (
     <button
       onClick={() => onSelect(food)}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        padding: '10px 12px',
-        borderRadius: '12px',
-        background: 'transparent',
-        border: 'none',
-        cursor: 'pointer',
-        width: '100%',
-        textAlign: 'left',
+        display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '10px 12px', borderRadius: '12px',
+        background: 'transparent', border: 'none',
+        cursor: 'pointer', width: '100%', textAlign: 'left',
         transition: 'background 0.15s',
       }}
       onMouseEnter={e => e.currentTarget.style.background = FC.elev}
@@ -283,9 +333,7 @@ function FoodRow({ food, onSelect }) {
         <div style={{ fontSize: '13px', fontWeight: 700, color: FC.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {food.name}
         </div>
-        <div style={{ fontSize: '10px', color: FC.muted, marginTop: '1px' }}>
-          {food.servingLabel}
-        </div>
+        <div style={{ fontSize: '10px', color: FC.muted, marginTop: '1px' }}>{food.servingLabel}</div>
       </div>
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <div style={{ fontSize: '13px', fontWeight: 800, color: FC.food }}>
