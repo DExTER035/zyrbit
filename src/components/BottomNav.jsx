@@ -47,9 +47,9 @@ export default function BottomNav({ activeTab, onTabChange }) {
                   top: '-10px',
                   width: '32px',
                   height: '3px',
-                  background: 'var(--color-cyan)',
+                  background: '#1FA36F',
                   borderRadius: '0 0 4px 4px',
-                  boxShadow: '0 4px 12px rgba(0, 229, 255, 0.6)',
+                  boxShadow: '0 4px 12px rgba(31, 163, 111, 0.5)',
                   animation: 'fadeSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards'
                 }} />
               )}
@@ -57,7 +57,7 @@ export default function BottomNav({ activeTab, onTabChange }) {
               <span style={{
                 fontSize: '20px',
                 transition: 'all 0.2s',
-                filter: isActive ? 'drop-shadow(0 0 8px rgba(0, 255, 255, 0.8))' : 'none',
+                filter: isActive ? 'drop-shadow(0 0 8px rgba(31, 163, 111, 0.7))' : 'none',
                 opacity: isActive ? 1 : 0.6
               }}>
                 {tab.icon}
@@ -65,7 +65,7 @@ export default function BottomNav({ activeTab, onTabChange }) {
               <span style={{
                 fontSize: '10px',
                 fontWeight: 700,
-                color: isActive ? 'var(--color-cyan)' : 'var(--text-hint)',
+                color: isActive ? '#1FA36F' : 'var(--text-hint)',
                 transition: 'color 0.2s',
                 letterSpacing: '0.05em'
               }}>

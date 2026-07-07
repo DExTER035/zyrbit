@@ -4,8 +4,6 @@ import { supabase } from '../lib/supabase.js';
 import { showToast } from '../components/Toast.jsx';
 import { earnZyrons } from '../lib/zyrons.js';
 import BottomNav from '../components/BottomNav.jsx';
-import ErrorState from '../components/ErrorState.jsx';
-
 import { FC, todayStr } from '../components/food/shared.jsx';
 import DailyCalorieRing from '../components/food/DailyCalorieRing.jsx';
 import MealSection from '../components/food/MealSection.jsx';
@@ -22,7 +20,6 @@ export default function Food() {
   const [user,        setUser]        = useState(null);
   const [logs,        setLogs]        = useState([]);     // today's meal_logs
   const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState(null);
   const [activePicker, setActivePicker] = useState(null); // null | meal_type string
 
   // Track which meal types have already earned Zyrons today
@@ -31,7 +28,6 @@ export default function Food() {
   // ── Load today's logs ──────────────────────────────────────────────────────
   const loadLogs = useCallback(async (uid) => {
     setLoading(true);
-    setError(null);
     const today = todayStr();
     const lsKey = `dexos_food_logs_${uid}_${today}`;
     try {
@@ -265,14 +261,6 @@ export default function Food() {
         {[1, 2, 3, 4].map(i => (
           <div key={i} className="skeleton-box" style={{ height: '64px', borderRadius: '20px' }} />
         ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ background: FC.bg, minHeight: '100vh', padding: '20px' }}>
-        <ErrorState message={error} onRetry={() => loadLogs(user?.id)} />
       </div>
     );
   }

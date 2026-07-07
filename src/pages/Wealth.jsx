@@ -18,7 +18,7 @@ const W = {
   sub:     '#94A3B8',
   muted:   '#64748B',
   dim:     '#2A3038',
-  accent:  '#14B8A6',
+  accent:  '#1FA36F',
   success: '#22C55E',
   warning: '#F59E0B',
   danger:  '#EF4444',
@@ -85,7 +85,7 @@ const CAT_COLORS = {
   'Other':                 '#6B7280',
   // Income
   'Salary':      '#10B981',
-  'Freelance':   '#14B8A6',
+  'Freelance':   '#1FA36F',
   'Side Income': '#22C55E',
   'One-time':    '#F59E0B',
 };

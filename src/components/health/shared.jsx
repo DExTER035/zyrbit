@@ -15,12 +15,12 @@ export const C = {
   muted:   '#64748B',
   dim:     '#2A3038',
 
-  // Health pillar accent
-  recovery:  '#14B8A6', // teal — brand accent for Health
-  sleep:     '#818CF8', // indigo
-  water:     '#38BDF8', // sky blue
-  nutrition: '#FBBF24', // amber
-  activity:  '#34D399', // emerald green
+  // Health pillar accents — used only for data viz / state indicators
+  recovery:  '#1FA36F', // DexOS accent green — generic score
+  sleep:     '#818CF8', // indigo — sleep data only
+  water:     '#38BDF8', // blue — water data only
+  nutrition: '#FBBF24', // amber — food data only
+  activity:  '#EC4899', // pink — activity data only
 
   // Capacity state indicators
   optimal:   '#22C55E',
@@ -48,7 +48,7 @@ export const Card = ({ children, accent, onClick, style = {} }) => (
     background: C.surface,
     border: `1px solid ${C.border}`,
     borderLeft: accent ? `3px solid ${accent}` : `1px solid ${C.border}`,
-    borderRadius: '20px',
+    borderRadius: '16px',
     padding: '16px 18px',
     cursor: onClick ? 'pointer' : 'default',
     transition: 'border-color 0.2s, box-shadow 0.2s',

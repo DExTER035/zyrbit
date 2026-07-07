@@ -70,17 +70,63 @@ export default function Growth() {
     setLoading(true);
     setError(null);
     const today = todayStr();
+    const lsKey = (kind) => `dexos_growth_${kind}_${uid}`;
+    const lsGet = (kind) => { try { return JSON.parse(localStorage.getItem(lsKey(kind))); } catch { return null; } };
+
     try {
       const [
-        { data: proj }, { data: taskData }, { data: sessData },
-        { data: streakData }, { data: dailyData },
+        pRes,
+        tRes,
+        sRes,
+        stRes,
+        dRes
       ] = await Promise.all([
         supabase.from('growth_projects').select('*').eq('user_id', uid).neq('status', 'archived').order('created_at', { ascending: false }),
         supabase.from('growth_tasks').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
         supabase.from('growth_focus_sessions').select('*').eq('user_id', uid).order('session_date', { ascending: false }).limit(50),
-        supabase.from('dexos_streaks').select('*').eq('user_id', uid).single(),
-        supabase.from('dexos_daily_summary').select('*').eq('user_id', uid).eq('log_date', today).single(),
+        supabase.from('dexos_streaks').select('*').eq('user_id', uid).maybeSingle(),
+        supabase.from('dexos_daily_summary').select('*').eq('user_id', uid).eq('log_date', today).maybeSingle(),
       ]);
+
+      let proj = pRes.data;
+      if (pRes.error) {
+        console.warn('growth_projects fetch error, using local fallback:', pRes.error.message);
+        proj = lsGet('projects');
+      } else {
+        try { localStorage.setItem(lsKey('projects'), JSON.stringify(proj || [])); } catch { /* ignore */ }
+      }
+
+      let taskData = tRes.data;
+      if (tRes.error) {
+        console.warn('growth_tasks fetch error, using local fallback:', tRes.error.message);
+        taskData = lsGet('tasks');
+      } else {
+        try { localStorage.setItem(lsKey('tasks'), JSON.stringify(taskData || [])); } catch { /* ignore */ }
+      }
+
+      let sessData = sRes.data;
+      if (sRes.error) {
+        console.warn('growth_focus_sessions fetch error, using local fallback:', sRes.error.message);
+        sessData = lsGet('sessions');
+      } else {
+        try { localStorage.setItem(lsKey('sessions'), JSON.stringify(sessData || [])); } catch { /* ignore */ }
+      }
+
+      let streakData = stRes.data;
+      if (stRes.error) {
+        console.warn('dexos_streaks fetch error, using local fallback:', stRes.error.message);
+        streakData = lsGet('streak');
+      } else {
+        try { localStorage.setItem(lsKey('streak'), JSON.stringify(streakData)); } catch { /* ignore */ }
+      }
+
+      let dailyData = dRes.data;
+      if (dRes.error) {
+        console.warn('dexos_daily_summary fetch error, using local fallback:', dRes.error.message);
+        dailyData = lsGet('daily');
+      } else {
+        try { localStorage.setItem(lsKey('daily'), JSON.stringify(dailyData)); } catch { /* ignore */ }
+      }
 
       setProjects(proj || []);
       setTasks(taskData || []);
@@ -96,8 +142,11 @@ export default function Growth() {
         setTodayTasksDone((taskData || []).filter(t => t.completed_at?.startsWith(today)).length);
       }
     } catch (e) {
-      console.warn('Growth load error (tables may not exist yet):', e.message);
-      setError(e.message);
+      console.warn('Growth load error, using local fallback:', e.message);
+      setProjects(lsGet('projects') || []);
+      setTasks(lsGet('tasks') || []);
+      setSessions(lsGet('sessions') || []);
+      setStreak(lsGet('streak') || { current_streak: 0, longest_streak: 0, last_active_date: null });
     } finally {
       setLoading(false);
     }
@@ -214,27 +263,45 @@ export default function Growth() {
     setFocusDoneMin(mins);
     setFocusMode('done');
     if (!user) return;
+
+    const newSess = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `temp_${Math.random()}`,
+      user_id: user.id,
+      project_id: focusProject?.id || null,
+      duration_minutes: mins,
+      notes: focusNotes || null,
+      session_date: todayStr(),
+      started_at: new Date(Date.now() - elapsed * 1000).toISOString(),
+      ended_at: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    };
+
+    const updated = [newSess, ...sessions];
+    setSessions(updated);
+    try { localStorage.setItem(`dexos_growth_sessions_${user.id}`, JSON.stringify(updated)); } catch { /* ignore */ }
+
+    const { error: dbErr } = await supabase.from('growth_focus_sessions').insert([{
+      user_id: user.id,
+      project_id: focusProject?.id || null,
+      skill_id:   null,
+      duration_minutes: mins,
+      session_date: todayStr(),
+      started_at:  newSess.started_at,
+      ended_at:    newSess.ended_at,
+      notes:       focusNotes || null,
+    }]);
+
     try {
-      await supabase.from('growth_focus_sessions').insert([{
-        user_id: user.id,
-        project_id: focusProject?.id || null,
-        skill_id:   null,
-        duration_minutes: mins,
-        session_date: todayStr(),
-        started_at:  new Date(Date.now() - elapsed * 1000).toISOString(),
-        ended_at:    new Date().toISOString(),
-        notes:       focusNotes || null,
-      }]);
-      try {
-        await earnZyrons(user.id, mins, `Focused work on "${focusNotes || 'Task'}"`, 'focus', 'growth');
-      } catch (err) {
-        console.warn('Error awarding XP:', err);
-      }
-      try {
-        await supabase.rpc('update_streak', { p_user_id: user.id, p_date: todayStr() });
-      } catch { /* optional */ }
-    } catch (e) { console.warn('Session save error:', e.message); }
-  }, [user, focusProject, focusNotes]);
+      await earnZyrons(user.id, mins, `Focused work on "${focusNotes || 'Task'}"`, 'focus', 'growth');
+    } catch (err) {
+      console.warn('Error awarding XP:', err);
+    }
+    try {
+      await supabase.rpc('update_streak', { p_user_id: user.id, p_date: todayStr() });
+    } catch { /* optional */ }
+
+    if (!dbErr) loadData(user.id);
+  }, [user, focusProject, focusNotes, sessions, loadData]);
 
   // ─── Focus Timer ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -267,53 +334,88 @@ export default function Growth() {
   // ─── CRUD Functions ────────────────────────────────────────────────────────
   const createProject = async () => {
     if (!formProject.name.trim() || !user) return;
-    try {
-      await supabase.from('growth_projects').insert([{ ...formProject, deadline: formProject.deadline || null, user_id: user.id }]);
-      showToast('📁 Project created!', 'success');
-      setModalProject(false);
-      setFormProject({ name: '', icon: '📁', deadline: '' });
-      loadData(user.id);
-    } catch { showToast('Error creating project', 'error'); }
+    const newProj = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `temp_${Math.random()}`,
+      user_id: user.id,
+      name: formProject.name,
+      icon: formProject.icon,
+      deadline: formProject.deadline || null,
+      status: 'active',
+      created_at: new Date().toISOString()
+    };
+
+    const updated = [newProj, ...projects];
+    setProjects(updated);
+    try { localStorage.setItem(`dexos_growth_projects_${user.id}`, JSON.stringify(updated)); } catch { /* ignore */ }
+
+    const { error: dbErr } = await supabase.from('growth_projects').insert([{ ...formProject, deadline: formProject.deadline || null, user_id: user.id }]);
+    showToast('📁 Project created!', 'success');
+    setModalProject(false);
+    setFormProject({ name: '', icon: '📁', deadline: '' });
+    if (!dbErr) loadData(user.id);
   };
 
   const createTask = async (projectId, taskForm) => {
     if (!taskForm.name.trim() || !projectId || !user) return;
-    try {
-      await supabase.from('growth_tasks').insert([{
-        name: taskForm.name, priority: taskForm.priority,
-        due_date: taskForm.due_date || null,
-        user_id: user.id, project_id: projectId,
-      }]);
-      showToast('✅ Task added!', 'success');
-      loadData(user.id);
-    } catch { showToast('Error creating task', 'error'); }
+    const newT = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `temp_${Math.random()}`,
+      user_id: user.id,
+      project_id: projectId,
+      name: taskForm.name,
+      priority: taskForm.priority,
+      status: 'todo',
+      due_date: taskForm.due_date || null,
+      created_at: new Date().toISOString()
+    };
+
+    const updated = [newT, ...tasks];
+    setTasks(updated);
+    try { localStorage.setItem(`dexos_growth_tasks_${user.id}`, JSON.stringify(updated)); } catch { /* ignore */ }
+
+    const { error: dbErr } = await supabase.from('growth_tasks').insert([{
+      name: taskForm.name, priority: taskForm.priority,
+      due_date: taskForm.due_date || null,
+      user_id: user.id, project_id: projectId,
+    }]);
+    showToast('✅ Task added!', 'success');
+    if (!dbErr) loadData(user.id);
   };
 
   const addTask = async (name, projectId = null) => {
     if (!name.trim() || !user) return;
-    try {
-      await supabase.from('growth_tasks').insert([{
-        name,
-        priority: 3,
-        user_id: user.id,
-        project_id: projectId || null,
-      }]);
-      showToast('✅ Task added!', 'success');
-      loadData(user.id);
-    } catch {
-      showToast('Error creating task', 'error');
-    }
+    const newT = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `temp_${Math.random()}`,
+      user_id: user.id,
+      project_id: projectId || null,
+      name,
+      priority: 3,
+      status: 'todo',
+      due_date: null,
+      created_at: new Date().toISOString()
+    };
+
+    const updated = [newT, ...tasks];
+    setTasks(updated);
+    try { localStorage.setItem(`dexos_growth_tasks_${user.id}`, JSON.stringify(updated)); } catch { /* ignore */ }
+
+    const { error: dbErr } = await supabase.from('growth_tasks').insert([{
+      name,
+      priority: 3,
+      user_id: user.id,
+      project_id: projectId || null,
+    }]);
+    showToast('✅ Task added!', 'success');
+    if (!dbErr) loadData(user.id);
   };
 
   const deleteTask = async (task) => {
-    try {
-      setTasks(prev => prev.filter(t => t.id !== task.id));
-      await supabase.from('growth_tasks').delete().eq('id', task.id);
-      showToast('🗑 Task deleted', 'success');
-    } catch {
-      showToast('Error deleting task', 'error');
-      loadData(user.id);
-    }
+    if (!user) return;
+    const updated = tasks.filter(t => t.id !== task.id);
+    setTasks(updated);
+    try { localStorage.setItem(`dexos_growth_tasks_${user.id}`, JSON.stringify(updated)); } catch { /* ignore */ }
+    
+    await supabase.from('growth_tasks').delete().eq('id', task.id);
+    showToast('🗑 Task deleted', 'success');
   };
 
   const completeTask = async (task) => {
@@ -422,12 +524,12 @@ export default function Growth() {
       minHeight: '100vh',
       color: 'var(--text-primary)',
       position: 'relative',
-      '--color-accent': '#14B8A6',
-      '--color-accent-dim': 'rgba(20, 184, 166, 0.15)',
-      '--color-accent-glow': 'rgba(20, 184, 166, 0.08)',
-      '--color-accent-cyan': '#14B8A6',
-      '--color-accent-cyan-dim': 'rgba(20, 184, 166, 0.15)',
-      '--color-accent-cyan-glow': 'rgba(20, 184, 166, 0.08)',
+      '--color-accent': '#1FA36F',
+      '--color-accent-dim': 'rgba(31, 163, 111, 0.15)',
+      '--color-accent-glow': 'rgba(31, 163, 111, 0.08)',
+      '--color-accent-cyan': '#1FA36F',
+      '--color-accent-cyan-dim': 'rgba(31, 163, 111, 0.15)',
+      '--color-accent-cyan-glow': 'rgba(31, 163, 111, 0.08)',
     }}>
 
       {/* ── HEADER ──────────────────────────────────────────────────── */}

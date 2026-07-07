@@ -102,7 +102,6 @@ export default function Health() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   // ─── Data States ───────────────────────────────────────────────────────────
   const [sleepLogs, setSleepLogs] = useState([]);           // Rolling 7 days
@@ -113,7 +112,6 @@ export default function Health() {
   // ─── Data Fetcher ──────────────────────────────────────────────────────────
   const loadAllData = useCallback(async (uid) => {
     setLoading(true);
-    setError(null);
     const today = todayStr();
 
     const startOfWeek = new Date();
@@ -124,12 +122,15 @@ export default function Health() {
     start90Days.setDate(start90Days.getDate() - 90);
     const start90DaysStr = start90Days.toISOString().split('T')[0];
 
+    const lsKey = (kind) => `dexos_health_${kind}_${uid}`;
+    const lsGet = (kind) => { try { return JSON.parse(localStorage.getItem(lsKey(kind))); } catch { return null; } };
+
     try {
       const [
-        { data: sData },
-        { data: watData },
-        { data: mData },
-        { data: summaryData },
+        sRes,
+        wRes,
+        mRes,
+        dRes
       ] = await Promise.all([
         supabase.from('health_sleep_logs').select('*').eq('user_id', uid).gte('sleep_date', startOfWeekStr).order('sleep_date', { ascending: false }),
         supabase.from('health_water_logs').select('*').eq('user_id', uid).eq('log_date', today),
@@ -137,13 +138,51 @@ export default function Health() {
         supabase.from('dexos_daily_summary').select('*').eq('user_id', uid).gte('log_date', start90DaysStr),
       ]);
 
-      if (sData) setSleepLogs(sData);
-      if (watData) setWaterLogs(watData);
-      if (mData) setMoveLogs(mData);
-      if (summaryData) setDailySummaries(summaryData);
+      let sData = sRes.data;
+      if (sRes.error) {
+        console.warn('health_sleep_logs fetch error, using local fallback:', sRes.error.message);
+        sData = lsGet('sleep');
+      } else {
+        try { localStorage.setItem(lsKey('sleep'), JSON.stringify(sData || [])); } catch { /* ignore */ }
+      }
+
+      let watData = wRes.data;
+      if (wRes.error) {
+        const todayLsKey = `dexos_health_water_${uid}_${today}`;
+        console.warn('health_water_logs fetch error, using local fallback:', wRes.error.message);
+        try { watData = JSON.parse(localStorage.getItem(todayLsKey)) || []; } catch { watData = []; }
+      } else {
+        const todayLsKey = `dexos_health_water_${uid}_${today}`;
+        try { localStorage.setItem(todayLsKey, JSON.stringify(watData || [])); } catch { /* ignore */ }
+      }
+
+      let mData = mRes.data;
+      if (mRes.error) {
+        console.warn('health_move_logs fetch error, using local fallback:', mRes.error.message);
+        mData = lsGet('move');
+      } else {
+        try { localStorage.setItem(lsKey('move'), JSON.stringify(mData || [])); } catch { /* ignore */ }
+      }
+
+      let summaryData = dRes.data;
+      if (dRes.error) {
+        console.warn('dexos_daily_summary fetch error, using local fallback:', dRes.error.message);
+        summaryData = lsGet('summary');
+      } else {
+        try { localStorage.setItem(lsKey('summary'), JSON.stringify(summaryData || [])); } catch { /* ignore */ }
+      }
+
+      setSleepLogs(sData || []);
+      setWaterLogs(watData || []);
+      setMoveLogs(mData || []);
+      setDailySummaries(summaryData || []);
     } catch (e) {
-      console.warn('Error loading health telemetry:', e.message);
-      setError(e.message);
+      console.warn('Error loading health telemetry, using local fallback:', e.message);
+      setSleepLogs(lsGet('sleep') || []);
+      const todayLsKey = `dexos_health_water_${uid}_${today}`;
+      try { setWaterLogs(JSON.parse(localStorage.getItem(todayLsKey)) || []); } catch { setWaterLogs([]); }
+      setMoveLogs(lsGet('move') || []);
+      setDailySummaries(lsGet('summary') || []);
     } finally {
       setLoading(false);
     }
@@ -220,7 +259,7 @@ export default function Health() {
     return map;
   }, [dailySummaries]);
 
-  // ─── Cache Synchronizer (preserved exactly) ────────────────────────────────
+  // ─── Cache Synchronizer ────────────────────────────────
   const syncRecoveryScoreInDB = async (score) => {
     if (!user) return;
     const today = todayStr();
@@ -239,11 +278,17 @@ export default function Health() {
   const handleLogWater = async (amount) => {
     if (!user) return;
     const today = todayStr();
+    const lsKey = `dexos_health_water_${user.id}_${today}`;
 
     // Optimistic update
-    const tempId = Math.random().toString();
+    const tempId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
     const mockLog = { id: tempId, log_date: today, amount_ml: amount, created_at: new Date().toISOString() };
-    setWaterLogs(prev => [...prev, mockLog]);
+    
+    setWaterLogs(prev => {
+      const updated = [...prev, mockLog];
+      localStorage.setItem(lsKey, JSON.stringify(updated));
+      return updated;
+    });
 
     try {
       const { error: dbError } = await supabase.from('health_water_logs').insert([{
@@ -267,15 +312,32 @@ export default function Health() {
 
       await syncRecoveryScoreInDB(nextScore);
       loadAllData(user.id);
-    } catch {
-      showToast('Error saving hydration log', 'error');
-      setWaterLogs(prev => prev.filter(item => item.id !== tempId));
+    } catch (err) {
+      console.warn('Water log DB failed, saved locally:', err.message);
+      showToast(`💧 +${amount}ml logged locally!`, 'success');
     }
   };
 
   const handleLogSleep = async (hrs, qual) => {
     if (!user) return;
     const today = todayStr();
+    const lsKey = `dexos_health_sleep_${user.id}`;
+
+    const newLog = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(),
+      user_id: user.id,
+      sleep_date: today,
+      duration_hours: hrs,
+      quality: qual,
+      created_at: new Date().toISOString()
+    };
+
+    setSleepLogs(prev => {
+      const filtered = prev.filter(l => l.sleep_date !== today);
+      const updated = [newLog, ...filtered];
+      localStorage.setItem(lsKey, JSON.stringify(updated));
+      return updated;
+    });
 
     try {
       const { error: dbError } = await supabase.from('health_sleep_logs').upsert([{
@@ -289,14 +351,33 @@ export default function Health() {
       showToast('😴 Sleep logged! +10 ⚡', 'success');
       await earnZyrons(user.id, 10, 'Sleep Logged');
       loadAllData(user.id);
-    } catch {
-      showToast('Error saving sleep log', 'error');
+    } catch (err) {
+      console.warn('Sleep log DB failed, saved locally:', err.message);
+      showToast('😴 Sleep logged locally!', 'success');
     }
   };
 
   const handleLogWorkout = async (type, activeMins, rpe) => {
     if (!user) return;
     const today = todayStr();
+    const lsKey = `dexos_health_move_${user.id}`;
+
+    const newLog = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(),
+      user_id: user.id,
+      log_date: today,
+      activity_type: type,
+      active_minutes: activeMins,
+      rpe: rpe,
+      notes: null,
+      created_at: new Date().toISOString()
+    };
+
+    setMoveLogs(prev => {
+      const updated = [newLog, ...prev];
+      localStorage.setItem(lsKey, JSON.stringify(updated));
+      return updated;
+    });
 
     try {
       const { error: dbError } = await supabase.from('health_move_logs').insert([{
@@ -324,8 +405,9 @@ export default function Health() {
 
       await syncRecoveryScoreInDB(nextScore);
       loadAllData(user.id);
-    } catch {
-      showToast('Error saving workout log', 'error');
+    } catch (err) {
+      console.warn('Workout log DB failed, saved locally:', err.message);
+      showToast('🏋️ Workout logged locally!', 'success');
     }
   };
 
@@ -360,14 +442,7 @@ export default function Health() {
     );
   }
 
-  // ─── Error state ───────────────────────────────────────────────────────────
-  if (error) {
-    return (
-      <div style={{ background: C.bg, minHeight: '100vh', padding: '20px' }}>
-        <ErrorState message={error} onRetry={() => loadAllData(user?.id)} />
-      </div>
-    );
-  }
+  // Error state removed (degrades gracefully)
 
   // ─── Main render ───────────────────────────────────────────────────────────
   return (

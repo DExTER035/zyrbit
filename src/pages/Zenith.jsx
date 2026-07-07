@@ -14,7 +14,7 @@ import ErrorState from '../components/ErrorState.jsx';
 
 // ─── colour tokens (Zenith Premium palette) ─────────────────────────────────
 const C = {
-  bg:        '#121214',
+  bg:        '#0B0D0F',
   surface:   '#17181B',
   surfaceAlt:'#1C1D21',
   border:    '#26272C',
@@ -230,6 +230,7 @@ export default function Zenith() {
   const [expenses, setExpenses] = useState([]);
   const [bills, setBills] = useState([]);
   const [goals, setGoals] = useState([]);
+  const [foodLogs, setFoodLogs] = useState([]);   // today's meal_logs
 
   // Habits State
   const [habits, setHabits] = useState([]);
@@ -307,6 +308,11 @@ export default function Zenith() {
     const completedGoals = goals.filter(g => g.is_complete).length;
     const overdueTasksCount = tasks.filter(t => t.status === 'todo' && t.due_date && t.due_date < today).length;
     
+    const lastFocusSession = focusSessions.length > 0 ? focusSessions[focusSessions.length - 1] : null;
+    const lastFocusTopic = lastFocusSession?.notes || (focusSessions.length > 0 ? 'Deep Work' : 'No focus today');
+    const lastFocusMins = Math.round(focusMins);
+    const runwayDays = runwayMonths >= 99 ? 9999 : Math.max(0, Math.round(runwayMonths * 30));
+
     return {
       completedTasks: completedTasksToday,
       totalTasks: totalTasksToday,
@@ -322,6 +328,9 @@ export default function Zenith() {
       sprintLoggedToDate,
       liquidCash,
       runwayMonths,
+      runwayDays,
+      lastFocusTopic,
+      lastFocusMins,
       nextBill,
       overdueTasksCount,
       goalsCount,
@@ -411,6 +420,15 @@ export default function Zenith() {
     if (todayExerciseMins > 0) winsToday += 1;
     return winsToday;
   }, [ctx, focusSessions, sleepLogs, waterLogs, moveLogs, today]);
+
+  // ── Food totals for today ──────────────────────────────────────────────────
+  const foodTotals = React.useMemo(() => ({
+    calories: Math.round(foodLogs.reduce((s, l) => s + (l.calories || 0), 0)),
+    protein:  Math.round(foodLogs.reduce((s, l) => s + (l.protein  || 0), 0)),
+    carbs:    Math.round(foodLogs.reduce((s, l) => s + (l.carbs    || 0), 0)),
+    fat:      Math.round(foodLogs.reduce((s, l) => s + (l.fat      || 0), 0)),
+    meals:    foodLogs.length,
+  }), [foodLogs]);
 
   const aiBriefing = React.useMemo(() => {
     return compileCyberneticDirectives(
@@ -506,6 +524,14 @@ export default function Zenith() {
         text: `Focus session — ${f.duration_minutes}min`
       });
     });
+
+    foodLogs.forEach(l => {
+      rawEvents.push({
+        ts: new Date(l.created_at || today + 'T12:30:00').getTime(),
+        type: 'food',
+        text: `${l.meal_type ? l.meal_type.charAt(0).toUpperCase() + l.meal_type.slice(1) : 'Meal'}: ${l.food_name} — ${Math.round(l.calories || 0)} kcal`
+      });
+    });
     
     todayExps.forEach(e => {
       rawEvents.push({
@@ -521,7 +547,7 @@ export default function Zenith() {
       type: e.type,
       text: e.text
     }));
-  }, [activity, habits, tasks, sleepLogs, waterLogs, moveLogs, focusSessions, expenses, today]);
+  }, [activity, habits, tasks, sleepLogs, waterLogs, moveLogs, focusSessions, expenses, foodLogs, today]);
 
   const yearlyCompletionsMap = React.useMemo(() => {
     const map = {};
@@ -676,6 +702,26 @@ export default function Zenith() {
     setBills(billsRes?.data || []);
   }, []);
 
+  const loadFoodData = useCallback(async (uid) => {
+    const todayStr = getTodayStr();
+    const lsKey = `dexos_food_logs_${uid}_${todayStr}`;
+    try {
+      const { data, error: dbErr } = await supabase
+        .from('meal_logs')
+        .select('calories, protein, carbs, fat, food_name, meal_type, created_at')
+        .eq('user_id', uid)
+        .eq('date', todayStr)
+        .order('created_at', { ascending: true });
+      if (dbErr) {
+        const local = localStorage.getItem(lsKey);
+        setFoodLogs(local ? JSON.parse(local) : []);
+      } else {
+        setFoodLogs(data ?? []);
+        try { localStorage.setItem(lsKey, JSON.stringify(data ?? [])); } catch { /* ignore */ }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   const loadData = useCallback(async (uid) => {
     setLoading(true);
     setError(null);
@@ -685,10 +731,11 @@ export default function Zenith() {
       loadGrowthData(uid),
       loadHealthData(uid),
       loadWealthData(uid),
+      loadFoodData(uid),
       getWallet(uid).then(w => { if (w) setWallet(w); }).catch(() => null)
     ]);
     setLoading(false);
-  }, [loadHabitsAndStreaks, loadGrowthData, loadHealthData, loadWealthData]);
+  }, [loadHabitsAndStreaks, loadGrowthData, loadHealthData, loadWealthData, loadFoodData]);
 
   // ── load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -977,10 +1024,10 @@ export default function Zenith() {
       {xpPopup && (
         <div style={{
           position: 'fixed', bottom: 170, right: 24, zIndex: 9999,
-          background: '#15181B', border: '1px solid #14B8A6',
+          background: '#15181B', border: '1px solid #1FA36F',
           borderRadius: '100px', padding: '8px 16px',
-          fontSize: '12px', fontWeight: 900, color: '#14B8A6',
-          boxShadow: '0 0 20px rgba(20, 184, 166, 0.1)',
+          fontSize: '12px', fontWeight: 900, color: '#1FA36F',
+          boxShadow: '0 0 20px rgba(31, 163, 111, 0.1)',
           animation: 'fadeUp 0.3s ease both',
           pointerEvents: 'none'
         }}>
@@ -1000,8 +1047,23 @@ export default function Zenith() {
       {/* Body Status */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Body</div>
-        <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>Recovered</div>
-        <div style={{ fontSize: '32px', fontWeight: 900, color: '#14B8A6', marginTop: '2px' }}>{recoveryScore}%</div>
+        <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>
+          {ctx.sleep > 0 ? `${ctx.sleep.toFixed(1)}h sleep · ${Math.round(ctx.water / 250)} glasses water` : 'No health data yet'}
+        </div>
+        <div style={{ fontSize: '32px', fontWeight: 900, color: '#1FA36F', marginTop: '2px' }}>{recoveryScore}%</div>
+      </div>
+
+      <div style={{ borderBottom: '1px solid #1C1D21' }} />
+
+      {/* Food Status */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Food</div>
+        <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>
+          {foodTotals.meals > 0 ? `${foodTotals.meals} meal${foodTotals.meals > 1 ? 's' : ''} · ${foodTotals.protein}g protein` : 'No meals logged yet'}
+        </div>
+        <div style={{ fontSize: '32px', fontWeight: 900, color: '#F59E0B', marginTop: '2px' }}>
+          {foodTotals.calories > 0 ? `${foodTotals.calories} kcal` : '—'}
+        </div>
       </div>
 
       <div style={{ borderBottom: '1px solid #1C1D21' }} />
@@ -1009,8 +1071,11 @@ export default function Zenith() {
       {/* Money Status */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Money</div>
-        <div style={{ fontSize: '24px', fontWeight: 900, color: '#FFFFFF', marginTop: '2px' }}>
-          {ctx.runwayDays >= 999 ? 'Stable' : `${ctx.runwayDays} Safe Days`}
+        <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>
+          {ctx.spent > 0 ? `₹${Math.round(ctx.spent)} spent today` : 'No expenses today'}
+        </div>
+        <div style={{ fontSize: '32px', fontWeight: 900, color: ctx.runwayDays >= 999 ? '#1FA36F' : ctx.runwayDays > 90 ? '#1FA36F' : ctx.runwayDays > 0 ? '#F59E0B' : '#9CA3AF', marginTop: '2px' }}>
+          {ctx.runwayDays >= 9999 ? 'Stable ✓' : ctx.runwayDays === 0 ? 'Set up income →' : `${ctx.runwayDays}d runway`}
         </div>
       </div>
 
@@ -1019,8 +1084,12 @@ export default function Zenith() {
       {/* Focus Status */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Focus</div>
-        <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>{ctx.lastFocusTopic}</div>
-        <div style={{ fontSize: '24px', fontWeight: 900, color: '#14B8A6', marginTop: '2px' }}>{ctx.lastFocusMins} min</div>
+        <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>
+          {ctx.lastFocusTopic}
+        </div>
+        <div style={{ fontSize: '32px', fontWeight: 900, color: '#1FA36F', marginTop: '2px' }}>
+          {ctx.lastFocusMins > 0 ? `${ctx.lastFocusMins} min` : '—'}
+        </div>
       </div>
 
       <div style={{ borderBottom: '1px solid #1C1D21' }} />
@@ -1048,12 +1117,12 @@ export default function Zenith() {
               <div style={{
                 width: '20px',
                 height: '20px',
-                border: `2px solid ${p.done ? '#14B8A6' : '#2E2F35'}`,
+                border: `2px solid ${p.done ? '#1FA36F' : '#2E2F35'}`,
                 borderRadius: '4px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: p.done ? '#14B8A6' : '#15181B',
+                background: p.done ? '#1FA36F' : '#15181B',
                 transition: 'all 0.2s',
               }}>
                 {p.done && <span style={{ fontSize: '12px', color: '#0B0D0F', fontWeight: 900 }}>✓</span>}
@@ -1068,6 +1137,11 @@ export default function Zenith() {
               </span>
             </div>
           ))}
+          {priorities.length === 0 && (
+            <div style={{ fontSize: '15px', color: '#4B5563', fontWeight: 500, padding: '4px 0' }}>
+              All clear — nothing urgent today.
+            </div>
+          )}
         </div>
       </div>
 
@@ -1090,11 +1164,11 @@ export default function Zenith() {
       {/* PERFECT DAY CELEBRATION */}
       {showCelebration && (
         <div className="modal-overlay" style={{ background: '#000000B0', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', inset: 0 }}>
-          <div style={{ background: '#15181B', border: '1px solid rgba(20, 184, 166, 0.2)', borderRadius: '16px', padding: '24px', textAlign: 'center', animation: 'scaleIn 0.5s ease', maxWidth: '300px' }}>
+          <div style={{ background: '#15181B', border: '1px solid rgba(31, 163, 111, 0.2)', borderRadius: '16px', padding: '24px', textAlign: 'center', animation: 'scaleIn 0.5s ease', maxWidth: '300px' }}>
             <div style={{ fontSize: '52px', marginBottom: '8px' }}>🏆</div>
-            <div style={{ fontSize: '20px', color: '#14B8A6', fontWeight: 900, marginBottom: '4px' }}>Perfect Day!</div>
+            <div style={{ fontSize: '20px', color: '#1FA36F', fontWeight: 900, marginBottom: '4px' }}>Perfect Day!</div>
             <div style={{ fontSize: '14px', color: '#71717A', marginBottom: '24px' }}>All habits completed today!</div>
-            <button onClick={() => setShowCelebration(false)} className="btn-primary" style={{ width: '100%', padding: '10px', background: '#14B8A6', border: 'none', borderRadius: '8px', color: '#0B0D0F', fontWeight: 800, cursor: 'pointer' }}>Keep Going 🚀</button>
+            <button onClick={() => setShowCelebration(false)} className="btn-primary" style={{ width: '100%', padding: '10px', background: '#1FA36F', border: 'none', borderRadius: '8px', color: '#0B0D0F', fontWeight: 800, cursor: 'pointer' }}>Keep Going 🚀</button>
           </div>
         </div>
       )}
@@ -1117,7 +1191,7 @@ export default function Zenith() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '24px' }}>
               {[
                 { label: 'Streak', value: `${bestStreak}d`, color: '#F59E0B', icon: '🔥' },
-                { label: 'Gravity', value: osScore, color: '#14B8A6', icon: '⚡' },
+                { label: 'Gravity', value: osScore, color: '#1FA36F', icon: '⚡' },
               ].map((s, i) => (
                 <div key={i} style={{ background: '#1C1D21', border: '1px solid #2E2F35', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
                   <div style={{ fontSize: '18px', marginBottom: '4px' }}>{s.icon}</div>
