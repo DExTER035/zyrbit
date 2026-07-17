@@ -2,7 +2,23 @@ import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { FC } from './shared.jsx';
 
+const formatLogTime = (createdAt) => {
+  if (!createdAt) return '';
+  try {
+    const date = new Date(createdAt);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return '';
+  }
+};
+
 export default function MealLogCard({ log, onDelete }) {
+  const timeStr = formatLogTime(log.created_at);
+
   return (
     <div
       style={{
@@ -27,16 +43,18 @@ export default function MealLogCard({ log, onDelete }) {
         }}>
           {log.food_name}
         </div>
-        <div style={{ display: 'flex', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '10px', color: FC.muted }}>{log.quantity_g}g</span>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '2px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '10px', color: FC.muted }}>
+            {log.quantity_g}g{timeStr ? ` · ${timeStr}` : ''}
+          </span>
           {log.protein > 0 && (
-            <span style={{ fontSize: '10px', color: FC.protein }}>P {Math.round(log.protein)}g</span>
+            <span style={{ fontSize: '10px', color: FC.protein, fontWeight: 600 }}>P {Math.round(log.protein)}g</span>
           )}
           {log.carbs > 0 && (
-            <span style={{ fontSize: '10px', color: FC.carbs }}>C {Math.round(log.carbs)}g</span>
+            <span style={{ fontSize: '10px', color: FC.carbs, fontWeight: 600 }}>C {Math.round(log.carbs)}g</span>
           )}
           {log.fat > 0 && (
-            <span style={{ fontSize: '10px', color: FC.fat }}>F {Math.round(log.fat)}g</span>
+            <span style={{ fontSize: '10px', color: FC.fat, fontWeight: 600 }}>F {Math.round(log.fat)}g</span>
           )}
         </div>
       </div>

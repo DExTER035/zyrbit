@@ -1,134 +1,221 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React from 'react';
+import { Droplet, Plus } from 'lucide-react';
 import { FC, FProgressBar } from './shared.jsx';
 import { DEFAULT_CALORIE_GOAL, DEFAULT_MACRO_GOALS } from '../../data/indianFoods.js';
 
-// ─── Calorie ring arc helper ──────────────────────────────────────────────────
-function describeArc(cx, cy, r, startDeg, endDeg) {
-  const toRad = (d) => ((d - 90) * Math.PI) / 180;
-  const x1 = cx + r * Math.cos(toRad(startDeg));
-  const y1 = cy + r * Math.sin(toRad(startDeg));
-  const x2 = cx + r * Math.cos(toRad(endDeg));
-  const y2 = cy + r * Math.sin(toRad(endDeg));
-  const large = endDeg - startDeg > 180 ? 1 : 0;
-  return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
-}
-
-export default function DailyCalorieRing({ totals, goal = DEFAULT_CALORIE_GOAL, macroGoals = DEFAULT_MACRO_GOALS }) {
+export default function DailyCalorieRing({ 
+  totals, 
+  goal = DEFAULT_CALORIE_GOAL, 
+  macroGoals = DEFAULT_MACRO_GOALS,
+  water = 0,
+  waterGoal = 3000,
+  onAddWater
+}) {
   const { cal = 0, protein = 0, carbs = 0, fat = 0, fiber = 0 } = totals;
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 120);
-    return () => clearTimeout(t);
-  }, []);
+  const remainingCal = Math.max(0, goal - cal);
+  const remainingProtein = Math.max(0, macroGoals.protein - protein);
 
-  const pct = Math.min(cal / goal, 1.05); // slight overflow allowed visually
-  const ringColor = useMemo(() => {
-    if (cal > goal) return FC.over;
-    if (cal / goal > 0.8) return FC.moderate;
-    return FC.food;
-  }, [cal, goal]);
-
-  const remaining = Math.max(0, goal - cal);
-  const cx = 90, cy = 90, r = 72;
-  const sweep = mounted ? Math.min(pct * 360, 359.99) : 0;
-  const arcPath = sweep > 0.5 ? describeArc(cx, cy, r, 0, sweep) : null;
+  const calColor = cal > goal ? FC.over : FC.food;
+  const proteinColor = FC.protein;
+  const waterColor = '#06B6D4'; // custom bright hydration cyan
 
   return (
     <div style={{
       background: FC.surface,
       border: `1px solid ${FC.border}`,
       borderRadius: '24px',
-      padding: '24px 20px 20px',
+      padding: '24px 20px',
       display: 'flex',
       flexDirection: 'column',
       gap: '20px',
+      boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)',
+      backdropFilter: 'blur(20px)',
     }}>
-      {/* ── Ring + Center text ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-        {/* SVG Ring */}
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <svg width="180" height="180" viewBox="0 0 180 180">
-            {/* Track */}
-            <circle cx={cx} cy={cy} r={r} fill="none" stroke={FC.dim} strokeWidth="10" />
-            {/* Progress arc */}
-            {arcPath && (
-              <path
-                d={arcPath}
-                fill="none"
-                stroke={ringColor}
-                strokeWidth="10"
-                strokeLinecap="round"
-                style={{ transition: 'stroke 0.3s, d 0.5s' }}
-              />
-            )}
-            {/* Glow dot at arc end */}
-            {arcPath && sweep > 5 && (
-              <circle
-                cx={cx + r * Math.cos(((sweep - 90) * Math.PI) / 180)}
-                cy={cy + r * Math.sin(((sweep - 90) * Math.PI) / 180)}
-                r="5"
-                fill={ringColor}
-                style={{ filter: `drop-shadow(0 0 6px ${ringColor})` }}
-              />
-            )}
+      {/* ── Ring Section ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+        
+        {/* SVG Concentric Rings */}
+        <div style={{ position: 'relative', width: '160px', height: '160px', flexShrink: 0, margin: '0 auto' }}>
+          <svg width="160" height="160" viewBox="0 0 200 200">
+            {/* Outer Ring: Calories (Radius 80) */}
+            <Ring radius={80} value={cal} goal={goal} color={calColor} strokeWidth={11} />
+            {/* Middle Ring: Protein (Radius 62) */}
+            <Ring radius={62} value={protein} goal={macroGoals.protein} color={proteinColor} strokeWidth={11} />
+            {/* Inner Ring: Water (Radius 44) */}
+            <Ring radius={44} value={water} goal={waterGoal} color={waterColor} strokeWidth={11} />
           </svg>
-          {/* Center text */}
+
+          {/* Central Calorie Text */}
           <div style={{
-            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
           }}>
-            <span style={{ fontSize: '28px', fontWeight: 900, color: FC.text, lineHeight: 1 }}>
+            <span style={{ fontSize: '22px', fontWeight: 900, color: FC.text, lineHeight: 1 }}>
               {Math.round(cal)}
             </span>
             <span style={{ fontSize: '9px', color: FC.muted, fontWeight: 700, letterSpacing: '1px', marginTop: '2px' }}>
-              KCAL
-            </span>
-            <span style={{ fontSize: '11px', color: ringColor, fontWeight: 700, marginTop: '6px' }}>
-              {cal > goal ? `+${Math.round(cal - goal)} over` : `${Math.round(remaining)} left`}
+              OF {goal} KCAL
             </span>
           </div>
         </div>
 
-        {/* Right side stats */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* Legend / Metrics List */}
+        <div style={{ flex: 1, minWidth: '160px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          
+          {/* Calorie Stats */}
           <div>
-            <div style={{ fontSize: '11px', color: FC.muted, marginBottom: '1px' }}>Consumed</div>
-            <div style={{ fontSize: '22px', fontWeight: 900, color: FC.text, lineHeight: 1 }}>{Math.round(cal)}</div>
-          </div>
-          <div style={{ width: '100%', height: '1px', background: FC.border }} />
-          <div>
-            <div style={{ fontSize: '11px', color: FC.muted, marginBottom: '1px' }}>Goal</div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: FC.sub }}>{goal}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '11px', color: FC.muted, marginBottom: '1px' }}>Remaining</div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: cal > goal ? FC.over : FC.optimal }}>
-              {cal > goal ? 0 : Math.round(remaining)}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontSize: '11px', color: FC.muted, fontWeight: 600 }}>Calories</span>
+              <span style={{ fontSize: '11px', color: cal > goal ? FC.over : FC.optimal, fontWeight: 700 }}>
+                {cal > goal ? `${Math.round(cal - goal)} over` : `${Math.round(remainingCal)} left`}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: calColor }} />
+              <span style={{ fontSize: '18px', fontWeight: 900, color: FC.text }}>
+                {Math.round(cal)} <span style={{ fontSize: '12px', fontWeight: 500, color: FC.muted }}>kcal</span>
+              </span>
             </div>
           </div>
+
+          {/* Protein Stats */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontSize: '11px', color: FC.muted, fontWeight: 600 }}>Protein</span>
+              <span style={{ fontSize: '11px', color: remainingProtein === 0 ? FC.optimal : FC.sub, fontWeight: 700 }}>
+                {remainingProtein === 0 ? 'Goal hit!' : `${Math.round(remainingProtein)}g left`}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: proteinColor }} />
+              <span style={{ fontSize: '18px', fontWeight: 900, color: FC.text }}>
+                {Math.round(protein)}<span style={{ fontSize: '12px', fontWeight: 500, color: FC.muted }}>g</span>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: FC.muted, marginLeft: '6px' }}>/ {macroGoals.protein}g</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Hydration Stats + Quick Add */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontSize: '11px', color: FC.muted, fontWeight: 600 }}>Water Intake</span>
+              <span style={{ fontSize: '10px', color: waterColor, fontWeight: 700 }}>Goal: {waterGoal}ml</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Droplet size={14} color={waterColor} fill={waterColor} />
+                <span style={{ fontSize: '18px', fontWeight: 900, color: FC.text }}>
+                  {water}<span style={{ fontSize: '12px', fontWeight: 500, color: FC.muted }}>ml</span>
+                </span>
+              </div>
+              
+              {/* Quick Add Buttons */}
+              {onAddWater && (
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button 
+                    onClick={() => onAddWater(250)}
+                    style={{
+                      background: `${waterColor}1A`,
+                      border: `1px solid ${waterColor}40`,
+                      borderRadius: '8px',
+                      color: waterColor,
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      padding: '4px 6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '2px',
+                    }}
+                  >
+                    <Plus size={10} />250
+                  </button>
+                  <button 
+                    onClick={() => onAddWater(500)}
+                    style={{
+                      background: `${waterColor}1A`,
+                      border: `1px solid ${waterColor}40`,
+                      borderRadius: '8px',
+                      color: waterColor,
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      padding: '4px 6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '2px',
+                    }}
+                  >
+                    <Plus size={10} />500
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
 
-      {/* ── Macro bars ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <MacroBar label="Protein" value={protein} goal={macroGoals.protein} color={FC.protein} unit="g" />
-        <MacroBar label="Carbs"   value={carbs}   goal={macroGoals.carbs}   color={FC.carbs}   unit="g" />
-        <MacroBar label="Fat"     value={fat}      goal={macroGoals.fat}     color={FC.fat}     unit="g" />
-        <MacroBar label="Fiber"   value={fiber}    goal={macroGoals.fiber}   color={FC.fiber}   unit="g" />
+      {/* ── Macro progress bars (Carbs, Fat, Fiber) ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: `1px solid ${FC.border}`, paddingTop: '16px' }}>
+        <MacroBar label="Carbs" value={carbs} goal={macroGoals.carbs} color={FC.carbs} unit="g" />
+        <MacroBar label="Fat" value={fat} goal={macroGoals.fat} color={FC.fat} unit="g" />
+        <MacroBar label="Fiber" value={fiber} goal={macroGoals.fiber} color={FC.fiber} unit="g" />
       </div>
     </div>
   );
 }
 
+// ── Ring Drawing Helper ──
+const Ring = ({ radius, value, goal, color, strokeWidth = 10 }) => {
+  const circumference = 2 * Math.PI * radius;
+  const pct = goal > 0 ? Math.min(value / goal, 1.0) : 0;
+  const offset = circumference - pct * circumference;
+  return (
+    <g>
+      <circle
+        cx="100"
+        cy="100"
+        r={radius}
+        fill="none"
+        stroke={FC.dim}
+        strokeWidth={strokeWidth}
+        opacity="0.3"
+      />
+      <circle
+        cx="100"
+        cy="100"
+        r={radius}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform="rotate(-90 100 100)"
+        style={{
+          transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      />
+    </g>
+  );
+};
+
+// ── Macro Progress Bar Helper ──
 function MacroBar({ label, value, goal, color, unit }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <span style={{ fontSize: '10px', color: FC.muted, fontWeight: 700, width: '44px', flexShrink: 0 }}>{label}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <span style={{ fontSize: '11px', color: FC.muted, fontWeight: 700, width: '48px', flexShrink: 0 }}>{label}</span>
       <div style={{ flex: 1 }}>
-        <FProgressBar value={value} max={goal} color={color} height={5} />
+        <FProgressBar value={value} max={goal} color={color} height={6} />
       </div>
-      <span style={{ fontSize: '10px', color, fontWeight: 700, width: '48px', textAlign: 'right', flexShrink: 0 }}>
+      <span style={{ fontSize: '11px', color, fontWeight: 700, width: '60px', textAlign: 'right', flexShrink: 0 }}>
         {Math.round(value)}/{goal}{unit}
       </span>
     </div>

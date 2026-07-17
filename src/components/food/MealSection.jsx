@@ -15,6 +15,7 @@ export default function MealSection({ mealType, logs = [], userId, onAddFood, on
   const [collapsed, setCollapsed] = useState(false);
   const meta = MEAL_META[mealType] ?? { label: mealType, emoji: '🍽️', time: '' };
   const totalCal = logs.reduce((sum, l) => sum + (l.calories || 0), 0);
+  const totalProtein = logs.reduce((sum, l) => sum + (l.protein || 0), 0);
   const isEmpty = logs.length === 0;
 
   return (
@@ -48,8 +49,14 @@ export default function MealSection({ mealType, logs = [], userId, onAddFood, on
           </div>
         </div>
         {totalCal > 0 && (
-          <span style={{ fontSize: '13px', fontWeight: 800, color: FC.food, marginRight: '4px' }}>
-            {Math.round(totalCal)} kcal
+          <span style={{ fontSize: '12px', fontWeight: 800, color: FC.food, marginRight: '8px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span>{Math.round(totalCal)} kcal</span>
+            {totalProtein > 0 && (
+              <>
+                <span style={{ color: FC.muted }}>·</span>
+                <span style={{ color: FC.protein }}>{Math.round(totalProtein)}g P</span>
+              </>
+            )}
           </span>
         )}
         {collapsed

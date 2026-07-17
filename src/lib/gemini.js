@@ -101,3 +101,30 @@ Be specific about the user's habits, tasks, and overall progress.
 Context: ${context}`
   }])
 }
+
+/**
+ * Dex AI nutrition analyzer helper
+ */
+export const getNutritionInsights = async (historyDataText, goalSettingsText) => {
+  return askZyra([{
+    role: 'user',
+    text: `You are Dex, the AI nutrition intelligence coach inside DexOS.
+Analyze the user's recent daily summaries of nutrition intake (calories, protein, carbs, fat, water, and weight) and compare them with their goals.
+
+Goal Settings:
+${goalSettingsText}
+
+Recent Nutrition Summaries (past 30 days):
+${historyDataText}
+
+Based on this historical data, identify interesting and subtle eating patterns, deficits, spikes, anomalies, or consistency levels.
+List exactly 3 to 4 bullet points of insights and suggested improvements.
+Rules for insights:
+1. Be direct, precise, and calm. Do not sound generic or write introductions/conclusions.
+2. Keep each bullet point under 15 words.
+3. Call out specific numbers or percentages when relevant (e.g. "You consistently eat 15% less protein on weekends", "You hit your water goal 18 out of 30 days").
+4. If there is insufficient data, provide helpful tips on what metrics they should focus on.
+
+End with: "This analysis is based on your logged metrics and is not medical advice."`
+  }])
+}
