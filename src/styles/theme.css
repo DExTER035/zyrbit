@@ -1,0 +1,95 @@
+/* src/design/theme.css — DexOS Brand Tokens v2 */
+/* Direction: Linear · Arc Browser · Raycast · Apple · Notion */
+
+:root {
+  /* ── Spacing Tokens ── */
+  --space-4:  4px;
+  --space-8:  8px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+
+  /* ── Radius Tokens ── */
+  --radius-card:   16px;
+  --radius-inner:  12px;
+  --radius-button: 12px;
+  --radius-input:  12px;
+  --radius-badge:  100px;
+
+  /* ── Typography Sizes ── */
+  --fs-xs:   11px;
+  --fs-sm:   13px;
+  --fs-base: 15px;
+  --fs-md:   16px;
+  --fs-lg:   20px;
+  --fs-xl:   24px;
+  --fs-xxl:  32px;
+
+  /* ── Core Backgrounds ── */
+  --bg-root:     #0B0D0F;
+  --bg-page:     #0B0D0F;
+  --bg-card:     #15181B;
+  --bg-elevated: #1C1D21;
+  --bg-input:    #1E1F24;
+  --bg-nav:      rgba(11, 13, 15, 0.88);
+
+  /* ── Borders ── */
+  --border-primary:   #1C1D21;
+  --border-secondary: #26272C;
+
+  /* ── Typography Colors ── */
+  --text-primary:   #F5F5F5;
+  --text-secondary: #9CA3AF;
+  --text-muted:     #71717A;
+  --text-dim:       #52525B;
+  --text-hint:      #3F3F46;
+
+  /* ── Letter-Spacing Tokens ── */
+  --ls-tight: -0.02em;
+  --ls-body:   0em;
+  --ls-caps:   0.08em;
+
+  /* ── Accent Colors ── */
+  --color-accent:      #1FA36F;  /* Emerald */
+  --color-accent-dim:  rgba(31, 163, 111, 0.15);
+  --color-accent-glow: rgba(31, 163, 111, 0.08);
+
+  --color-accent-cyan:      #1FA36F;  /* Unified Emerald */
+  --color-accent-cyan-dim:  rgba(31, 163, 111, 0.15);
+  --color-accent-cyan-glow: rgba(31, 163, 111, 0.08);
+
+  /* ── Semantic Colors ── */
+  --color-success:      #10B981;
+  --color-success-dim:  rgba(16, 185, 129, 0.15);
+  --color-warning:      #F59E0B;
+  --color-warning-dim:  rgba(245, 158, 11, 0.15);
+  --color-error:        #EF4444;
+  --color-error-dim:    rgba(239, 68, 68, 0.15);
+
+  /* ── Logo System ── */
+  --logo-primary:   #F5F5F5;
+  --logo-accent:    #1FA36F;
+
+  /* ── Zone Colors (Restrained DexOS System) ── */
+  --zone-mind:   #1FA36F;
+  --zone-body:   #10B981;
+  --zone-growth: #22C55E;
+  --zone-soul:   #34D399;
+}
+
+/* ── Glassmorphism utility ── */
+.glass {
+  backdrop-filter: blur(16px);
+  background: rgba(21, 24, 27, 0.85);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-card);
+}
+
+/* ── Subtle ambient utility ── */
+.ambient-glow-cyan {
+  box-shadow: 0 0 40px var(--color-accent-cyan-glow);
+}
+.ambient-glow-accent {
+  box-shadow: 0 0 40px var(--color-accent-glow);
+}
+

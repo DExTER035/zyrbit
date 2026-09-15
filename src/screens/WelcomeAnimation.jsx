@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { DexOSMark } from '../components/Logo.jsx'
+import { DexOSMark } from '../components/ui/Logo.jsx'
 
 const CYAN = '#5EE6F5'
 

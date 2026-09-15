@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase/index.js';
 
 export function useHabitReminders(userId) {
   const timeoutsRef = useRef({});

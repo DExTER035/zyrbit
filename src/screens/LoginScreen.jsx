@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { DexOSIcon } from '../components/Logo.jsx'
-import { supabase } from '../lib/supabase.js'
+import { DexOSIcon } from '../components/ui/Logo.jsx'
+import { supabase } from '../lib/supabase/index.js'
 
 // ── Shared input styles ────────────────────────────────────────────────────
 const inputStyle = {

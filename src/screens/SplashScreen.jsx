@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { DexOSMark, DexOSWordmark } from '../components/Logo.jsx';
+import { DexOSMark, DexOSWordmark } from '../components/ui/Logo.jsx';
 
 /* ─── Pillar Icons ─────────────────────────────────────────── */
 const PillarIcon = ({ type }) => {

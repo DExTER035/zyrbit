@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import supabase from '../lib/supabase.js';
+import supabase from '../lib/supabase/index.js';
 
 const SubscriptionContext = createContext(null);
 

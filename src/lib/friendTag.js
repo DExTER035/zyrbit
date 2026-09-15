@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js'
+import { supabase } from './supabase/index.js'
 
 const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
 const NUMBERS = '23456789'

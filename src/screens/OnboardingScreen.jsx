@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { DexOSIcon } from '../components/Logo.jsx'
+import { DexOSIcon } from '../components/ui/Logo.jsx'
 
 const CYAN = '#5EE6F5'
 const BG = '#121214'

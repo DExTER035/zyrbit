@@ -4,29 +4,29 @@ import SplashScreen from './screens/SplashScreen.jsx'
 import OnboardingScreen from './screens/OnboardingScreen.jsx'
 import LoginScreen from './screens/LoginScreen.jsx'
 import WelcomeAnimation from './screens/WelcomeAnimation.jsx'
-import supabase from './lib/supabase.js'
+import supabase from './lib/supabase/index.js'
 import { ensureProfile } from './lib/friendTag.js'
-import AppLayout from './components/AppLayout.jsx'
-import Logo from './components/Logo.jsx'
-import InstallBanner from './components/InstallBanner.jsx'
+import AppLayout from './components/layout/AppLayout.jsx'
+import Logo from './components/ui/Logo.jsx'
+import InstallBanner from './components/layout/InstallBanner.jsx'
 import GoalSetupScreen from './screens/GoalSetupScreen.jsx'
 
 import { SubscriptionProvider } from './context/SubscriptionContext.jsx'
-import PaywallOverlay from './components/PaywallOverlay.jsx'
+import PaywallOverlay from './components/ui/PaywallOverlay.jsx'
 import { useHabitReminders } from './hooks/useHabitReminders.js'
-import FeedbackWidget from './components/FeedbackWidget.jsx'
-import { trackPageView, recordMilestone } from './lib/analytics.js'
+import FeedbackWidget from './components/common/FeedbackWidget.jsx'
+import { trackPageView, recordMilestone } from './lib/analytics/index.js'
 import { useOfflineDetector } from './hooks/useOfflineDetector.js'
 
-const Zenith = lazy(() => import('./pages/Zenith.jsx'))
+const Zenith = lazy(() => import('./pages/Zenith/index.jsx'))
 
-const Growth = lazy(() => import('./pages/Growth.jsx'))
-const Health = lazy(() => import('./pages/Health.jsx'))
-const Wealth = lazy(() => import('./pages/Wealth.jsx'))
-const Food = lazy(() => import('./pages/Food.jsx'))
-const Profile = lazy(() => import('./pages/Profile.jsx'))
-const Challenge = lazy(() => import('./pages/Challenge.jsx'))
-const Stats = lazy(() => import('./pages/Stats.jsx'))
+const Growth = lazy(() => import('./pages/Growth/index.jsx'))
+const Health = lazy(() => import('./pages/Health/index.jsx'))
+const Wealth = lazy(() => import('./pages/Wealth/index.jsx'))
+const Food = lazy(() => import('./pages/Food/index.jsx'))
+const Profile = lazy(() => import('./pages/Profile/index.jsx'))
+const Challenge = lazy(() => import('./pages/Challenge/index.jsx'))
+const Stats = lazy(() => import('./pages/Stats/index.jsx'))
 
 const requestNotificationPermission = async () => {
   if (!('Notification' in window)) return
@@ -36,9 +36,9 @@ const requestNotificationPermission = async () => {
 }
 
 const LoadingScreen = () => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#121214', flexDirection: 'column', gap: '20px' }}>
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0B0D0F', flexDirection: 'column', gap: '20px' }}>
     <Logo size={56} />
-    <div style={{ width: '32px', height: '2px', background: '#5EE6F5', borderRadius: '2px', opacity: 0.6 }}/>
+    <div style={{ width: '32px', height: '2px', background: '#1FA36F', borderRadius: '2px', opacity: 0.8 }}/>
   </div>
 )
 
@@ -67,7 +67,7 @@ function ProtectedRoute({ children, onSignOut }) {
   if (!session) return null 
 
   return (
-    <AppLayout>
+    <AppLayout userId={session?.user?.id}>
       <Suspense fallback={<LoadingScreen />}>
         {children}
       </Suspense>
@@ -109,11 +109,6 @@ function MainApp({ handleSignOut, currentUserId }) {
         <Route path="/profile" element={<ProtectedRoute onSignOut={handleSignOut}><Profile /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute onSignOut={handleSignOut}><Stats /></ProtectedRoute>} />
         <Route path="/login" element={<RedirectToLogin onSignOut={handleSignOut} />} />
-        {/* Legacy route redirects */}
-        <Route path="/orbit" element={<Navigate to="/zenith" replace />} />
-        <Route path="/goals" element={<Navigate to="/zenith" replace />} />
-        <Route path="/dex"   element={<Navigate to="/food"   replace />} />
-        <Route path="/jarvis" element={<Navigate to="/food" replace />} />
         <Route path="/" element={<Navigate to="/zenith" replace />} />
         <Route path="*" element={<Navigate to="/zenith" replace />} />
       </Routes>
