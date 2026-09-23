@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { X, Send, Sparkles, AlertCircle, CheckCircle2, RotateCcw, CornerDownLeft } from 'lucide-react';
+import { X, Send, Sparkles, AlertCircle, CheckCircle2, RotateCcw, CornerDownLeft, Mic, MicOff } from 'lucide-react';
 import { processUserInput, DEX_RESULT_TYPE } from '../../dex/index.js';
+import { useVoiceInput, VOICE_STATUS } from '../../voice/index.js';
 
 // Domain mapping helper for live UI invalidation
 function getActionDomain(action) {
   if (['create_task', 'complete_task', 'start_focus'].includes(action)) return 'growth';
-  if (['log_water', 'log_sleep', 'log_activity'].includes(action)) return 'health';
-  if (['log_meal'].includes(action)) return 'food';
+  if (['log_water', 'log_sleep', 'log_activity', 'log_weight', 'log_meal'].includes(action)) return 'health';
   if (['add_expense', 'add_income', 'add_bill'].includes(action)) return 'wealth';
   if (['complete_habit', 'skip_habit'].includes(action)) return 'zenith';
   return null;
@@ -67,14 +67,46 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
     }
   }, [messages]);
 
+  const handleSendRef = useRef(null);
+
+  const {
+    isSupported: isVoiceSupported,
+    status: voiceStatus,
+    start: startVoice,
+    stop: stopVoice,
+    cancel: cancelVoice,
+  } = useVoiceInput({
+    onFinalTranscript: (text) => {
+      if (text && text.trim()) {
+        setInputText(text.trim());
+        if (handleSendRef.current) {
+          handleSendRef.current(text.trim());
+        }
+      }
+    },
+  });
+
+  // Listen to dexos:navigate events
+  useEffect(() => {
+    const handleNavigate = (e) => {
+      if (e.detail?.route) {
+        navigate(e.detail.route);
+        onClose();
+      }
+    };
+    window.addEventListener('dexos:navigate', handleNavigate);
+    return () => window.removeEventListener('dexos:navigate', handleNavigate);
+  }, [navigate, onClose]);
+
   // Reset transient confirmation/plan states on modal close
   useEffect(() => {
     if (!isOpen) {
       setPendingConfirmation(null);
       setPendingClarification(null);
       setPendingPlan(null);
+      cancelVoice();
     }
-  }, [isOpen]);
+  }, [isOpen, cancelVoice]);
 
 
   const inputRef = useRef(null);
@@ -293,6 +325,12 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
           }
         }
 
+        // Specific handling: safe navigation
+        if (result.action === 'navigate' && result.data?.route) {
+          navigate(result.data.route);
+          setTimeout(() => onClose(), 600);
+        }
+
         // Broadcast live refresh for affected domain
         const domain = getActionDomain(result.action);
         window.dispatchEvent(
@@ -372,6 +410,10 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    handleSendRef.current = handleSend;
+  });
 
   const handleConfirm = async (pending) => {
     if (!pending || loading) return;
@@ -1105,6 +1147,38 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
                 padding: '6px 0',
               }}
             />
+            {/* Microphone Dictation Button */}
+            {isVoiceSupported && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (voiceStatus === VOICE_STATUS.LISTENING) {
+                    stopVoice();
+                  } else {
+                    startVoice();
+                  }
+                }}
+                disabled={loading}
+                aria-label={voiceStatus === VOICE_STATUS.LISTENING ? "Stop listening" : "Dictate with voice"}
+                title={voiceStatus === VOICE_STATUS.LISTENING ? "Stop listening" : "Dictate with voice"}
+                style={{
+                  background: voiceStatus === VOICE_STATUS.LISTENING ? 'rgba(31, 163, 111, 0.25)' : 'transparent',
+                  color: voiceStatus === VOICE_STATUS.LISTENING ? '#1FA36F' : '#6B7280',
+                  border: `1px solid ${voiceStatus === VOICE_STATUS.LISTENING ? 'rgba(31, 163, 111, 0.4)' : 'transparent'}`,
+                  borderRadius: '8px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Mic size={15} />
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => handleSend()}

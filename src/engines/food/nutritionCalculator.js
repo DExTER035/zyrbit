@@ -31,13 +31,14 @@ export function calculateScaledNutrition(baseFood, targetQuantityG) {
 export function calculateDailyTotals(mealLogs = []) {
   return (mealLogs || []).reduce(
     (acc, meal) => {
-      acc.calories += Math.round(Number(meal.calories) || 0);
-      acc.protein += Number(meal.protein) || 0;
-      acc.carbs += Number(meal.carbs) || 0;
-      acc.fat += Number(meal.fat) || 0;
-      acc.fiber += Number(meal.fiber) || 0;
+      acc.calories += Math.round(Number(meal?.calories) || 0);
+      acc.protein += Number(meal?.protein ?? meal?.protein_g) || 0;
+      acc.carbs += Number(meal?.carbs ?? meal?.carbs_g) || 0;
+      acc.fat += Number(meal?.fat ?? meal?.fat_g) || 0;
+      acc.fiber += Number(meal?.fiber ?? meal?.fiber_g) || 0;
       return acc;
     },
     { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
   );
 }
+

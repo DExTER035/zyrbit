@@ -19,6 +19,7 @@ import {
   submitDailyReflection as serviceSubmitDailyReflection,
 } from '../../services/habitService.js';
 import { completeTask as serviceCompleteTask } from '../../services/growthService.js';
+import { getHealthSnapshot } from '../../services/healthService.js';
 
 const ZONE_OPTIONS = [
   { id: 'mind', label: 'Mind', icon: '🧠' },
@@ -715,25 +716,22 @@ export default function Zenith() {
   }, [today]);
 
   const loadHealthData = useCallback(async (uid) => {
-    const startOfWeekStr = getStartOfWeekStr();
-    const results = await Promise.allSettled([
-      supabase.from('health_sleep_logs').select('*').eq('user_id', uid).gte('sleep_date', startOfWeekStr).order('sleep_date', { ascending: false }),
-      supabase.from('health_water_logs').select('*').eq('user_id', uid).eq('log_date', today),
-      supabase.from('health_move_logs').select('*').eq('user_id', uid).gte('log_date', startOfWeekStr).order('log_date', { ascending: false })
-    ]);
-
-    const sleepRes = results[0].status === 'fulfilled' ? results[0].value : { data: [] };
-    const waterRes = results[1].status === 'fulfilled' ? results[1].value : { data: [] };
-    const moveRes = results[2].status === 'fulfilled' ? results[2].value : { data: [] };
-
-    setSleepLogs(sleepRes?.data || []);
-    setWaterLogs(waterRes?.data || []);
-    setMoveLogs(moveRes?.data || []);
+    try {
+      const res = await getHealthSnapshot(uid, today);
+      if (res.success && res.raw) {
+        setSleepLogs(res.raw.sleepLogs || []);
+        setWaterLogs(res.raw.waterLogs || []);
+        setMoveLogs(res.raw.moveLogs || []);
+        setFoodLogs(res.raw.mealLogs || []);
+      }
+    } catch (err) {
+      console.warn('Failed to load health snapshot in Zenith:', err.message);
+    }
   }, [today]);
 
   const loadWealthData = useCallback(async (uid) => {
     const results = await Promise.allSettled([
-      supabase.from('wealth_settings').select('monthly_budget').eq('user_id', uid).maybeSingle(),
+      supabase.from('wealth_settings').select('monthly_budget').or(`user_id.eq.${uid},id.eq.${uid}`).maybeSingle(),
       supabase.from('wealth_income').select('amount').eq('user_id', uid),
       supabase.from('money_expenses').select('amount, created_at, note, category, expense_date').eq('user_id', uid),
       supabase.from('wealth_bills').select('*').eq('user_id', uid)
@@ -750,24 +748,8 @@ export default function Zenith() {
     setBills(billsRes?.data || []);
   }, []);
 
-  const loadFoodData = useCallback(async (uid) => {
-    const todayStr = getTodayStr();
-    const lsKey = `dexos_food_logs_${uid}_${todayStr}`;
-    try {
-      const { data, error: dbErr } = await supabase
-        .from('meal_logs')
-        .select('calories, protein, carbs, fat, food_name, meal_type, created_at')
-        .eq('user_id', uid)
-        .eq('date', todayStr)
-        .order('created_at', { ascending: true });
-      if (dbErr) {
-        const local = localStorage.getItem(lsKey);
-        setFoodLogs(local ? JSON.parse(local) : []);
-      } else {
-        setFoodLogs(data ?? []);
-        try { localStorage.setItem(lsKey, JSON.stringify(data ?? [])); } catch { /* ignore */ }
-      }
-    } catch { /* ignore */ }
+  const loadFoodData = useCallback(async () => {
+    // Cohesively gathered through getHealthSnapshot in loadHealthData
   }, []);
 
   const loadData = useCallback(async (uid) => {

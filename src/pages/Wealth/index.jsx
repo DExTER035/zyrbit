@@ -207,7 +207,7 @@ export default function Wealth() {
     setError(null);
     try {
       const [sRes, eRes, iRes, bRes] = await Promise.all([
-        supabase.from('wealth_settings').select('*').eq('user_id', uid).maybeSingle(),
+        supabase.from('wealth_settings').select('*').or(`user_id.eq.${uid},id.eq.${uid}`).maybeSingle(),
         supabase.from('money_expenses').select('*').eq('user_id', uid).order('expense_date', { ascending: false }),
         supabase.from('wealth_income').select('*').eq('user_id', uid).order('income_date', { ascending: false }),
         supabase.from('wealth_bills').select('*').eq('user_id', uid).order('due_date', { ascending: true }),
@@ -270,6 +270,7 @@ export default function Wealth() {
     const originalSettings = settings;
 
     const settingsObj = {
+      id:             user.id,
       user_id:        user.id,
       currency:       setupForm.currency === '₹' ? 'INR' : setupForm.currency === '$' ? 'USD' : 'EUR',
       monthly_budget: Number(setupForm.budget) || 15000,

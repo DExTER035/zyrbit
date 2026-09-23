@@ -20,7 +20,9 @@ export const C = {
   sleep:     '#818CF8', // indigo — sleep data only
   water:     '#38BDF8', // blue — water data only
   nutrition: '#FBBF24', // amber — food data only
+  protein:   '#10B981', // emerald — protein data
   activity:  '#EC4899', // pink — activity data only
+  weight:    '#A78BFA', // violet — scale weight only
 
   // Capacity state indicators
   optimal:   '#22C55E',

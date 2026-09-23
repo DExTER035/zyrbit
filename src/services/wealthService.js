@@ -458,6 +458,7 @@ export async function saveWealthSettings({ userId, currency = 'INR', monthlyBudg
   const budget = Math.max(0, Number(monthlyBudget) || 15000);
 
   const payload = {
+    id: userId,
     user_id: userId,
     currency: currency || 'INR',
     monthly_budget: budget,
@@ -465,20 +466,63 @@ export async function saveWealthSettings({ userId, currency = 'INR', monthlyBudg
   };
 
   try {
+    // 1. Primary path: Upsert using primary key 'id' matching auth.users PK in Postgres schema
     const { data, error } = await supabase
       .from('wealth_settings')
-      .upsert(payload, { onConflict: 'user_id' })
+      .upsert(payload, { onConflict: 'id' })
       .select()
       .maybeSingle();
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!error) {
+      return { success: true, data: data || payload };
     }
-    return { success: true, data: data || payload };
+
+    console.warn('saveWealthSettings upsert with id failed, trying fallback:', error.message);
+
+    // 2. Fallback: Check for existing record by id or user_id
+    const { data: existing, error: findError } = await supabase
+      .from('wealth_settings')
+      .select('id, user_id')
+      .or(`id.eq.${userId},user_id.eq.${userId}`)
+      .maybeSingle();
+
+    if (findError) {
+      return { success: false, error: findError.message };
+    }
+
+    if (existing) {
+      const { data: updated, error: updateError } = await supabase
+        .from('wealth_settings')
+        .update({
+          user_id: userId,
+          currency: currency || 'INR',
+          monthly_budget: budget,
+        })
+        .eq('id', existing.id)
+        .select()
+        .maybeSingle();
+
+      if (updateError) {
+        return { success: false, error: updateError.message };
+      }
+      return { success: true, data: updated || payload };
+    } else {
+      const { data: inserted, error: insertError } = await supabase
+        .from('wealth_settings')
+        .insert([payload])
+        .select()
+        .maybeSingle();
+
+      if (insertError) {
+        return { success: false, error: insertError.message };
+      }
+      return { success: true, data: inserted || payload };
+    }
   } catch (err) {
     return { success: false, error: err.message || 'Failed to save wealth settings.' };
   }
 }
+
 
 /**
  * Fetches a compact wealth summary (spending today, monthly totals, upcoming bills).

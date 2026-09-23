@@ -8,7 +8,6 @@
 import { ACTION_SCHEMAS } from './actionSchemas.js';
 import * as growthService from '../services/growthService.js';
 import * as healthService from '../services/healthService.js';
-import * as foodService from '../services/foodService.js';
 import * as wealthService from '../services/wealthService.js';
 import * as habitService from '../services/habitService.js';
 
@@ -122,16 +121,32 @@ export const ACTION_REGISTRY = {
     },
   },
 
-  // ─── FOOD ─────────────────────────────────────────────────────────────────
+  log_weight: {
+    action: 'log_weight',
+    domain: 'health',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: ACTION_SCHEMAS.log_weight.description,
+    schema: ACTION_SCHEMAS.log_weight,
+    execute: async ({ userId, params }) => {
+      return await healthService.logWeight({
+        userId,
+        weight: params.weight,
+        date: params.date,
+      });
+    },
+  },
+
+  // ─── NUTRITION (HEALTH DOMAIN) ─────────────────────────────────────────────
   log_meal: {
     action: 'log_meal',
-    domain: 'food',
+    domain: 'health',
     risk: 'low',
     requiresConfirmation: false,
     description: ACTION_SCHEMAS.log_meal.description,
     schema: ACTION_SCHEMAS.log_meal,
     execute: async ({ userId, params }) => {
-      return await foodService.logMeal({
+      return await healthService.logMeal({
         userId,
         mealType: params.mealType,
         foodName: params.foodName,
@@ -236,6 +251,30 @@ export const ACTION_REGISTRY = {
         habitId: params.habitId,
         date: params.date,
       });
+    },
+  },
+
+  navigate: {
+    action: 'navigate',
+    domain: 'system',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: ACTION_SCHEMAS.navigate.description,
+    schema: ACTION_SCHEMAS.navigate,
+    execute: async ({ params }) => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('dexos:navigate', {
+            detail: { route: params.route },
+          })
+        );
+      }
+      return {
+        success: true,
+        data: {
+          route: params.route,
+        },
+      };
     },
   },
 };

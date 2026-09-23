@@ -275,7 +275,7 @@ export default function Stats() {
         supabase.from('activity_log').select('*').eq('user_id', uid).gte('completed_date', since365),
         supabase.from('user_streaks').select('*').eq('user_id', uid),
         supabase.from('money_expenses').select('*').eq('user_id', uid).gte('expense_date', firstMonth),
-        supabase.from('wealth_settings').select('*').eq('user_id', uid).maybeSingle(),
+        supabase.from('wealth_settings').select('*').or(`user_id.eq.${uid},id.eq.${uid}`).maybeSingle(),
         supabase.from('growth_focus_sessions').select('*, growth_projects(name, color)').eq('user_id', uid).gte('session_date', firstMonth),
         supabase.from('orbit_journal').select('entry_date, mood').eq('user_id', uid).gte('entry_date', since30),
         supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),

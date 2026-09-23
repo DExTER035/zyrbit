@@ -8,6 +8,7 @@ import {
   validateWaterLog,
   validateSleepLog,
   validateWorkoutLog,
+  validateWeightLog,
 } from '../engines/health/index.js';
 
 /**
@@ -286,9 +287,47 @@ export const ACTION_SCHEMAS = {
     },
   },
 
-  // ─── FOOD ─────────────────────────────────────────────────────────────────
+  log_weight: {
+    domain: 'health',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: 'Logs body scale weight in kilograms.',
+    params: {
+      weight: { type: 'number', required: true, min: 20, max: 400, description: 'Body weight in kg (20-400)' },
+      date: { type: 'date', required: false, default: null, description: 'Log date (YYYY-MM-DD)' },
+    },
+    validate: (params) => {
+      const wt = parseSafeNumber(params.weight);
+      if (wt === null) {
+        return { valid: false, error: 'Weight must be a valid number.' };
+      }
+
+      const check = validateWeightLog(wt);
+      if (!check.valid) {
+        return { valid: false, error: check.error };
+      }
+
+      let date = getLocalTodayStr();
+      if (params.date) {
+        if (!isValidDateStr(params.date)) {
+          return { valid: false, error: 'Date must be in valid YYYY-MM-DD format.' };
+        }
+        date = params.date;
+      }
+
+      return {
+        valid: true,
+        normalized: {
+          weight: check.value,
+          date,
+        },
+      };
+    },
+  },
+
+  // ─── NUTRITION (HEALTH DOMAIN) ─────────────────────────────────────────────
   log_meal: {
-    domain: 'food',
+    domain: 'health',
     risk: 'low',
     requiresConfirmation: false,
     description: 'Logs a meal entry with macronutrients.',
@@ -578,4 +617,48 @@ export const ACTION_SCHEMAS = {
       };
     },
   },
+
+  // ─── SYSTEM / NAVIGATION ───────────────────────────────────────────────────
+  navigate: {
+    domain: 'system',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: 'Safely navigates to a whitelisted application route.',
+    params: {
+      route: { type: 'string', required: true, description: 'Whitelisted destination route (e.g. /health, /wealth)' },
+    },
+    validate: (params) => {
+      if (!params || typeof params.route !== 'string') {
+        return { valid: false, error: 'Target route must be specified as a string.' };
+      }
+      const cleanRoute = params.route.trim().toLowerCase();
+      // Enforce strict security: reject any scheme, host, or directory traversal attempt
+      if (/^[a-z]+:/i.test(cleanRoute) || cleanRoute.includes('//') || cleanRoute.includes('\\')) {
+        return { valid: false, error: 'Invalid route protocol or destination.' };
+      }
+      if (!WHITELISTED_NAVIGATION_ROUTES.includes(cleanRoute)) {
+        return {
+          valid: false,
+          error: `Route "${cleanRoute}" is not permitted. Allowed: ${WHITELISTED_NAVIGATION_ROUTES.join(', ')}`,
+        };
+      }
+      return {
+        valid: true,
+        normalized: {
+          route: cleanRoute,
+        },
+      };
+    },
+  },
 };
+
+export const WHITELISTED_NAVIGATION_ROUTES = [
+  '/zenith',
+  '/growth',
+  '/health',
+  '/wealth',
+  '/stats',
+  '/profile',
+  '/challenge',
+];
+

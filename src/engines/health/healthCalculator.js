@@ -17,10 +17,12 @@ export function sanitizeNumber(val, defaultVal = 0) {
  */
 export function calculateSleepDebt(sleepLogs = [], targetSleep = 7.5) {
   return (sleepLogs || []).reduce((acc, log) => {
-    const hrs = sanitizeNumber(log?.duration_hours, targetSleep);
+    const rawHrs = log?.duration_hours ?? log?.hours;
+    const hrs = sanitizeNumber(rawHrs, targetSleep);
     return acc + (targetSleep - hrs);
   }, 0);
 }
+
 
 /**
  * Computes dynamic water target based on active exercise minutes.
@@ -176,6 +178,14 @@ export function validateWorkoutLog(active_minutes, rpe) {
   }
 
   return { valid: true, minutes: Math.round(mins), rpe: Math.round(intensity) };
+}
+
+export function validateWeightLog(weight_kg) {
+  const w = Number(weight_kg);
+  if (!isFinite(w) || isNaN(w) || w < 20 || w > 400) {
+    return { valid: false, error: 'Weight must be between 20kg and 400kg.' };
+  }
+  return { valid: true, value: Number(w.toFixed(1)) };
 }
 
 /**

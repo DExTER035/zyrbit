@@ -98,8 +98,10 @@ export function serializeContextForPrompt(context) {
   // Food summary
   if (context.food && !context.food.error) {
     const f = context.food;
+    const cal = f.totals?.calories ?? f.calories ?? 0;
+    const pro = f.totals?.protein ?? f.protein ?? 0;
     lines.push(
-      `Food today: ${f.mealCount} meals, ${f.totals.calories} kcal, ${f.totals.protein}g protein`
+      `Food today: ${f.mealCount || 0} meals, ${cal} kcal, ${pro}g protein`
     );
   }
 
@@ -175,6 +177,52 @@ export function parseIntentResponse(rawText) {
 }
 
 /**
+ * Resolves natural language navigation requests to safe whitelisted routes.
+ * @param {string} text
+ * @returns {{ route: string, label: string }|null}
+ */
+export function resolveNavigationDestination(text) {
+  if (!text || typeof text !== 'string') return null;
+  const str = text.trim().replace(/[.?!]+$/, '').toLowerCase();
+
+  const match = str.match(/^(?:open|go to|show|take me to|navigate to|switch to|view)\s+(.+)$/i);
+  if (!match) return null;
+
+  const target = match[1].replace(/^(?:my\s+|the\s+)/i, '').replace(/[.?!]+$/, '').trim();
+
+  // Health / Body / Nutrition
+  if (/^(?:health|body|food|nutrition|vitals|water|sleep log)$/i.test(target)) {
+    return { route: '/health', label: 'Health' };
+  }
+  // Wealth / Money / Finance / Bills
+  if (/^(?:wealth|money|finances?|bills?|expenses?|budget)$/i.test(target)) {
+    return { route: '/wealth', label: 'Wealth' };
+  }
+  // Growth / Tasks / Plan / Projects / Focus
+  if (/^(?:growth|tasks?|plan|today'?s plan|projects?|focus|backlog|habits?)$/i.test(target)) {
+    return { route: '/growth', label: 'Growth' };
+  }
+  // Zenith / Home / Overview
+  if (/^(?:zenith|home|overview|life overview|dashboard)$/i.test(target)) {
+    return { route: '/zenith', label: 'Zenith' };
+  }
+  // Stats / Analytics
+  if (/^(?:stats|statistics|analytics|history)$/i.test(target)) {
+    return { route: '/stats', label: 'Stats' };
+  }
+  // Profile / Settings
+  if (/^(?:profile|settings|account)$/i.test(target)) {
+    return { route: '/profile', label: 'Profile' };
+  }
+  // Challenge
+  if (/^(?:challenge|challenges)$/i.test(target)) {
+    return { route: '/challenge', label: 'Challenges' };
+  }
+
+  return null;
+}
+
+/**
  * Attempts fast deterministic intent resolution before calling the AI model.
  * This guarantees 100% offline consistency and zero hallucination for standard patterns.
  *
@@ -210,6 +258,19 @@ export function resolveDeterministicIntent(userMessage, context) {
       };
     }
   }
+
+  // 1b. Navigation: "Open Health", "Go to Wealth", "Show my Growth tasks", "Open today's plan", "Take me to my bills"
+  const navTarget = resolveNavigationDestination(str);
+  if (navTarget) {
+    return {
+      intent: 'action',
+      action: 'navigate',
+      params: { route: navTarget.route },
+      confidence: 'high',
+      displayMessage: `Opening ${navTarget.label}...`,
+    };
+  }
+
 
   // 2. Focus Session: "Start a 25 minute focus session", "Give me 45 minutes of focused study", "start focus 25"
   if (/\b(?:focus(?:ed|ing)?|pomodoro)\b/i.test(lower) && !/\b(?:task|habit|spent)\b/i.test(lower)) {
@@ -263,6 +324,21 @@ export function resolveDeterministicIntent(userMessage, context) {
         params: { activityType: act.activityType, activeMinutes: act.activeMinutes, rpe: act.rpe },
         confidence: 'high',
         displayMessage: `Logged ${act.activeMinutes}min ${act.activityType}.`,
+      };
+    }
+  }
+
+  // 5b. Weight Log: "Log 68 kilos", "Log 68 kg", "Weighed in at 68 kg", "I weigh 68.5 kilos"
+  const weightMatch = lower.match(/(?:log\s+weight\s+|log\s+|weighed\s+in\s+at\s+|i\s+weigh\s+)?(\d+(?:\.\d+)?)\s*(?:kilos?|kgs?|kg)\b/i);
+  if (weightMatch && !/\b(?:spent|paid|food|rice|dal|water|focus)\b/i.test(lower)) {
+    const weightKg = parseFloat(weightMatch[1]);
+    if (!isNaN(weightKg) && weightKg > 0) {
+      return {
+        intent: 'action',
+        action: 'log_weight',
+        params: { weightKg },
+        confidence: 'high',
+        displayMessage: `Logged weight of ${weightKg} kg.`,
       };
     }
   }
@@ -375,11 +451,11 @@ export function resolveDeterministicIntent(userMessage, context) {
     }
   }
 
-  // 9c. Task Creation: "I need to clean my room today", "Finish my DSA assignment", "Add study for tomorrow's exam"
-  const taskMatch = str.match(/^(?:add\s+task\s+|add\s+|create\s+task\s+|remind\s+me\s+to\s+|need\s+to\s+|i\s+need\s+to\s+)(.+)$/i);
+  // 9c. Task Creation: "I need to clean my room today", "Finish my DSA assignment", "Create a task to finish my CEP report"
+  const taskMatch = str.match(/^(?:create\s+(?:a\s+)?task(?:\s+to)?\s+|add\s+(?:a\s+)?task(?:\s+to)?\s+|add\s+|remind\s+me\s+to\s+|need\s+to\s+|i\s+need\s+to\s+)(.+)$/i);
   if (taskMatch || /^(?:finish|study|complete|submit|review|prepare|write|read)\b/i.test(str)) {
     // Only if not already handled by habits/financial
-    let taskName = taskMatch ? taskMatch[1].trim() : str.trim();
+    let taskName = (taskMatch ? taskMatch[1] : str).replace(/[.?!]+$/, '').trim();
     // Check priority hint
     let priority = 3;
     if (/\b(?:high priority|p1|urgent|critical|important)\b/i.test(str)) {
@@ -504,13 +580,23 @@ export async function parseIntent({ userMessage, context }) {
     return { success: true, intent, rawResponse };
   } catch (err) {
     const isParseError =
-      err instanceof SyntaxError || err.message.includes('intent') || err.message.includes('action');
+      err instanceof SyntaxError || err.message?.includes('intent') || err.message?.includes('action');
 
+    if (isParseError) {
+      return {
+        success: false,
+        error: 'Dex had trouble understanding that. Please rephrase.',
+      };
+    }
+
+    // Graceful degraded mode: return calm conversational guidance instead of a red error screen
     return {
-      success: false,
-      error: isParseError
-        ? 'Dex had trouble understanding that. Please rephrase.'
-        : err.message || 'AI service temporarily unavailable.',
+      success: true,
+      intent: {
+        intent: 'conversational',
+        displayMessage: "Dex AI is momentarily unavailable, but direct voice actions work! Try saying 'Log 500 ml water', 'Add ₹500 food', or 'Open Health'.",
+      },
+      rawResponse: JSON.stringify({ error: err.message }),
     };
   }
 }

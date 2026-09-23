@@ -1,20 +1,19 @@
 /**
  * DexOS — Dex Context Provider
- * Aggregates a compact, real-time snapshot of the user's day across all five domains.
+ * Aggregates a compact, real-time snapshot of the user's day across core domains.
  * This is the sole data source for Dex AI prompts — it must stay token-efficient and fast.
  *
  * Rules:
- * - Use domain read services exclusively (growthService, healthService, foodService, wealthService, habitService).
+ * - Use domain read services exclusively (growthService, healthService, wealthService, habitService).
  * - ZERO direct Supabase queries or imports in this layer.
- * - NEVER duplicate calculation logic from engines/ calculators.
+ * - NEVER duplicate calculation logic from engines/calculators.
  * - NEVER expose raw database rows — always reduce to a minimal summary.
  * - ALWAYS filter by user_id inside domain services.
  * - Gracefully handle partial domain failures without crashing the overall context.
  */
 
 import { getGrowthData } from '../services/growthService.js';
-import { getHealthData } from '../services/healthService.js';
-import { getFoodSummary } from '../services/foodService.js';
+import { getHealthSnapshot } from '../services/healthService.js';
 import { getWealthSummary } from '../services/wealthService.js';
 import { getHabitsToday } from '../services/habitService.js';
 
@@ -74,59 +73,62 @@ async function fetchGrowthContext(userId, today) {
 }
 
 /**
- * Health context: today's water, last night's sleep, and weekly activity.
+ * Unified Health context: Sleep, Hydration, Nutrition, Movement, Weight, and Bio-Pacing.
+ * Uses getHealthSnapshot to eliminate fragmented, multi-roundtrip reads.
+ *
  * @param {string} userId
  * @param {string} today
  * @returns {Promise<Object>}
  */
 async function fetchHealthContext(userId, today) {
   try {
-    const result = await getHealthData(userId);
-    if (!result.success) return { unavailable: true, error: result.error || 'Health data unavailable.' };
+    const res = await getHealthSnapshot(userId, today);
+    if (!res.success || !res.state) {
+      return { unavailable: true, error: res.error || 'Health data unavailable.' };
+    }
 
-    const { waterLogs, sleepLogs, moveLogs } = result.data;
-
-    const totalWaterMl = waterLogs.reduce((sum, l) => sum + (l.amount_ml || 0), 0);
-    const lastSleep = sleepLogs.length > 0 ? sleepLogs[0] : null;
-
-    const todayMoves = moveLogs.filter((m) => m.log_date === today);
-    const activeMinutesToday = todayMoves.reduce(
-      (sum, m) => sum + (m.active_minutes || 0),
-      0
-    );
+    const { sleep, hydration, fuel, movement, weight, pacing, headline } = res.state;
 
     return {
-      waterMlToday: totalWaterMl,
-      lastSleep: lastSleep
-        ? {
-            date: lastSleep.sleep_date,
-            hours: lastSleep.duration_hours,
-            quality: lastSleep.quality,
-          }
-        : null,
-      activeMinutesToday,
-      workoutsThisWeek: moveLogs.length,
+      headline,
+      sleep: {
+        hours: sleep.hours,
+        debt: sleep.debt,
+        quality: sleep.quality,
+        summary: sleep.summary,
+      },
+      hydration: {
+        ml: hydration.ml,
+        targetMl: hydration.targetMl,
+        ratio: hydration.ratio,
+        summary: hydration.summary,
+      },
+      nutrition: {
+        calories: fuel.calories,
+        protein: fuel.protein,
+        targetCalories: fuel.targetCalories,
+        targetProtein: fuel.targetProtein,
+        mealCount: fuel.mealCount,
+        summary: fuel.summary,
+      },
+      movement: {
+        activeMinutes: movement.activeMinutes,
+        todayRpe: movement.todayRpe,
+        workoutCount7d: movement.workoutCount7d,
+        summary: movement.summary,
+      },
+      weight: {
+        currentKg: weight.currentKg,
+        lastLoggedDate: weight.lastLoggedDate,
+      },
+      pacing: {
+        focusCapacity: pacing.focusCapacity,
+        caffeineCutoff: pacing.caffeineCutoff,
+        recommendedWorkType: pacing.recommendedWorkType,
+      },
     };
   } catch (err) {
     return { unavailable: true, error: err.message || 'Failed to fetch health context.' };
-  }
-}
-
-/**
- * Food context: today's meals and macronutrient totals.
- * @param {string} userId
- * @param {string} today
- * @returns {Promise<Object>}
- */
-async function fetchFoodContext(userId, today) {
-  try {
-    const result = await getFoodSummary(userId, today);
-    if (!result.success) {
-      return { unavailable: true, error: result.error || 'Food data unavailable.' };
-    }
-    return result.data;
-  } catch (err) {
-    return { unavailable: true, error: err.message || 'Failed to fetch food context.' };
   }
 }
 
@@ -170,7 +172,7 @@ async function fetchHabitsContext(userId, today) {
 
 /**
  * Builds the full Dex context snapshot for today.
- * All five domains are fetched in parallel for performance.
+ * Domains are fetched in parallel for performance.
  *
  * @param {string} userId - Authenticated user UUID from session
  * @returns {Promise<{
@@ -194,10 +196,9 @@ export async function buildDexContext(userId) {
   const today = localToday();
 
   try {
-    const [growth, health, food, wealth, habits] = await Promise.all([
+    const [growth, health, wealth, habits] = await Promise.all([
       fetchGrowthContext(userId, today),
       fetchHealthContext(userId, today),
-      fetchFoodContext(userId, today),
       fetchWealthContext(userId, today),
       fetchHabitsContext(userId, today),
     ]);
@@ -208,7 +209,8 @@ export async function buildDexContext(userId) {
         date: today,
         growth,
         health,
-        food,
+        // Backward-compatibility alias for prompts expecting context.food
+        food: health.nutrition || null,
         wealth,
         habits,
       },

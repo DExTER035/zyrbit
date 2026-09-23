@@ -30,6 +30,7 @@ import { buildDexContext } from './dexContextProvider.js';
 import { parseIntent } from './dexIntentParser.js';
 import { executeAction } from '../actions/actionExecutor.js';
 import { executePlan } from './planning/index.js';
+import { supabase } from '../lib/supabase/index.js';
 
 // ─── Result Type Constants ────────────────────────────────────────────────────
 
@@ -47,15 +48,10 @@ export const DEX_RESULT_TYPE = {
 // ─── Main Orchestrator ────────────────────────────────────────────────────────
 
 /**
- * Processes a user's natural language input through the full Dex pipeline.
+ * Processes a user's natural language input (from text or voice) through the full Dex pipeline.
  *
- * @param {Object} args
- * @param {string} args.userId - Authenticated user UUID from session. NEVER from AI.
- * @param {string} args.userMessage - Raw text from the user
- * @param {boolean} [args.confirmed=false] - Set to true when user confirms a pending action or plan
- * @param {string|null} [args.pendingAction=null] - Action name from a prior confirmation/clarification prompt
- * @param {Object|null} [args.pendingParams=null] - Params from a prior confirmation/clarification prompt
- * @param {Object|null} [args.pendingPlan=null] - Approved plan from a prior PLAN_PROPOSED result
+ * @param {Object|string} inputOrArgs - Input string or options object
+ * @param {Object} [optionalMetadata={}] - Optional metadata (e.g. { source: 'voice', language: 'en-IN' })
  *
  * @returns {Promise<{
  *   type: string,
@@ -71,47 +67,84 @@ export const DEX_RESULT_TYPE = {
  *   question?: string,
  *   context?: string,
  *   intent?: Object,
+ *   metadata?: Object,
  * }>}
  */
-export async function processUserInput({
-  userId,
-  userMessage,
-  confirmed = false,
-  pendingAction = null,
-  pendingParams = null,
-  pendingPlan = null,
-}) {
+export async function processUserInput(inputOrArgs, optionalMetadata = {}) {
+  let userId = null;
+  let userMessage = '';
+  let confirmed = false;
+  let pendingAction = null;
+  let pendingParams = null;
+  let pendingPlan = null;
+  let metadata = {};
+
+  if (typeof inputOrArgs === 'string') {
+    userMessage = inputOrArgs;
+    metadata = { ...optionalMetadata };
+    userId = optionalMetadata.userId || null;
+  } else if (inputOrArgs && typeof inputOrArgs === 'object') {
+    userId = inputOrArgs.userId || optionalMetadata.userId || null;
+    userMessage = inputOrArgs.userMessage || inputOrArgs.text || inputOrArgs.message || '';
+    confirmed = Boolean(inputOrArgs.confirmed);
+    pendingAction = inputOrArgs.pendingAction || null;
+    pendingParams = inputOrArgs.pendingParams || null;
+    pendingPlan = inputOrArgs.pendingPlan || null;
+    metadata = { ...(inputOrArgs.metadata || {}), ...optionalMetadata };
+  }
+
+  if (!metadata.source) {
+    metadata.source = 'text';
+  }
+
   // ── Guard: Authenticated User ───────────────────────────────────────────────
+  if (!userId || typeof userId !== 'string' || !userId.trim()) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      userId = session?.user?.id || null;
+    } catch {
+      userId = null;
+    }
+  }
+
   if (!userId || typeof userId !== 'string' || !userId.trim()) {
     return {
       type: DEX_RESULT_TYPE.ERROR,
       displayMessage: 'Authentication required.',
+      metadata,
     };
   }
 
+  // Helper to ensure metadata is attached to all return values
+  const withMetadata = (res) => ({ ...res, metadata });
+
   // ── Fast path: Confirmed pending plan execution ─────────────────────────────
   if (confirmed && pendingPlan) {
-    return _executePendingPlan({ userId, plan: pendingPlan });
+    const planResult = await _executePendingPlan({ userId, plan: pendingPlan });
+    return withMetadata(planResult);
   }
 
   // ── Fast path: Confirmed pending action (bypass context + AI) ───────────────
   if (confirmed && pendingAction && pendingParams) {
-    return _executePendingAction({ userId, pendingAction, pendingParams });
+    const actionResult = await _executePendingAction({ userId, pendingAction, pendingParams });
+    return withMetadata(actionResult);
   }
 
   // ── Conversational Approval Guard: "Do it", "Start it", "Yes", etc. ────────
   if (typeof userMessage === 'string' && /^(?:do it|start it|start plan|confirm|yes|go ahead)\b/i.test(userMessage.trim())) {
     if (pendingPlan) {
-      return _executePendingPlan({ userId, plan: pendingPlan });
+      const planResult = await _executePendingPlan({ userId, plan: pendingPlan });
+      return withMetadata(planResult);
     }
     if (pendingAction && pendingParams) {
-      return _executePendingAction({ userId, pendingAction, pendingParams });
+      const actionResult = await _executePendingAction({ userId, pendingAction, pendingParams });
+      return withMetadata(actionResult);
     }
     // No active pending item: return conversational guidance without mutation
-    return {
+    return withMetadata({
       type: DEX_RESULT_TYPE.CONVERSATIONAL,
       displayMessage: "There is no active plan or action waiting for approval. Tell me what you'd like to do or ask me to plan your time.",
-    };
+    });
   }
 
   // ── Step 1: Build today's context ───────────────────────────────────────────
@@ -131,10 +164,10 @@ export async function processUserInput({
   const parseResult = await parseIntent({ userMessage: effectiveMessage, context });
 
   if (!parseResult.success) {
-    return {
+    return withMetadata({
       type: DEX_RESULT_TYPE.ERROR,
       displayMessage: parseResult.error || 'Could not understand that. Try rephrasing.',
-    };
+    });
   }
 
   const intent = parseResult.intent;
@@ -143,17 +176,17 @@ export async function processUserInput({
 
   // Plan proposal — context-driven plan generated with ZERO mutations until approved
   if (intent.intent === 'plan') {
-    return {
+    return withMetadata({
       type: DEX_RESULT_TYPE.PLAN_PROPOSED,
       displayMessage: intent.displayMessage || 'Here is a suggested plan based on your context:',
       plan: intent.plan,
       intent,
-    };
+    });
   }
 
   // Clarification needed
   if (intent.intent === 'clarify') {
-    return {
+    return withMetadata({
       type: DEX_RESULT_TYPE.CLARIFICATION_NEEDED,
       displayMessage: intent.question,
       question: intent.question,
@@ -161,39 +194,40 @@ export async function processUserInput({
       action: intent.action || pendingAction || null,
       params: intent.params || pendingParams || null,
       intent,
-    };
+    });
   }
 
   // Conversational response — read/guidance request terminated without ActionExecutor
   if (intent.intent === 'conversational') {
-    return {
+    return withMetadata({
       type: DEX_RESULT_TYPE.CONVERSATIONAL,
       displayMessage: intent.displayMessage || 'Here is your current status.',
       intent,
-    };
+    });
   }
 
   // Unsupported request
   if (intent.intent === 'unsupported') {
-    return {
+    return withMetadata({
       type: DEX_RESULT_TYPE.UNSUPPORTED,
       displayMessage:
         intent.displayMessage ||
         "Dex can't help with that yet. Try logging something or adding a task.",
       intent,
-    };
+    });
   }
 
   // Action intent — execute through the Action Layer
   if (intent.intent === 'action') {
-    return _executeIntent({ userId, intent, confirmed });
+    const actionResult = await _executeIntent({ userId, intent, confirmed });
+    return withMetadata(actionResult);
   }
 
   // Fallback
-  return {
+  return withMetadata({
     type: DEX_RESULT_TYPE.ERROR,
     displayMessage: 'Unexpected response from Dex. Please try again.',
-  };
+  });
 }
 
 

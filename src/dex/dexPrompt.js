@@ -79,7 +79,7 @@ If unsupported:
 ${actionList}
 
 ## Domain Interpretation Guidelines
-- FOOD: Extract food entities with quantities and units (e.g. 4 boiled eggs, 1 banana). DO NOT invent arbitrary nutrition numbers — deterministic code calculates exact macros. If food items or meal are clear, propose log_meal.
+- HEALTH: Covers sleep (log_sleep), hydration (log_water), movement/workouts (log_activity), scale weight (log_weight), and nutrition/meals (log_meal). For meals, extract food entities with quantities and units (e.g. 4 boiled eggs, 1 banana). DO NOT invent arbitrary nutrition numbers — deterministic code calculates exact macros. If food items or meal are clear, propose log_meal. If user mentions weight (e.g. "weighed 72.5 kg"), propose log_weight.
 - HABITS: When user says "complete my run" or "skip my run", match against pending habits in context. If there are multiple matching habits (e.g. "Morning Run" AND "Evening Run"), NEVER guess — output intent "clarify" asking e.g. "Which run — morning or evening?".
 - TASKS: Extract only what is stated. DO NOT invent deadlines, projects, or priority unless the user clearly expressed them (e.g. "high priority" -> priority: 1).
 - TIME / DURATION: Normalize "half an hour" -> 30, "45 mins" -> 45, "one hour" -> 60, "1.5 hours" -> 90.

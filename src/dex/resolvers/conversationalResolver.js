@@ -19,12 +19,16 @@ export function isConversationalQuery(userMessage) {
   const str = userMessage.trim().toLowerCase();
 
   const patterns = [
-    /^(how am i doing|how's my day|how is my day|daily status|daily summary)\b/i,
+    /^(how am i doing|how's my day|how is my day|daily status|daily summary|how did i do today|what happened today|life summary|what needs my attention)\b/i,
     /^(how much (did i spend|have i spent|spent today)|what did i spend)\b/i,
+    /^(how much can i (safely )?spend|what can i spend|safe to spend|can i spend)\b/i,
+    /^(what bills (are coming up|do i have|are due)|upcoming bills|show bills|bills coming up)\b/i,
     /^(how much water (should i drink|have i had|logged)|water status|am i drinking enough)\b/i,
     /^(am i eating enough protein|protein status|how much protein|nutrition status)\b/i,
     /^(what should i work on|what should i do (next|now)?|give me something useful to do|what's next|what is next)\b/i,
     /^(who are you|what can you do|help)\b/i,
+    /^(hello|hi|hey|good morning|good afternoon|good evening|what's up|yo|greetings|hey dex)\b/i,
+    /^(voice commands?|how to use voice|what can i say)\b/i,
   ];
 
   return patterns.some((p) => p.test(str));
@@ -45,6 +49,22 @@ export function resolveConversationalQuery({ userMessage, context }) {
 
   const str = userMessage.trim().toLowerCase();
 
+  // 0. Greetings: "Hello", "Hi Dex", "Good morning"
+  if (/^(?:hello|hi|hey|good morning|good afternoon|good evening|what's up|yo|greetings|hey dex)\b/i.test(str)) {
+    return {
+      isHandled: true,
+      displayMessage: "Hello! I'm Dex. You can speak commands like 'Log 500 ml water', 'Add ₹500 lunch expense', 'Start a 25 min focus', or 'Open Health'.",
+    };
+  }
+
+  // 0b. Voice instructions: "Voice commands", "What can I say"
+  if (/^(?:voice commands?|how to use voice|what can i say)\b/i.test(str)) {
+    return {
+      isHandled: true,
+      displayMessage: "You can speak actions across domains: log water or sleep, record expenses, create tasks, start focus sessions, or navigate between tabs.",
+    };
+  }
+
   // 1. Spending Query: "How much did I spend today?" / "What did I spend today?"
   if (/how much (did i spend|have i spent|spent today)|what did i spend/i.test(str)) {
     const spentToday = context?.wealth?.spentToday || 0;
@@ -52,6 +72,51 @@ export function resolveConversationalQuery({ userMessage, context }) {
     return {
       isHandled: true,
       displayMessage: `You've spent ₹${formatted} today.`,
+    };
+  }
+
+  // 1b. Safe-to-Spend / Spending Capacity Query: "How much can I safely spend today?" / "Can I spend 3000 today?"
+  if (/how much can i (safely )?spend|what can i spend|safe to spend|can i spend/i.test(str)) {
+    const targetMatch = str.match(/can i spend\s*(?:₹|rs\.?|inr)?\s*(\d+(?:,\d+)?)/i);
+    const spentToday = Number(context?.wealth?.spentToday || 0);
+    const totalIncome = Number(context?.wealth?.totalIncomeMonth || 0);
+    const totalExpenses = Number(context?.wealth?.totalExpensesMonth || 0);
+    const monthlyBudget = totalIncome > 0 ? totalIncome : 15000;
+    const remainingMonth = Math.max(0, monthlyBudget - totalExpenses);
+
+    if (targetMatch) {
+      const askAmt = parseInt(targetMatch[1].replace(/,/g, ''), 10);
+      if (askAmt > remainingMonth && remainingMonth > 0) {
+        return {
+          isHandled: true,
+          displayMessage: `Spending ₹${askAmt.toLocaleString('en-IN')} would exceed your remaining monthly cushion (₹${remainingMonth.toLocaleString('en-IN')}). Consider deferring or reducing.`,
+        };
+      }
+      return {
+        isHandled: true,
+        displayMessage: `You have spent ₹${spentToday.toLocaleString('en-IN')} today. Spending ₹${askAmt.toLocaleString('en-IN')} fits within your monthly cushion of ₹${remainingMonth.toLocaleString('en-IN')}.`,
+      };
+    }
+
+    return {
+      isHandled: true,
+      displayMessage: `You've spent ₹${spentToday.toLocaleString('en-IN')} today. Your remaining monthly cushion is ₹${remainingMonth.toLocaleString('en-IN')}.`,
+    };
+  }
+
+  // 1c. Upcoming Bills Query: "What bills are coming up?" / "Upcoming bills"
+  if (/what bills|upcoming bills|bills coming up|bills due/i.test(str)) {
+    const bills = context?.wealth?.upcomingBills || [];
+    if (!bills || bills.length === 0) {
+      return {
+        isHandled: true,
+        displayMessage: 'You have no upcoming bills due this month.',
+      };
+    }
+    const billList = bills.slice(0, 3).map((b) => `${b.name} (₹${Number(b.amount).toLocaleString('en-IN')} due ${b.dueDate || b.due_date})`).join(', ');
+    return {
+      isHandled: true,
+      displayMessage: `Upcoming bills: ${billList}.`,
     };
   }
 
@@ -113,17 +178,18 @@ export function resolveConversationalQuery({ userMessage, context }) {
     };
   }
 
-  // 5. Daily Summary / Progress: "How am I doing?"
-  if (/how am i doing|how's my day|how is my day|daily status|daily summary/i.test(str)) {
+  // 5. Daily Summary / Progress: "How am I doing?" / "How did I do today?"
+  if (/how am i doing|how's my day|how is my day|daily status|daily summary|how did i do today|what happened today|life summary|what needs my attention/i.test(str)) {
     const hDone = context?.habits?.completedToday || 0;
     const hTotal = context?.habits?.totalHabits || 0;
     const tPending = context?.growth?.pendingTaskCount || 0;
     const focusMin = context?.growth?.focusMinutesToday || 0;
     const waterMl = context?.health?.waterMlToday || 0;
+    const spentToday = context?.wealth?.spentToday || 0;
 
     return {
       isHandled: true,
-      displayMessage: `Today: ${hDone}/${hTotal} habits done, ${tPending} tasks pending, ${focusMin}m focus, and ${waterMl}ml water logged.`,
+      displayMessage: `Life summary: ${hDone}/${hTotal} habits done, ${tPending} tasks pending, ${focusMin}m focus, ${waterMl}ml water, and ₹${Number(spentToday).toLocaleString('en-IN')} spent today.`,
     };
   }
 

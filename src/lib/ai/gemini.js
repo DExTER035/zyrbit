@@ -16,11 +16,15 @@ export const askZyra = async (messages, systemPrompt = null) => {
     })
 
     if (error) {
-      console.error('Edge Function proxy error:', error.message)
-      if (error.status === 429) {
+      console.warn('Edge Function proxy notice:', error.message)
+      const status = error.status || error.context?.status
+      if (status === 429) {
         throw new Error('Rate limit exceeded. Dex needs a breather! 🧊 Please try again in a minute.')
       }
-      throw new Error(error.message || 'AI service temporarily unavailable.')
+      if (status === 401) {
+        throw new Error('Authentication required. Please sign in to speak with Dex.')
+      }
+      throw new Error('Dex AI is temporarily unavailable. Direct commands work offline.')
     }
 
     if (data?.error) {
@@ -35,6 +39,9 @@ export const askZyra = async (messages, systemPrompt = null) => {
 
   } catch (err) {
     console.error('askZyra error:', err.message)
+    if (err.message && (err.message.includes('non-2xx') || err.message.includes('Edge Function'))) {
+      throw new Error('Dex AI is temporarily unavailable. Direct commands work offline.')
+    }
     throw err
   }
 }
@@ -73,29 +80,3 @@ Context: ${context}`
   }])
 }
 
-/**
- * Dex AI nutrition analyzer helper
- */
-export const getNutritionInsights = async (historyDataText, goalSettingsText) => {
-  return askZyra([{
-    role: 'user',
-    text: `You are Dex, the AI nutrition intelligence coach inside DexOS.
-Analyze the user's recent daily summaries of nutrition intake (calories, protein, carbs, fat, water, and weight) and compare them with their goals.
-
-Goal Settings:
-${goalSettingsText}
-
-Recent Nutrition Summaries (past 30 days):
-${historyDataText}
-
-Based on this historical data, identify interesting and subtle eating patterns, deficits, spikes, anomalies, or consistency levels.
-List exactly 3 to 4 bullet points of insights and suggested improvements.
-Rules for insights:
-1. Be direct, precise, and calm. Do not sound generic or write introductions/conclusions.
-2. Keep each bullet point under 15 words.
-3. Call out specific numbers or percentages when relevant (e.g. "You consistently eat 15% less protein on weekends", "You hit your water goal 18 out of 30 days").
-4. If there is insufficient data, provide helpful tips on what metrics they should focus on.
-
-End with: "This analysis is based on your logged metrics and is not medical advice."`
-  }])
-}

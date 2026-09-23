@@ -5,9 +5,8 @@ export default function BottomNav({ activeTab, onTabChange }) {
     { id: 'zenith', icon: '🌌', label: 'ZENITH' },
     { id: 'growth', icon: '🌱', label: 'GROWTH' },
     { id: 'health', icon: '💪', label: 'HEALTH' },
-    { id: 'food',   icon: '🍱', label: 'FOOD'   },
-    { id: 'wealth', icon: '💰', label: 'WEALTH' }
-  ]
+    { id: 'wealth', icon: '💰', label: 'WEALTH' },
+  ];
 
   return (
     <div style={{

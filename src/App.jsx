@@ -23,7 +23,6 @@ const Zenith = lazy(() => import('./pages/Zenith/index.jsx'))
 const Growth = lazy(() => import('./pages/Growth/index.jsx'))
 const Health = lazy(() => import('./pages/Health/index.jsx'))
 const Wealth = lazy(() => import('./pages/Wealth/index.jsx'))
-const Food = lazy(() => import('./pages/Food/index.jsx'))
 const Profile = lazy(() => import('./pages/Profile/index.jsx'))
 const Challenge = lazy(() => import('./pages/Challenge/index.jsx'))
 const Stats = lazy(() => import('./pages/Stats/index.jsx'))
@@ -104,7 +103,7 @@ function MainApp({ handleSignOut, currentUserId }) {
         <Route path="/growth" element={<ProtectedRoute onSignOut={handleSignOut}><Growth /></ProtectedRoute>} />
         <Route path="/health" element={<ProtectedRoute onSignOut={handleSignOut}><Health /></ProtectedRoute>} />
         <Route path="/wealth" element={<ProtectedRoute onSignOut={handleSignOut}><Wealth /></ProtectedRoute>} />
-        <Route path="/food" element={<ProtectedRoute onSignOut={handleSignOut}><Food /></ProtectedRoute>} />
+        <Route path="/food" element={<Navigate to="/health" replace />} />
         <Route path="/challenge" element={<ProtectedRoute onSignOut={handleSignOut}><Challenge /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute onSignOut={handleSignOut}><Profile /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute onSignOut={handleSignOut}><Stats /></ProtectedRoute>} />
