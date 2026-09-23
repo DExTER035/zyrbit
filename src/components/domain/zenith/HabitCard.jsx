@@ -38,9 +38,11 @@ export default function HabitCard({
   longestStreak = 0,
   monthlyScore = null,
   isCompleted = false,
+  isSkipped = false,
   isSubmitting = false,
   impactInsight = null,
   onToggle,
+  onSkip,
   onEdit,
   onDelete
 }) {
@@ -110,9 +112,11 @@ export default function HabitCard({
     <div
       style={{
         margin: '0 14px 10px',
-        background: isCompleted ? 'color-mix(in srgb, var(--color-success) 4%, #0E0E14)' : '#0E0E14',
+        background: isCompleted
+          ? 'color-mix(in srgb, var(--color-success) 4%, #0E0E14)'
+          : isSkipped ? 'color-mix(in srgb, #F59E0B 3%, #0E0E14)' : '#0E0E14',
         borderRadius: '20px',
-        borderLeft: `3px solid ${isCompleted ? 'var(--color-success)' : zoneColor}`,
+        borderLeft: `3px solid ${isCompleted ? 'var(--color-success)' : isSkipped ? '#F59E0B' : zoneColor}`,
         borderTop: '1px solid var(--color-border)',
         borderRight: '1px solid var(--color-border)',
         borderBottom: '1px solid var(--color-border)',
@@ -120,7 +124,9 @@ export default function HabitCard({
         borderBottomLeftRadius: 0,
         padding: '14px',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        boxShadow: isCompleted ? '0 0 20px color-mix(in srgb, var(--color-success) 8%, transparent)' : 'none',
+        boxShadow: isCompleted
+          ? '0 0 20px color-mix(in srgb, var(--color-success) 8%, transparent)'
+          : isSkipped ? '0 0 16px color-mix(in srgb, #F59E0B 5%, transparent)' : 'none',
         cursor: 'pointer',
         animation: 'scaleIn 0.25s ease forwards',
         position: 'relative'
@@ -137,6 +143,7 @@ export default function HabitCard({
         }}>
           {[
             { icon: '✅', label: isCompleted ? 'Undo' : 'Complete', c: '#5EE6F5', act: () => { handleCheck({stopPropagation:()=>{}}); setShowMenu(false) } },
+            { icon: '⏭️', label: isSkipped ? 'Undo Skip' : 'Skip Today', c: '#F59E0B', act: () => { onSkip?.(habit); setShowMenu(false) } },
             { icon: '⏰', label: 'Set Reminder', c: '#FF9800', act: () => { onEdit?.(habit); setShowMenu(false) } },
             { icon: '✏️', label: 'Edit Habit', c: '#9C27B0', act: () => { onEdit?.(habit); setShowMenu(false) } },
             { icon: '📊', label: showHeatmap ? 'Hide Stats' : 'View Stats', c: '#4CAF50', act: () => { setShowHeatmap(p => !p); setShowMenu(false) } },
@@ -266,6 +273,17 @@ export default function HabitCard({
           </span>
         </div>
       </div>
+
+      {isSkipped && !isCompleted && (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '4px',
+          background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)',
+          borderRadius: '6px', padding: '3px 8px', marginBottom: '8px',
+          fontSize: '10px', fontWeight: 700, color: '#F59E0B',
+        }}>
+          ⏭️ Skipped today
+        </div>
+      )}
 
       {/* 7-Day Labeled Trail */}
       <div style={{ marginBottom: '8px' }}>

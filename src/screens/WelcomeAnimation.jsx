@@ -115,14 +115,14 @@ export default function WelcomeAnimation({ userName, onComplete }) {
           boxSizing: 'border-box',
           marginTop: -12,
         }}>
-          {/* "Welcome to DexOS," */}
+          {/* "Welcome to Zyrbit," */}
           <div style={{
             fontSize: 13, color: 'var(--text-muted)',
             fontWeight: 500, letterSpacing: '0.3px',
             marginBottom: 10,
             ...fadeIn(2),
           }}>
-            Welcome to DexOS,
+            Welcome to Zyrbit,
           </div>
 
           {/* User name */}

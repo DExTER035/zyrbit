@@ -223,7 +223,7 @@ export default function LoginScreen({ onSuccess }) {
         <div style={{ animation: visible ? 'zoomIn 0.5s 0.05s cubic-bezier(0.34,1.56,0.64,1) forwards' : 'none', opacity: 0, textAlign: 'center', marginBottom: 48 }}>
           <DexOSIcon size={46} />
           <h1 style={{ fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: -0.8, marginTop: 16, marginBottom: 8, fontFamily: "'Space Grotesk', sans-serif" }}>
-            DexOS
+            Zyrbit
           </h1>
           <p style={{ fontSize: 13, color: '#71717A', fontWeight: 500 }}>Your Personal Operating System.</p>
         </div>
@@ -339,7 +339,7 @@ export default function LoginScreen({ onSuccess }) {
 
         {/* Footer toggle */}
         <div style={{ animation: visible ? 'fadeSlideUp 0.5s 0.44s cubic-bezier(0.4,0,0.2,1) forwards' : 'none', opacity: 0, textAlign: 'center', marginTop: 40, fontSize: 13, color: 'var(--text-muted)' }}>
-          {isSignUp ? 'Already have an account? ' : 'New to DexOS? '}
+          {isSignUp ? 'Already have an account? ' : 'New to Zyrbit? '}
           <button
             onClick={() => { setIsSignUp(s => !s); setError(''); setSuccess('') }}
             style={{ color: '#5EE6F5', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13 }}

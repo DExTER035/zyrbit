@@ -1,6 +1,6 @@
-# DexOS Project Rules & Guidelines
+# Zyrbit Project Rules & Guidelines
 
-This document outlines workspace-scoped development rules, coding standards, and guidelines for the **DexOS** (formerly Zyrbit) application. All agents working on this project must adhere to these rules.
+This document outlines workspace-scoped development rules, coding standards, and guidelines for the **Zyrbit** application. All agents working on this project must adhere to these rules.
 
 ## Tech Stack Overview
 - **Frontend**: React (v19) + Vite (v8) + TailwindCSS (v4)
@@ -15,7 +15,7 @@ This document outlines workspace-scoped development rules, coding standards, and
 - **Reason**: Centralizes model tuning, keeps prompts manageable, and ensures robust global error boundaries for AI responses.
 
 ### 2. Styling and Aesthetic Standards
-- **Rule**: Maintain the ambient dark theme aesthetics of DexOS. Use variables from `src/design/theme.css` and typography from `src/design/typography.css` for consistent, premium interfaces.
+- **Rule**: Maintain the ambient dark theme aesthetics of Zyrbit. Use variables from `src/design/theme.css` and typography from `src/design/typography.css` for consistent, premium interfaces.
 - **Rule**: Avoid hardcoded hex codes inside component `style` props when they relate to theme accents (e.g., success, warning, activity colors).
 
 ### 3. Database & RLS Safety
@@ -24,15 +24,15 @@ This document outlines workspace-scoped development rules, coding standards, and
 
 ### 4. Code Quality & Formatting
 - **Rule**: Preserve existing code formatting, comments, and docstrings.
-- **Rule**: Before completing work, always ensure the project builds correctly by running `pnpm run build`.
+- **Rule**: Before completing work, always ensure the project builds correctly by running `pnpm run build` or `npm run build`.
 
 ---
 
-# DexOS Workspace Constitution (v1)
+# Zyrbit Workspace Constitution (v1)
 
 ## Identity
 
-DexOS is a Personal Operating System.
+Zyrbit is a Personal Operating System.
 
 It is NOT:
 - a habit tracker
@@ -114,7 +114,7 @@ Maintain a single design language across the entire application.
 - **Status Colors**: Green = Success, Amber = Warning, Red = Critical
 
 Do not introduce random blues, purples, pinks or additional accent colors.
-Every screen should immediately feel like DexOS.
+Every screen should immediately feel like Zyrbit.
 
 ---
 
@@ -172,7 +172,7 @@ Prefer deterministic logic over expensive LLM calls.
 Never add features because they sound interesting.
 Every feature must answer:
 - What problem does this solve?
-- Why does it belong inside DexOS?
+- Why does it belong inside Zyrbit?
 - How does it improve retention?
 - How does it support the Product Blueprint?
 
@@ -216,13 +216,13 @@ Protect design consistency.
 Protect the Product Blueprint.
 When uncertain, choose simplicity.
 
-Always optimize DexOS for becoming a calm, premium SaaS that users trust and return to every day.
+Always optimize Zyrbit for becoming a calm, premium SaaS that users trust and return to every day.
 Never optimize for feature count.
 
 ---
 
 ## Golden Rule
 
-Never optimize DexOS to impress developers.
-Optimize DexOS to help overwhelmed students and young professionals feel less stressed, more organized, and more in control of their day.
+Never optimize Zyrbit to impress developers.
+Optimize Zyrbit to help overwhelmed students and young professionals feel less stressed, more organized, and more in control of their day.
 Every decision should move the product closer to that goal.

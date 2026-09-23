@@ -1,4 +1,4 @@
-/* src/design/theme.css — DexOS Brand Tokens v2 */
+/* src/design/theme.css — Zyrbit Brand Tokens v2 */
 /* Direction: Linear · Arc Browser · Raycast · Apple · Notion */
 
 :root {
@@ -70,7 +70,7 @@
   --logo-primary:   #F5F5F5;
   --logo-accent:    #1FA36F;
 
-  /* ── Zone Colors (Restrained DexOS System) ── */
+  /* ── Zone Colors (Restrained Zyrbit System) ── */
   --zone-mind:   #1FA36F;
   --zone-body:   #10B981;
   --zone-growth: #22C55E;

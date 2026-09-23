@@ -117,7 +117,7 @@ const Slide1 = () => (
         Meet Zenith, your <span style={{ background: 'linear-gradient(135deg, #8B7FFF 0%, #5EE6F5 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Personal OS.</span>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 320, margin: '0 auto' }}>
-        DexOS aggregates your daily habits, task completion, active recovery, and financial health into a single real-time execution index.
+        Zyrbit aggregates your daily habits, task completion, active recovery, and financial health into a single real-time execution index.
       </div>
     </div>
   </div>

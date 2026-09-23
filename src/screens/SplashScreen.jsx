@@ -312,7 +312,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
             lineHeight: 1.7,
             letterSpacing: '-0.01em',
           }}>
-            DexOS brings your mind, health, wealth, and growth into one calm, connected system — so you stop managing five apps and start running one life.
+            Zyrbit brings your mind, health, wealth, and growth into one calm, connected system — so you stop managing five apps and start running one life.
           </p>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -549,7 +549,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
       >
         <div style={{ maxWidth: 780, margin: '0 auto', textAlign: 'center' }}>
           <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#5EE6F5', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-            Why DexOS?
+            Why Zyrbit?
           </p>
           <h2 style={{
             fontFamily: "'Space Grotesk', sans-serif",
@@ -567,7 +567,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
             maxWidth: 600,
             margin: '0 auto 3rem',
           }}>
-            DexOS replaces a stack of isolated apps — habit trackers, budget tools, journals, planners — with a single unified Life Operating System. One workspace. Complete clarity. Zero distraction.
+            Zyrbit replaces a stack of isolated apps — habit trackers, budget tools, journals, planners — with a single unified Life Operating System. One workspace. Complete clarity. Zero distraction.
           </p>
 
           {/* Three-column stat grid */}
@@ -627,9 +627,9 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
             gap: '1rem',
           }}>
             {[
-              { quote: '"DexOS completely replaced my habit app, my budget tracker, and my journal. It\'s the only tool I open every morning."', name: 'Alex M.', role: 'Software Engineer' },
+              { quote: '"Zyrbit completely replaced my habit app, my budget tracker, and my journal. It\'s the only tool I open every morning."', name: 'Alex M.', role: 'Software Engineer' },
               { quote: '"The AI Planner alone is worth it. It actually understands how I work and builds a schedule that fits my energy."', name: 'Priya K.', role: 'Founder & Builder' },
-              { quote: '"I\'ve tried everything. Nothing stuck until DexOS — the four-pillar system makes growth feel like a game I\'m winning."', name: 'Jordan T.', role: 'Student & Athlete' },
+              { quote: '"I\'ve tried everything. Nothing stuck until Zyrbit — the four-pillar system makes growth feel like a game I\'m winning."', name: 'Jordan T.', role: 'Student & Athlete' },
             ].map((t, i) => (
               <div key={i} style={{
                 background: '#121214',
@@ -852,7 +852,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
             ))}
           </nav>
           <p style={{ fontSize: '0.75rem', color: '#3F3F46' }}>
-            © 2026 DexOS — All rights reserved.
+            © 2026 Zyrbit — All rights reserved.
           </p>
         </div>
       </footer>

@@ -29,7 +29,7 @@ export const DexOSMark = ({
       viewBox="0 0 40 32"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      aria-label="DexOS"
+      aria-label="Zyrbit"
       className={className}
       style={style}
     >
@@ -61,7 +61,7 @@ export const DexOSIcon = ({ size = 48 }) => {
       viewBox={`0 0 ${size} ${size}`}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      aria-label="DexOS App Icon"
+      aria-label="Zyrbit App Icon"
     >
       <defs>
         {/* Top-light gradient highlight */}
@@ -127,7 +127,7 @@ export const DexOSWordmark = ({
       letterSpacing: '-0.03em',
       lineHeight: 1,
     }}>
-      DexOS
+      Zyrbit
     </span>
   </div>
 );
@@ -150,3 +150,9 @@ export default function Logo({ size = 48, className = '', showWordmark = false }
     </div>
   );
 }
+
+// Aliases for Zyrbit branding
+export const ZyrbitMark = DexOSMark;
+export const ZyrbitIcon = DexOSIcon;
+export const ZyrbitWordmark = DexOSWordmark;
+

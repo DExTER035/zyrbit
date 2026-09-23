@@ -282,3 +282,93 @@ export async function getGrowthData(userId) {
     return { success: false, error: err.message || 'Failed to fetch growth data.' };
   }
 }
+
+/**
+ * Creates a new milestone goal associated with a project or growth.
+ * @param {Object} params
+ * @param {string} params.userId - Authenticated user UUID
+ * @param {string} params.name - Goal title/name
+ * @param {string|null} [params.projectId=null] - Associated project UUID
+ * @param {number} [params.targetValue=1] - Numeric target value
+ * @param {string} [params.unit='done'] - Target unit (e.g. 'done', 'hours', 'problems')
+ * @param {string|null} [params.deadline=null] - YYYY-MM-DD deadline
+ * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+ */
+export async function createGoal({ userId, name, projectId = null, targetValue = 1, unit = 'done', deadline = null }) {
+  if (!userId) {
+    return { success: false, error: 'User ID is required.' };
+  }
+  const cleanName = (name || '').trim();
+  if (!cleanName) {
+    return { success: false, error: 'Goal title cannot be empty.' };
+  }
+
+  const payload = {
+    user_id: userId,
+    name: cleanName,
+    pillar: 'growth',
+    project_id: projectId || null,
+    target_value: Number(targetValue) || 1,
+    current_value: 0,
+    unit: unit || 'done',
+    deadline: deadline || null,
+    is_complete: false,
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('dexos_goals')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Failed to create goal.' };
+  }
+}
+
+/**
+ * Updates goal progress and completion status.
+ * @param {Object} params
+ * @param {string} params.userId - Authenticated user UUID
+ * @param {string} params.goalId - Goal UUID
+ * @param {number} [params.currentValue] - New current numeric value
+ * @param {boolean} [params.isComplete] - Optional completion flag
+ * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+ */
+export async function updateGoalProgress({ userId, goalId, currentValue, isComplete }) {
+  if (!userId || !goalId) {
+    return { success: false, error: 'User ID and Goal ID are required.' };
+  }
+
+  const updates = {
+    updated_at: new Date().toISOString(),
+  };
+  if (currentValue !== undefined) {
+    updates.current_value = Number(currentValue) || 0;
+  }
+  if (isComplete !== undefined) {
+    updates.is_complete = Boolean(isComplete);
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('dexos_goals')
+      .update(updates)
+      .eq('id', goalId)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Failed to update goal progress.' };
+  }
+}

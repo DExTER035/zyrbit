@@ -1,7 +1,7 @@
-# DexOS Architecture
+# Zyrbit Architecture
 
 > **Personal Operating System — Unified Architecture Specification**  
-> DexOS unifies Habits, Focus, Health, Wealth, and AI into one calm daily operating system.  
+> Zyrbit unifies Habits, Focus, Health, Wealth, and AI into one calm daily operating system.  
 > Every layer has one explicit responsibility with strictly enforced dependency boundaries.
 
 ---
@@ -42,7 +42,7 @@ INFRASTRUCTURE (Supabase Client, Gemini AI Provider, Analytics)
 
 ## 2. Product Domains
 
-DexOS organizes all capabilities into five core life domains:
+Zyrbit organizes all capabilities into five core life domains:
 
 | Domain | Scope | Engine Path | Service Path | Components Path |
 | :--- | :--- | :--- | :--- | :--- |
@@ -136,7 +136,7 @@ src/
 │
 ├── styles/                        # Design System & Styling
 │   ├── index.css                  # Tailwind v4 entry & global base styles
-│   ├── theme.css                  # DexOS design tokens (spacing, colors, radii)
+│   ├── theme.css                  # Zyrbit design tokens (spacing, colors, radii)
 │   └── typography.css             # Inter & Space Grotesk font hierarchy
 │
 └── context/                       # React Context Providers

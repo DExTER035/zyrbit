@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React from 'react';
-import { CheckCircle2, Circle, Flame, X } from 'lucide-react';
+import { CheckCircle2, Circle, Flame, X, Play, Lock } from 'lucide-react';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 export const C = {
@@ -164,45 +164,104 @@ export const FSelect = ({ value, onChange, children }) => (
 );
 
 // ─── TaskRow ──────────────────────────────────────────────────────────────────
-export function TaskRow({ task, onComplete, onDelete, projectName }) {
+export function TaskRow({
+  task,
+  onComplete,
+  onDelete,
+  onFocus,
+  projectName,
+  state = null,
+  blockedReason = null,
+}) {
   const days = daysUntil(task.due_date);
   const isOverdue = days !== null && days < 0 && task.status !== 'done';
   const isDueToday = days === 0 && task.status !== 'done';
   const isDueSoon = days !== null && days > 0 && days <= 2 && task.status !== 'done';
   const done = task.status === 'done';
+  const isBlocked = state === 'BLOCKED';
 
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '10px',
       background: done ? 'transparent' : C.surface,
-      border: `1px solid ${isOverdue ? C.danger + '60' : done ? C.border : C.border2}`,
+      border: `1px solid ${isBlocked ? `${C.warn}40` : isOverdue ? `${C.danger}60` : done ? C.border : C.border2}`,
       borderRadius: '14px', padding: '12px 14px',
-      opacity: done ? 0.45 : 1, transition: 'all 0.2s',
+      opacity: done ? 0.45 : isBlocked ? 0.8 : 1, transition: 'all 0.2s',
     }}>
-      <div onClick={() => !done && onComplete(task)} style={{ cursor: done ? 'default' : 'pointer', flexShrink: 0 }}>
-        {done ? <CheckCircle2 size={18} color={C.goal} /> : <Circle size={18} color={C.border2} />}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: C.text, textDecoration: done ? 'line-through' : 'none', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</div>
-        {(projectName || isOverdue || isDueToday || isDueSoon) && (
-          <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-            {projectName && <span style={{ fontSize: '10px', color: C.muted }}>📁 {projectName}</span>}
-            {isOverdue && <span style={{ fontSize: '10px', fontWeight: 800, color: C.danger }}>{Math.abs(days)}d overdue</span>}
-            {isDueToday && <span style={{ fontSize: '10px', fontWeight: 800, color: C.warn }}>Due today</span>}
-            {isDueSoon && <span style={{ fontSize: '10px', fontWeight: 700, color: C.warn }}>In {days}d</span>}
-          </div>
+      <div
+        onClick={() => !done && !isBlocked && onComplete && onComplete(task)}
+        style={{ cursor: done ? 'default' : isBlocked ? 'not-allowed' : 'pointer', flexShrink: 0 }}
+      >
+        {done ? (
+          <CheckCircle2 size={18} color={C.goal} />
+        ) : isBlocked ? (
+          <Lock size={16} color={C.warn} />
+        ) : (
+          <Circle size={18} color={C.border2} />
         )}
       </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: '13px',
+          fontWeight: 600,
+          color: isBlocked ? C.sub : C.text,
+          textDecoration: done ? 'line-through' : 'none',
+          lineHeight: 1.4,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {task.name}
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {projectName && <span style={{ fontSize: '10px', color: C.muted }}>📁 {projectName}</span>}
+          {isOverdue && <span style={{ fontSize: '10px', fontWeight: 800, color: C.danger }}>{Math.abs(days)}d overdue</span>}
+          {isDueToday && <span style={{ fontSize: '10px', fontWeight: 800, color: C.warn }}>Due today</span>}
+          {isDueSoon && <span style={{ fontSize: '10px', fontWeight: 700, color: C.warn }}>In {days}d</span>}
+          {isBlocked && (
+            <span style={{ fontSize: '10px', fontWeight: 700, color: C.warn }}>
+              🔒 {blockedReason || 'Blocked by prerequisite'}
+            </span>
+          )}
+        </div>
+      </div>
+
       {task.priority === 1 && !done && <Flame size={13} color={C.danger} style={{ flexShrink: 0 }} />}
       {task.priority === 2 && !done && <Flame size={13} color={C.warn} style={{ flexShrink: 0 }} />}
-      
+
+      {/* Optional 1-tap focus session button */}
+      {onFocus && !done && !isBlocked && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onFocus(task); }}
+          style={{
+            background: 'rgba(31, 163, 111, 0.12)',
+            border: '1px solid rgba(31, 163, 111, 0.35)',
+            color: '#1FA36F',
+            borderRadius: '8px',
+            padding: '5px 9px',
+            fontSize: '11px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            flexShrink: 0,
+          }}
+        >
+          <Play size={11} fill="#1FA36F" /> Focus
+        </button>
+      )}
+
       {onDelete && (
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(task); }}
           style={{
             background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
             color: C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            outline: 'none', transition: 'color 0.2s'
+            outline: 'none', transition: 'color 0.2s', flexShrink: 0
           }}
           onMouseEnter={e => e.currentTarget.style.color = C.danger}
           onMouseLeave={e => e.currentTarget.style.color = C.muted}
@@ -214,3 +273,4 @@ export function TaskRow({ task, onComplete, onDelete, projectName }) {
     </div>
   );
 }
+

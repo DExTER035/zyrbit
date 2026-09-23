@@ -252,7 +252,7 @@ export default function Stats() {
       const completions = alData?.filter(l => l.completed_date >= since30Str && l.status === 'completed').length || 0
       const bestStreak = (stData || []).reduce((max, s) => Math.max(max, s.current_streak || 0), 0) || 0
       const context = `Habits tracked: ${hData?.length || 0}. Completions in 30 days: ${completions}. Best streak: ${bestStreak} days.`
-      const prompt = [{ role: 'user', text: `You are Zyra, AI coach inside DexOS. Write a warm, specific weekly report in under 80 words. Include actionable insight. Context: ${context}` }]
+      const prompt = [{ role: 'user', text: `You are Zyra, AI coach inside Zyrbit. Write a warm, specific weekly report in under 80 words. Include actionable insight. Context: ${context}` }]
       const report = await askZyra(prompt)
       setWeeklyReport(report)
       localStorage.setItem(`zyrbit_weekly_report_${getWeekKey()}`, report)

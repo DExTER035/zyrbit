@@ -24,7 +24,8 @@ import ErrorState from '../../components/ui/ErrorState.jsx';
 import { hasCycle } from '../../engines/growth/index.js';
 
 import TodayTab from '../../components/domain/growth/TodayTab.jsx';
-import ProjectsTab from '../../components/domain/growth/ProjectsTab.jsx';
+import PlanTab from '../../components/domain/growth/PlanTab.jsx';
+import HabitsTab from '../../components/domain/growth/HabitsTab.jsx';
 import FocusSessionView from '../../components/domain/growth/FocusSessionView.jsx';
 import ProjectDetailView from '../../components/domain/growth/ProjectDetailView.jsx';
 import {
@@ -33,7 +34,33 @@ import {
   deleteTask as serviceDeleteTask,
   createProject as serviceCreateProject,
   endFocusSession as serviceEndFocusSession,
+  createGoal as serviceCreateGoal,
+  updateGoalProgress as serviceUpdateGoalProgress,
 } from '../../services/growthService.js';
+import {
+  toggleHabit as serviceToggleHabit,
+  skipHabit as serviceSkipHabit,
+  createHabit as serviceCreateHabit,
+  updateHabit as serviceUpdateHabit,
+  deleteHabit as serviceDeleteHabit,
+} from '../../services/habitService.js';
+import { computeHabitImpact } from '../../engines/zenith/index.js';
+
+const ZONE_OPTIONS = [
+  { id: 'mind', label: 'Mind', icon: '🧠' },
+  { id: 'body', label: 'Body', icon: '⚡' },
+  { id: 'growth', label: 'Growth', icon: '🌱' },
+  { id: 'soul', label: 'Soul', icon: '🌌' },
+];
+
+const QUICK_ICONS = ['🌱', '⚡', '🧠', '🌌', '💧', '🏃', '📚', '🧘', '🎯', '💤'];
+
+const ZONE_COLORS = {
+  mind: 'var(--color-zone-mind)',
+  body: 'var(--color-zone-body)',
+  growth: 'var(--color-zone-growth)',
+  soul: 'var(--color-zone-soul)',
+};
 
 export default function Growth() {
   const navigate = useNavigate();
@@ -43,7 +70,7 @@ export default function Growth() {
   const [mountTime] = useState(() => Date.now());
 
   // ── Navigation ──────────────────────────────────────────────────────────────
-  const [tab, setTab] = useState('today');          // today | projects
+  const [tab, setTab] = useState('today');          // today | plan | habits
   const [view, setView] = useState('list');          // list | project-detail
   const [prevTab, setPrevTab] = useState('today');
   const [selectedProject, setSelectedProject] = useState(null);
@@ -53,6 +80,7 @@ export default function Growth() {
   const [tasks,           setTasks]           = useState([]);
   const [dependencies,    setDependencies]    = useState([]);
   const [sessions,        setSessions]        = useState([]);
+  const [goals,           setGoals]           = useState([]);
   const [streak,          setStreak]          = useState({ current_streak: 0, longest_streak: 0, last_active_date: null });
   const [todayFocusMin,   setTodayFocusMin]   = useState(0);
   const [todayTasksDone,  setTodayTasksDone]  = useState(0);
@@ -75,12 +103,32 @@ export default function Growth() {
   // ── Forms ──────────────────────────────────────────────────────────────────
   const [formProject, setFormProject] = useState({ name: '', icon: '📁', deadline: '' });
 
+  // ── Habits State ────────────────────────────────────────────────────────────
+  const [habits,             setHabits]             = useState([]);
+  const [activity,           setActivity]           = useState([]);
+  const [streaks,            setStreaks]            = useState({});
+  const [longestStreaks,     setLongestStreaks]     = useState({});
+  const [submittingHabits,   setSubmittingHabits]   = useState({});
+  const [modalHabit,         setModalHabit]         = useState(false);
+  const [editHabit,          setEditHabit]          = useState(null);
+  const [deleteHabitTarget,  setDeleteHabitTarget]  = useState(null);
+  const [formHabit,          setFormHabit]          = useState({
+    name: '',
+    zone: 'mind',
+    icon: '🌱',
+    frequency: 'daily',
+    reminder_enabled: false,
+    reminder_time: ''
+  });
+
   const loadData = useCallback(async (uid) => {
     setLoading(true);
     setError(null);
     const today = todayStr();
     const lsKey = (kind) => `dexos_growth_${kind}_${uid}`;
     const lsGet = (kind) => { try { return JSON.parse(localStorage.getItem(lsKey(kind))); } catch { return null; } };
+
+    const since365 = (() => { const d = new Date(); d.setDate(d.getDate() - 365); return d.toLocaleDateString('en-CA'); })();
 
     try {
       const [
@@ -89,7 +137,11 @@ export default function Growth() {
         depRes,
         sRes,
         stRes,
-        dRes
+        dRes,
+        hRes,
+        actRes,
+        ustkRes,
+        gRes
       ] = await Promise.all([
         supabase.from('growth_projects').select('*').eq('user_id', uid).neq('status', 'archived').order('created_at', { ascending: false }),
         supabase.from('growth_tasks').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
@@ -97,6 +149,10 @@ export default function Growth() {
         supabase.from('growth_focus_sessions').select('*').eq('user_id', uid).order('session_date', { ascending: false }).limit(50),
         supabase.from('dexos_streaks').select('*').eq('user_id', uid).maybeSingle(),
         supabase.from('dexos_daily_summary').select('*').eq('user_id', uid).eq('log_date', today).maybeSingle(),
+        supabase.from('habits').select('*').eq('user_id', uid).order('created_at', { ascending: true }),
+        supabase.from('activity_log').select('*').eq('user_id', uid).gte('completed_date', since365),
+        supabase.from('user_streaks').select('*').eq('user_id', uid),
+        supabase.from('dexos_goals').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
       ]);
 
       let proj = pRes.data;
@@ -149,7 +205,24 @@ export default function Growth() {
       setTasks(taskData || []);
       setDependencies(depData || []);
       setSessions(sessData || []);
+      setGoals(gRes?.data || []);
       setStreak(streakData || { current_streak: 0, longest_streak: 0, last_active_date: null });
+
+      const habitsData = hRes?.data || [];
+      const activityData = actRes?.data || [];
+      const streaksData = ustkRes?.data || [];
+
+      setHabits(habitsData);
+      setActivity(activityData);
+
+      const smap = {};
+      const lmap = {};
+      streaksData.forEach(s => {
+        smap[s.habit_id] = s.current_streak;
+        lmap[s.habit_id] = s.longest_streak || s.current_streak || 0;
+      });
+      setStreaks(smap);
+      setLongestStreaks(lmap);
 
       if (dailyData) {
         setTodayFocusMin(dailyData.focus_minutes || 0);
@@ -164,6 +237,7 @@ export default function Growth() {
       setProjects(lsGet('projects') || []);
       setTasks(lsGet('tasks') || []);
       setSessions(lsGet('sessions') || []);
+      setGoals([]);
       setStreak(lsGet('streak') || { current_streak: 0, longest_streak: 0, last_active_date: null });
     } finally {
       setLoading(false);
@@ -190,23 +264,23 @@ export default function Growth() {
     return map;
   }, [projects, tasks]);
 
-  const heatmapData = useMemo(() => {
+  const yearlyCompletionsMap = useMemo(() => {
     const map = {};
-    // Add completed tasks
-    tasks.forEach(t => {
-      if (t.status === 'done' && t.completed_at) {
-        const dateStr = t.completed_at.split('T')[0];
-        map[dateStr] = (map[dateStr] || 0) + 1;
-      }
-    });
-    // Add focus sessions
-    sessions.forEach(s => {
-      if (s.session_date) {
-        map[s.session_date] = (map[s.session_date] || 0) + 1;
+    activity.forEach(log => {
+      if (log.status === 'completed' && log.completed_date) {
+        map[log.completed_date] = (map[log.completed_date] || 0) + 1;
       }
     });
     return map;
-  }, [tasks, sessions]);
+  }, [activity]);
+
+  const habitImpacts = useMemo(() => {
+    const res = {};
+    habits.forEach(h => {
+      res[h.id] = computeHabitImpact(h.id, activity, []);
+    });
+    return res;
+  }, [habits, activity]);
 
   const todayView = useMemo(() => {
     const today = todayStr();
@@ -524,10 +598,197 @@ export default function Growth() {
     setIsSubmitting(false);
   };
 
+  const createGoal = async (goalForm) => {
+    if (!goalForm.name?.trim() || !user || isSubmitting) return;
+    setIsSubmitting(true);
+
+    const res = await serviceCreateGoal({
+      userId: user.id,
+      name: goalForm.name,
+      projectId: goalForm.project_id || null,
+      targetValue: goalForm.target_value,
+      unit: goalForm.unit,
+      deadline: goalForm.deadline || null,
+    });
+
+    if (res.success) {
+      setGoals(prev => [res.data, ...prev]);
+      showToast('🎯 Goal added!', 'success');
+    } else {
+      showToast(`Failed to create goal: ${res.error}`, 'error');
+    }
+    setIsSubmitting(false);
+  };
+
+  const updateGoalProgress = async (goal, val) => {
+    if (!user || !goal) return;
+    const currentVal = Number(val) || 0;
+    const isComplete = currentVal >= Number(goal.target_value);
+
+    const res = await serviceUpdateGoalProgress({
+      userId: user.id,
+      goalId: goal.id,
+      currentValue: currentVal,
+      isComplete,
+    });
+
+    if (res.success) {
+      setGoals(prev => prev.map(g => g.id === goal.id ? { ...g, current_value: currentVal, is_complete: isComplete } : g));
+    } else {
+      showToast(`Failed to update goal: ${res.error}`, 'error');
+    }
+  };
+
   const openProjectDetail = (p) => {
     setPrevTab(tab);
     setSelectedProject(p);
     setView('project-detail');
+  };
+
+  // ─── Habit Actions ─────────────────────────────────────────────────────────
+  const handleToggleHabit = useCallback(async (habit) => {
+    if (!user || !habit?.id || submittingHabits[habit.id]) return;
+    const today = todayStr();
+    setSubmittingHabits(prev => ({ ...prev, [habit.id]: true }));
+
+    try {
+      const isCompleted = activity.some(l => l.habit_id === habit.id && l.completed_date === today && l.status === 'completed');
+      const res = await serviceToggleHabit({
+        userId: user.id,
+        habitId: habit.id,
+        date: today,
+        isCompleted,
+      });
+
+      if (!res.success) {
+        showToast(isCompleted ? 'Failed to undo habit' : 'Failed to complete habit', 'error');
+      } else {
+        showToast(isCompleted ? 'Habit undone' : '✅ Habit completed!', 'success');
+        if (!isCompleted) {
+          setActivity(prev => [...prev, res.data]);
+        } else {
+          setActivity(prev => prev.filter(l => !(l.habit_id === habit.id && l.completed_date === today && l.status === 'completed')));
+        }
+        // reload streaks
+        const streaksRes = await supabase.from('user_streaks').select('*').eq('user_id', user.id);
+        const streaksData = streaksRes?.data || [];
+        const smap = {};
+        const lmap = {};
+        streaksData.forEach(s => {
+          smap[s.habit_id] = s.current_streak;
+          lmap[s.habit_id] = s.longest_streak || s.current_streak || 0;
+        });
+        setStreaks(smap);
+        setLongestStreaks(lmap);
+      }
+    } finally {
+      setSubmittingHabits(prev => {
+        const next = { ...prev };
+        delete next[habit.id];
+        return next;
+      });
+    }
+  }, [user, activity, submittingHabits]);
+
+  const handleSkipHabit = useCallback(async (habit) => {
+    if (!user || !habit?.id || submittingHabits[habit.id]) return;
+    const today = todayStr();
+    setSubmittingHabits(prev => ({ ...prev, [habit.id]: true }));
+
+    try {
+      const res = await serviceSkipHabit({
+        userId: user.id,
+        habitId: habit.id,
+        date: today,
+      });
+
+      if (res.success) {
+        showToast('⏭️ Habit skipped for today', 'warning');
+        setActivity(prev => [...prev, res.data]);
+      } else {
+        showToast('Failed to skip habit', 'error');
+      }
+    } finally {
+      setSubmittingHabits(prev => {
+        const next = { ...prev };
+        delete next[habit.id];
+        return next;
+      });
+    }
+  }, [user, submittingHabits]);
+
+  const saveHabit = async () => {
+    if (!formHabit.name.trim() || !user || isSubmitting) return;
+    setIsSubmitting(true);
+    const color = ZONE_COLORS[formHabit.zone] || '#1FA36F';
+
+    try {
+      if (editHabit) {
+        const res = await serviceUpdateHabit({
+          userId: user.id,
+          habitId: editHabit.id,
+          name: formHabit.name.trim(),
+          zone: formHabit.zone,
+          icon: formHabit.icon,
+          frequency: formHabit.frequency,
+          reminder_enabled: formHabit.reminder_enabled,
+          reminder_time: formHabit.reminder_time,
+          color,
+        });
+
+        if (res.success) {
+          showToast('✅ Habit updated!', 'success');
+          setModalHabit(false);
+          setEditHabit(null);
+          loadData(user.id);
+        } else {
+          showToast('Failed to update habit', 'error');
+        }
+      } else {
+        const res = await serviceCreateHabit({
+          userId: user.id,
+          name: formHabit.name.trim(),
+          zone: formHabit.zone,
+          icon: formHabit.icon,
+          frequency: formHabit.frequency,
+          reminderEnabled: formHabit.reminder_enabled,
+          reminderTime: formHabit.reminder_time,
+          color,
+        });
+
+        if (res.success) {
+          showToast('🌱 Habit added!', 'success');
+          setModalHabit(false);
+          loadData(user.id);
+        } else {
+          showToast('Failed to add habit', 'error');
+        }
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const confirmDeleteHabit = async () => {
+    if (!deleteHabitTarget || !user || isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      const res = await serviceDeleteHabit({
+        userId: user.id,
+        habitId: deleteHabitTarget.id,
+      });
+
+      if (res.success) {
+        showToast('🗑️ Habit deleted', 'info');
+        setDeleteHabitTarget(null);
+        loadData(user.id);
+      } else {
+        showToast('Failed to delete habit', 'error');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // ─── RENDER — Loading & Error ──────────────────────────────────────────────
@@ -562,14 +823,10 @@ export default function Growth() {
       <FocusSessionView
         focusMode={focusMode}
         setFocusMode={setFocusMode}
-        projects={projects}
-        skills={[]}
         focusProject={focusProject}
         setFocusProject={setFocusProject}
         focusNotes={focusNotes}
         setFocusNotes={setFocusNotes}
-        focusSkill={null}
-        setFocusSkill={() => null}
         focusType={focusType}
         setFocusType={setFocusType}
         focusTimedMin={focusTimedMin}
@@ -598,16 +855,16 @@ export default function Growth() {
         dependencies={dependencies}
         addDependency={addDependency}
         removeDependency={removeDependency}
-        goals={[]}
+        goals={goals}
         sessions={sessions}
         projectStatsMap={projectStatsMap}
         completeTask={completeTask}
         deleteTask={deleteTask}
         createTask={createTask}
-        createGoal={() => null}
+        createGoal={createGoal}
         setFocusProject={setFocusProject}
         setFocusMode={setFocusMode}
-        updateGoalProgress={() => null}
+        updateGoalProgress={updateGoalProgress}
       />
     );
   }
@@ -652,13 +909,26 @@ export default function Growth() {
       </div>
 
       {/* ── TAB BAR ─────────────────────────────────────────────────── */}
-      <div style={{ padding: '14px 20px 0', display: 'flex', gap: '7px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+      <div style={{ padding: '14px 20px 0', display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none' }}>
         {[
-          { id: 'today',    label: 'Today',    col: C.growth },
-          { id: 'projects', label: 'Projects', col: C.project },
+          { id: 'today',  label: 'Today',  col: C.growth },
+          { id: 'plan',   label: 'Plan',   col: '#5EE6F5' },
+          { id: 'habits', label: 'Habits', col: '#1FA36F' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            style={{ background: tab === t.id ? `${t.col}20` : C.surface, border: `1px solid ${tab === t.id ? t.col : C.border}`, borderRadius: '12px', padding: '7px 14px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '12px', fontWeight: 800, color: tab === t.id ? t.col : C.muted, transition: 'all 0.2s', flexShrink: 0 }}>
+            style={{
+              background: tab === t.id ? `${t.col}20` : C.surface,
+              border: `1px solid ${tab === t.id ? t.col : C.border}`,
+              borderRadius: '12px',
+              padding: '7px 16px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontSize: '12px',
+              fontWeight: 800,
+              color: tab === t.id ? t.col : C.muted,
+              transition: 'all 0.2s',
+              flexShrink: 0
+            }}>
             {t.label}
           </button>
         ))}
@@ -668,8 +938,6 @@ export default function Growth() {
       <div style={{ padding: '18px 20px 120px' }}>
         {tab === 'today' && (
           <TodayTab
-            activeSprint={null}
-            sprintProgress={null}
             todayFocusMin={todayFocusMin}
             todayView={todayView}
             dexosInsight={dexosInsight}
@@ -681,20 +949,62 @@ export default function Growth() {
             dependencies={dependencies}
             projects={projects}
             projectMap={projectMap}
-            heatmapData={heatmapData}
-            navigate={navigate}
             onInstantFocus={handleInstantFocus}
             focusProject={focusProject}
             setFocusProject={setFocusProject}
+            habits={habits}
+            activity={activity}
+            streaks={streaks}
+            submittingHabits={submittingHabits}
+            onToggleHabit={handleToggleHabit}
+            onSkipHabit={handleSkipHabit}
           />
         )}
-        {tab === 'projects' && (
-          <ProjectsTab
+        {tab === 'plan' && (
+          <PlanTab
             projects={projects}
             projectStatsMap={projectStatsMap}
-            sprintProjectIds={[]}
             openProjectDetail={openProjectDetail}
             setModalProject={setModalProject}
+            tasks={tasks}
+            dependencies={dependencies}
+            projectMap={projectMap}
+            completeTask={completeTask}
+            deleteTask={deleteTask}
+            addTask={addTask}
+            createTask={createTask}
+            onInstantFocus={handleInstantFocus}
+          />
+        )}
+        {tab === 'habits' && (
+          <HabitsTab
+            habits={habits}
+            activity={activity}
+            streaks={streaks}
+            longestStreaks={longestStreaks}
+            habitImpacts={habitImpacts}
+            submittingHabits={submittingHabits}
+            onToggleHabit={handleToggleHabit}
+            onSkipHabit={handleSkipHabit}
+            onEditHabit={(h) => {
+              setEditHabit(h);
+              setFormHabit({
+                name: h.name,
+                zone: h.zone || 'mind',
+                icon: h.icon || '🌱',
+                frequency: h.frequency || 'daily',
+                reminder_enabled: !!h.reminder_enabled,
+                reminder_time: h.reminder_time || '',
+              });
+              setModalHabit(true);
+            }}
+            onDeleteHabit={(h) => setDeleteHabitTarget(h)}
+            onAddHabit={() => {
+              setEditHabit(null);
+              setFormHabit({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
+              setModalHabit(true);
+            }}
+            yearlyCompletionsMap={yearlyCompletionsMap}
           />
         )}
       </div>
@@ -712,6 +1022,118 @@ export default function Growth() {
               <FInput type="date" value={formProject.deadline} onChange={e => setFormProject(p => ({ ...p, deadline: e.target.value }))} />
             </div>
             <BtnPrimary label="Create Project" onClick={createProject} disabled={!formProject.name.trim()} />
+          </div>
+        </Modal>
+      )}
+
+      {/* Habit Create / Edit Modal */}
+      {modalHabit && (
+        <Modal title={editHabit ? 'Edit Habit' : 'New Habit'} onClose={() => setModalHabit(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <FLabel>HABIT NAME</FLabel>
+              <FInput
+                placeholder="e.g. 20 min deep reading..."
+                value={formHabit.name}
+                onChange={e => setFormHabit(p => ({ ...p, name: e.target.value }))}
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <FLabel>ZONE</FLabel>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                {ZONE_OPTIONS.map(z => {
+                  const isSel = formHabit.zone === z.id;
+                  return (
+                    <button
+                      key={z.id}
+                      type="button"
+                      onClick={() => setFormHabit(p => ({ ...p, zone: z.id }))}
+                      style={{
+                        background: isSel ? 'rgba(31, 163, 111, 0.15)' : '#0B0D0F',
+                        border: `1px solid ${isSel ? '#1FA36F' : '#2E2F35'}`,
+                        borderRadius: '8px',
+                        padding: '8px',
+                        color: isSel ? '#1FA36F' : '#A1A1AA',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span>{z.icon}</span>
+                      <span>{z.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <FLabel>ICON</FLabel>
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+                {QUICK_ICONS.map(ic => (
+                  <button
+                    key={ic}
+                    type="button"
+                    onClick={() => setFormHabit(p => ({ ...p, icon: ic }))}
+                    style={{
+                      background: formHabit.icon === ic ? '#1FA36F' : '#0B0D0F',
+                      border: `1px solid ${formHabit.icon === ic ? '#1FA36F' : '#2E2F35'}`,
+                      borderRadius: '6px',
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {ic}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <BtnPrimary
+              label={editHabit ? 'Update Habit' : 'Create Habit'}
+              onClick={saveHabit}
+              disabled={!formHabit.name.trim()}
+            />
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Habit Confirmation Modal */}
+      {deleteHabitTarget && (
+        <Modal title="Delete Habit?" onClose={() => setDeleteHabitTarget(null)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center' }}>
+            <div style={{ fontSize: '36px' }}>🗑️</div>
+            <div style={{ fontSize: '14px', color: '#A1A1AA' }}>
+              Are you sure you want to delete "{deleteHabitTarget.name}"? This cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setDeleteHabitTarget(null)}
+                style={{ flex: 1, padding: '10px', background: '#2E2F35', border: 'none', borderRadius: '8px', color: '#FFF', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteHabit}
+                style={{ flex: 1, padding: '10px', background: '#EF4444', border: 'none', borderRadius: '8px', color: '#FFF', fontWeight: 800, cursor: 'pointer' }}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </Modal>
       )}

@@ -92,11 +92,11 @@ const isTodayLocal = (timestampStr, todayVal) => {
 const compileCyberneticDirectives = (os, recovery, sleepHrs, debt, water, tasksDone, tasksTotal, spent, limit, focusMins, runwayMonths) => {
   let p1 = "";
   if (os >= 80) {
-    p1 = `DexOS operating at peak performance (OS Score: ${os}/100). Momentum is established.`;
+    p1 = `Zyrbit operating at peak performance (OS Score: ${os}/100). Momentum is established.`;
   } else if (os >= 60) {
-    p1 = `DexOS status nominal (OS Score: ${os}/100). Maintain steady execution.`;
+    p1 = `Zyrbit status nominal (OS Score: ${os}/100). Maintain steady execution.`;
   } else {
-    p1 = `DexOS status critical (OS Score: ${os}/100). Gravitational decay detected. Execute priority backlog.`;
+    p1 = `Zyrbit status critical (OS Score: ${os}/100). Gravitational decay detected. Execute priority backlog.`;
   }
 
   let p2 = "";
@@ -237,6 +237,7 @@ export default function Zenith() {
 
   // Raw Database States
   const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [sleepLogs, setSleepLogs] = useState([]);
   const [waterLogs, setWaterLogs] = useState([]);
   const [moveLogs, setMoveLogs] = useState([]);
@@ -248,6 +249,9 @@ export default function Zenith() {
   const [bills, setBills] = useState([]);
   const [goals, setGoals] = useState([]);
   const [foodLogs, setFoodLogs] = useState([]);   // today's meal_logs
+  const [welcomeDismissed, setWelcomeDismissed] = useState(() => {
+    return localStorage.getItem('zyrbit_welcome_dismissed') === 'true';
+  });
 
   // Habits State
   const [habits, setHabits] = useState([]);
@@ -693,18 +697,21 @@ export default function Zenith() {
       supabase.from('growth_tasks').select('*, growth_projects(name)').eq('user_id', uid),
       supabase.from('growth_focus_sessions').select('started_at, duration_minutes, session_date').eq('user_id', uid).eq('session_date', today),
       supabase.from('growth_sprints').select('*').eq('user_id', uid).eq('status', 'active').limit(1),
-      supabase.from('study_goals').select('*').eq('user_id', uid)
+      supabase.from('study_goals').select('*').eq('user_id', uid),
+      supabase.from('growth_projects').select('id, name, icon, status').eq('user_id', uid).neq('status', 'archived')
     ]);
 
     const tasksRes = results[0].status === 'fulfilled' ? results[0].value : { data: [] };
     const focusRes = results[1].status === 'fulfilled' ? results[1].value : { data: [] };
     const sprintRes = results[2].status === 'fulfilled' ? results[2].value : { data: [] };
     const goalsRes = results[3].status === 'fulfilled' ? results[3].value : { data: [] };
+    const projectsRes = results[4].status === 'fulfilled' ? results[4].value : { data: [] };
 
     setTasks(tasksRes?.data || []);
     setFocusSessions(focusRes?.data || []);
     setSprintData(sprintRes?.data || []);
     setGoals(goalsRes?.data || []);
+    setProjects(projectsRes?.data || []);
   }, [today]);
 
   const loadHealthData = useCallback(async (uid) => {
@@ -1124,7 +1131,12 @@ export default function Zenith() {
       <div style={{ borderBottom: '1px solid #1C1D21' }} />
 
       {/* Body Status */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div
+        onClick={() => navigate('/health')}
+        style={{ display: 'flex', flexDirection: 'column', gap: '6px', cursor: 'pointer', padding: '4px 0', transition: 'opacity 0.2s' }}
+        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
+        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+      >
         <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Body</div>
         <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>
           {ctx.sleep > 0 ? `${ctx.sleep.toFixed(1)}h sleep · ${Math.round(ctx.water / 250)} glasses water` : 'No health data yet'}
@@ -1135,7 +1147,12 @@ export default function Zenith() {
       <div style={{ borderBottom: '1px solid #1C1D21' }} />
 
       {/* Food Status */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div
+        onClick={() => navigate('/food')}
+        style={{ display: 'flex', flexDirection: 'column', gap: '6px', cursor: 'pointer', padding: '4px 0', transition: 'opacity 0.2s' }}
+        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
+        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+      >
         <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Food</div>
         <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>
           {foodTotals.meals > 0 ? `${foodTotals.meals} meal${foodTotals.meals > 1 ? 's' : ''} · ${foodTotals.protein}g protein` : 'No meals logged yet'}
@@ -1148,7 +1165,12 @@ export default function Zenith() {
       <div style={{ borderBottom: '1px solid #1C1D21' }} />
 
       {/* Money Status */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div
+        onClick={() => navigate('/wealth')}
+        style={{ display: 'flex', flexDirection: 'column', gap: '6px', cursor: 'pointer', padding: '4px 0', transition: 'opacity 0.2s' }}
+        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
+        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+      >
         <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Money</div>
         <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>
           {ctx.spent > 0 ? `₹${Math.round(ctx.spent)} spent today` : 'No expenses today'}
@@ -1161,7 +1183,12 @@ export default function Zenith() {
       <div style={{ borderBottom: '1px solid #1C1D21' }} />
 
       {/* Focus Status */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div
+        onClick={() => navigate('/growth')}
+        style={{ display: 'flex', flexDirection: 'column', gap: '6px', cursor: 'pointer', padding: '4px 0', transition: 'opacity 0.2s' }}
+        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
+        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+      >
         <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Focus</div>
         <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>
           {ctx.lastFocusTopic}
@@ -1173,77 +1200,8 @@ export default function Zenith() {
 
       <div style={{ borderBottom: '1px solid #1C1D21' }} />
 
-      {/* Today's Priorities */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>
-          Today's Priorities
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {priorities.map((p) => (
-            <div
-              key={p.id}
-              onClick={() => togglePriority(p)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                cursor: 'pointer',
-                userSelect: 'none',
-                opacity: p.done ? 0.6 : 1,
-                transition: 'opacity 0.2s',
-              }}
-            >
-              <div style={{
-                width: '20px',
-                height: '20px',
-                border: `2px solid ${p.done ? '#1FA36F' : '#2E2F35'}`,
-                borderRadius: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: p.done ? '#1FA36F' : '#15181B',
-                transition: 'all 0.2s',
-              }}>
-                {p.done && <span style={{ fontSize: '12px', color: '#0B0D0F', fontWeight: 900 }}>✓</span>}
-              </div>
-              <span style={{
-                fontSize: '16px',
-                fontWeight: 700,
-                color: '#FFFFFF',
-                textDecoration: p.done ? 'line-through' : 'none',
-              }}>
-                {p.name}
-              </span>
-            </div>
-          ))}
-          {priorities.length === 0 && (
-            <div style={{ fontSize: '15px', color: '#4B5563', fontWeight: 500, padding: '4px 0' }}>
-              All clear — nothing urgent today.
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div style={{ borderBottom: '1px solid #1C1D21' }} />
-
-      {/* One Insight */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>One Insight</div>
-        <p style={{
-          fontSize: '16px',
-          fontWeight: 600,
-          color: '#E4E4E7',
-          lineHeight: 1.5,
-          margin: 0,
-        }}>
-          {oneInsight}
-        </p>
-      </div>
-
-      <div style={{ borderBottom: '1px solid #1C1D21' }} />
-
-      {/* Habits Section / First-Time Empty State */}
-      {habits.length === 0 ? (
+      {/* Onboarding Welcome Card — genuinely new users only */}
+      {habits.length === 0 && tasks.length === 0 && foodLogs.length === 0 && sleepLogs.length === 0 && expenses.length === 0 && !welcomeDismissed && (
         <div style={{
           background: '#15181B',
           border: '1px solid #26272C',
@@ -1252,11 +1210,32 @@ export default function Zenith() {
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
+          position: 'relative',
         }}>
+          <button
+            onClick={() => {
+              setWelcomeDismissed(true);
+              try { localStorage.setItem('zyrbit_welcome_dismissed', 'true'); } catch { /* ignore */ }
+            }}
+            style={{
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              background: 'transparent',
+              border: 'none',
+              color: '#71717A',
+              fontSize: '16px',
+              cursor: 'pointer',
+            }}
+            title="Dismiss"
+          >
+            ✕
+          </button>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '18px' }}>🌌</span>
             <span style={{ fontSize: '11px', fontWeight: 800, color: '#1FA36F', letterSpacing: '2px', textTransform: 'uppercase' }}>
-              Welcome to DexOS
+              Welcome to Zyrbit
             </span>
           </div>
 
@@ -1267,16 +1246,12 @@ export default function Zenith() {
             margin: 0,
             fontWeight: 500,
           }}>
-            DexOS unifies your habits, focus, health, and wealth into one calm operating system.
+            Zyrbit unifies your habits, focus, health, and wealth into one calm operating system.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <button
-              onClick={() => {
-                setEditHabit(null);
-                setForm({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
-                setShowModal(true);
-              }}
+              onClick={() => navigate('/growth')}
               style={{
                 background: '#1FA36F',
                 color: '#0B0D0F',
@@ -1293,7 +1268,7 @@ export default function Zenith() {
                 transition: 'opacity 0.2s',
               }}
             >
-              <span>+ Add your first habit</span>
+              <span>Manage Habits & Tasks in Growth →</span>
             </button>
 
             <div style={{
@@ -1303,328 +1278,56 @@ export default function Zenith() {
               textAlign: 'center',
               padding: '4px 0',
             }}>
-              Dex also accepts voice & text commands like <span style={{ color: '#E4E4E7' }}>"I drank 500ml water"</span> or <span style={{ color: '#E4E4E7' }}>"Plan my next 45 minutes"</span>.
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>
-              Today's Habits ({activity.filter(l => l.status === 'completed' && l.completed_date === today).length}/{habits.length})
-            </div>
-            <button
-              onClick={() => {
-                setEditHabit(null);
-                setForm({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
-                setShowModal(true);
-              }}
-              style={{
-                background: 'transparent',
-                border: '1px solid #2E2F35',
-                color: '#1FA36F',
-                borderRadius: '6px',
-                padding: '4px 10px',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              + Habit
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {habits.map((habit) => {
-              const habitLogs = activity.filter(l => l.habit_id === habit.id);
-              const isDone = habitLogs.some(l => l.completed_date === today && l.status === 'completed');
-              const habitStreak = streaks[habit.id] || 0;
-              const longestStreak = longestStreaks[habit.id] || habitStreak;
-              const impact = habitImpacts[habit.id] || null;
-
-              return (
-                <HabitCard
-                  key={habit.id}
-                  habit={habit}
-                  logs={habitLogs}
-                  streak={habitStreak}
-                  longestStreak={longestStreak}
-                  isCompleted={isDone}
-                  isSubmitting={!!submittingHabits[habit.id]}
-                  impactInsight={impact?.insight || null}
-                  onToggle={handleToggle}
-                  onEdit={(h) => {
-                    setEditHabit(h);
-                    setForm({
-                      name: h.name,
-                      zone: h.zone || 'mind',
-                      icon: h.icon || '🌱',
-                      frequency: h.frequency || 'daily',
-                      reminder_enabled: !!h.reminder_enabled,
-                      reminder_time: h.reminder_time || '',
-                    });
-                    setShowModal(true);
-                  }}
-                  onDelete={deleteHabit}
-                />
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* HABIT CREATE / EDIT MODAL */}
-      {showModal && (
-        <div className="modal-overlay" style={{ background: '#000000D0', zIndex: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', inset: 0, padding: '16px' }}>
-          <div style={{
-            background: '#15181B',
-            border: '1px solid #26272C',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '380px',
-            width: '100%',
-            animation: 'scaleIn 0.3s ease',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#FFFFFF' }}>
-                {editHabit ? 'Edit Habit' : 'New Habit'}
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{ background: 'transparent', border: 'none', color: '#71717A', fontSize: '18px', cursor: 'pointer' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Habit Name */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Habit Name
-              </label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g. 20 min deep reading"
-                autoFocus
-                style={{
-                  background: '#0B0D0F',
-                  border: '1px solid #2E2F35',
-                  borderRadius: '8px',
-                  padding: '10px 12px',
-                  color: '#FFFFFF',
-                  fontSize: '14px',
-                  outline: 'none',
-                }}
-              />
-            </div>
-
-            {/* Zone Selector */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Domain Zone
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                {ZONE_OPTIONS.map((z) => {
-                  const isSel = form.zone === z.id;
-                  return (
-                    <button
-                      key={z.id}
-                      type="button"
-                      onClick={() => setForm(prev => ({ ...prev, zone: z.id }))}
-                      style={{
-                        background: isSel ? 'rgba(31, 163, 111, 0.15)' : '#0B0D0F',
-                        border: `1px solid ${isSel ? '#1FA36F' : '#2E2F35'}`,
-                        borderRadius: '8px',
-                        padding: '8px',
-                        color: isSel ? '#1FA36F' : '#A1A1AA',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      <span>{z.icon}</span>
-                      <span>{z.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Quick Icon Selector */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Icon
-              </label>
-              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
-                {QUICK_ICONS.map((ic) => (
-                  <button
-                    key={ic}
-                    type="button"
-                    onClick={() => setForm(prev => ({ ...prev, icon: ic }))}
-                    style={{
-                      background: form.icon === ic ? '#1FA36F' : '#0B0D0F',
-                      border: `1px solid ${form.icon === ic ? '#1FA36F' : '#2E2F35'}`,
-                      borderRadius: '6px',
-                      width: '32px',
-                      height: '32px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '16px',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {ic}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                style={{
-                  flex: 1,
-                  background: '#2E2F35',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '10px',
-                  color: '#FFFFFF',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={!form.name.trim() || isSubmittingForm}
-                onClick={saveHabit}
-                style={{
-                  flex: 1,
-                  background: form.name.trim() && !isSubmittingForm ? '#1FA36F' : '#2E2F35',
-                  color: form.name.trim() && !isSubmittingForm ? '#0B0D0F' : '#71717A',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '10px',
-                  fontWeight: 800,
-                  fontSize: '14px',
-                  cursor: form.name.trim() && !isSubmittingForm ? 'pointer' : 'not-allowed',
-                }}
-              >
-                {isSubmittingForm ? 'Saving...' : editHabit ? 'Update' : 'Create'}
-              </button>
+              Dex accepts voice & text commands like <span style={{ color: '#E4E4E7' }}>"I drank 500ml water"</span> or <span style={{ color: '#E4E4E7' }}>"Plan my next 45 minutes"</span>. Press <kbd style={{ background: '#26272C', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', color: '#1FA36F' }}>Ctrl+K</kbd> anytime.
             </div>
           </div>
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {deleteTarget && (
-        <div className="modal-overlay" style={{ background: '#000000D0', zIndex: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', inset: 0, padding: '16px' }}>
-          <div style={{
-            background: '#15181B',
-            border: '1px solid #26272C',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '340px',
-            width: '100%',
-            animation: 'scaleIn 0.3s ease',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '36px' }}>🗑️</div>
-            <div>
-              <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: 800, color: '#FFFFFF' }}>Delete Habit?</h3>
-              <p style={{ margin: 0, fontSize: '14px', color: '#A1A1AA' }}>
-                Are you sure you want to delete "{deleteTarget.name}"? This action cannot be undone.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => setDeleteTarget(null)}
-                style={{ flex: 1, padding: '10px', background: '#2E2F35', border: 'none', borderRadius: '8px', color: '#FFF', fontWeight: 700, cursor: 'pointer' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                style={{ flex: 1, padding: '10px', background: '#EF4444', border: 'none', borderRadius: '8px', color: '#FFF', fontWeight: 800, cursor: 'pointer' }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+      {/* Calm Dex Trigger */}
+      <div
+        onClick={() => {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
+        }}
+        style={{
+          background: '#15181B',
+          border: '1px solid #26272C',
+          borderRadius: '14px',
+          padding: '14px 18px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          marginTop: '4px',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = '#1FA36F';
+          e.currentTarget.style.background = '#1A1E22';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = '#26272C';
+          e.currentTarget.style.background = '#15181B';
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '16px' }}>✨</span>
+          <span style={{ fontSize: '14px', color: '#71717A', fontWeight: 500 }}>
+            Ask Dex anything or log an action...
+          </span>
         </div>
-      )}
-
-      {/* PERFECT DAY CELEBRATION */}
-      {showCelebration && (
-        <div className="modal-overlay" style={{ background: '#000000B0', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', inset: 0 }}>
-          <div style={{ background: '#15181B', border: '1px solid rgba(31, 163, 111, 0.2)', borderRadius: '16px', padding: '24px', textAlign: 'center', animation: 'scaleIn 0.5s ease', maxWidth: '300px' }}>
-            <div style={{ fontSize: '52px', marginBottom: '8px' }}>🏆</div>
-            <div style={{ fontSize: '20px', color: '#1FA36F', fontWeight: 900, marginBottom: '4px' }}>Perfect Day!</div>
-            <div style={{ fontSize: '14px', color: '#71717A', marginBottom: '24px' }}>All habits completed today!</div>
-            <button onClick={() => setShowCelebration(false)} className="btn-primary" style={{ width: '100%', padding: '10px', background: '#1FA36F', border: 'none', borderRadius: '8px', color: '#0B0D0F', fontWeight: 800, cursor: 'pointer' }}>Keep Going 🚀</button>
-          </div>
-        </div>
-      )}
-
-      {/* WEEKLY REVIEW MODAL */}
-      {showWeeklyReview && (
-        <div className="modal-overlay" style={{ background: '#000000D0', zIndex: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', inset: 0 }}>
-          <div style={{
-            background: '#15181B',
-            border: '1px solid rgba(20, 184, 166, 0.2)', borderRadius: '16px',
-            padding: '32px 24px', maxWidth: '340px', width: '92%',
-            animation: 'scaleIn 0.4s ease'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <div style={{ fontSize: '42px', marginBottom: '8px' }}>📊</div>
-              <div style={{ fontSize: '18px', fontWeight: 900, color: '#FFF', marginBottom: '4px' }}>Week Wrapped</div>
-              <div style={{ fontSize: '10px', color: '#71717A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>Your weekly report</div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '24px' }}>
-              {[
-                { label: 'Streak', value: `${bestStreak}d`, color: '#F59E0B', icon: '🔥' },
-                { label: 'OS Score', value: `${osScore}/100`, color: '#8B7FFF', icon: '⚡' },
-              ].map((s, i) => (
-                <div key={i} style={{ background: '#1C1D21', border: '1px solid #2E2F35', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '18px', marginBottom: '4px' }}>{s.icon}</div>
-                  <div style={{ fontSize: '18px', fontWeight: 900, color: s.color, marginBottom: '2px' }}>{s.value}</div>
-                  <div style={{ fontSize: '9px', color: '#71717A', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={dismissWeeklyReview}
-                className="btn-secondary"
-                style={{ flex: 1, padding: '10px', background: '#2E2F35', border: 'none', borderRadius: '8px', color: '#FFF', fontWeight: 800, cursor: 'pointer' }}
-              >
-                Done ✓
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        <kbd style={{
+          background: '#26272C',
+          border: '1px solid #3F3F46',
+          borderRadius: '6px',
+          padding: '2px 8px',
+          fontSize: '11px',
+          fontWeight: 700,
+          color: '#1FA36F',
+        }}>
+          Ctrl+K
+        </kbd>
+      </div>
 
       <BottomNav activeTab="zenith" onTabChange={(t) => navigate(`/${t}`)} />
     </div>
