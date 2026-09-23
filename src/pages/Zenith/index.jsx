@@ -20,6 +20,15 @@ import {
 } from '../../services/habitService.js';
 import { completeTask as serviceCompleteTask } from '../../services/growthService.js';
 
+const ZONE_OPTIONS = [
+  { id: 'mind', label: 'Mind', icon: '🧠' },
+  { id: 'body', label: 'Body', icon: '⚡' },
+  { id: 'growth', label: 'Growth', icon: '🌱' },
+  { id: 'soul', label: 'Soul', icon: '🌌' },
+];
+
+const QUICK_ICONS = ['🌱', '⚡', '🧠', '🌌', '💧', '🏃', '📚', '🧘', '🎯', '💤'];
+
 // ─── colour tokens (Zenith Premium palette) ─────────────────────────────────
 const C = {
   bg:        '#0B0D0F',
@@ -1230,6 +1239,339 @@ export default function Zenith() {
           {oneInsight}
         </p>
       </div>
+
+      <div style={{ borderBottom: '1px solid #1C1D21' }} />
+
+      {/* Habits Section / First-Time Empty State */}
+      {habits.length === 0 ? (
+        <div style={{
+          background: '#15181B',
+          border: '1px solid #26272C',
+          borderRadius: '16px',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '18px' }}>🌌</span>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#1FA36F', letterSpacing: '2px', textTransform: 'uppercase' }}>
+              Welcome to DexOS
+            </span>
+          </div>
+
+          <p style={{
+            fontSize: '15px',
+            color: '#A1A1AA',
+            lineHeight: 1.5,
+            margin: 0,
+            fontWeight: 500,
+          }}>
+            DexOS unifies your habits, focus, health, and wealth into one calm operating system.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button
+              onClick={() => {
+                setEditHabit(null);
+                setForm({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
+                setShowModal(true);
+              }}
+              style={{
+                background: '#1FA36F',
+                color: '#0B0D0F',
+                fontWeight: 800,
+                fontSize: '14px',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'opacity 0.2s',
+              }}
+            >
+              <span>+ Add your first habit</span>
+            </button>
+
+            <div style={{
+              fontSize: '12px',
+              color: '#71717A',
+              fontWeight: 500,
+              textAlign: 'center',
+              padding: '4px 0',
+            }}>
+              Dex also accepts voice & text commands like <span style={{ color: '#E4E4E7' }}>"I drank 500ml water"</span> or <span style={{ color: '#E4E4E7' }}>"Plan my next 45 minutes"</span>.
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>
+              Today's Habits ({activity.filter(l => l.status === 'completed' && l.completed_date === today).length}/{habits.length})
+            </div>
+            <button
+              onClick={() => {
+                setEditHabit(null);
+                setForm({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
+                setShowModal(true);
+              }}
+              style={{
+                background: 'transparent',
+                border: '1px solid #2E2F35',
+                color: '#1FA36F',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              + Habit
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {habits.map((habit) => {
+              const habitLogs = activity.filter(l => l.habit_id === habit.id);
+              const isDone = habitLogs.some(l => l.completed_date === today && l.status === 'completed');
+              const habitStreak = streaks[habit.id] || 0;
+              const longestStreak = longestStreaks[habit.id] || habitStreak;
+              const impact = habitImpacts[habit.id] || null;
+
+              return (
+                <HabitCard
+                  key={habit.id}
+                  habit={habit}
+                  logs={habitLogs}
+                  streak={habitStreak}
+                  longestStreak={longestStreak}
+                  isCompleted={isDone}
+                  isSubmitting={!!submittingHabits[habit.id]}
+                  impactInsight={impact?.insight || null}
+                  onToggle={handleToggle}
+                  onEdit={(h) => {
+                    setEditHabit(h);
+                    setForm({
+                      name: h.name,
+                      zone: h.zone || 'mind',
+                      icon: h.icon || '🌱',
+                      frequency: h.frequency || 'daily',
+                      reminder_enabled: !!h.reminder_enabled,
+                      reminder_time: h.reminder_time || '',
+                    });
+                    setShowModal(true);
+                  }}
+                  onDelete={deleteHabit}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* HABIT CREATE / EDIT MODAL */}
+      {showModal && (
+        <div className="modal-overlay" style={{ background: '#000000D0', zIndex: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', inset: 0, padding: '16px' }}>
+          <div style={{
+            background: '#15181B',
+            border: '1px solid #26272C',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '380px',
+            width: '100%',
+            animation: 'scaleIn 0.3s ease',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#FFFFFF' }}>
+                {editHabit ? 'Edit Habit' : 'New Habit'}
+              </h3>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{ background: 'transparent', border: 'none', color: '#71717A', fontSize: '18px', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Habit Name */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Habit Name
+              </label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g. 20 min deep reading"
+                autoFocus
+                style={{
+                  background: '#0B0D0F',
+                  border: '1px solid #2E2F35',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  color: '#FFFFFF',
+                  fontSize: '14px',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            {/* Zone Selector */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Domain Zone
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                {ZONE_OPTIONS.map((z) => {
+                  const isSel = form.zone === z.id;
+                  return (
+                    <button
+                      key={z.id}
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, zone: z.id }))}
+                      style={{
+                        background: isSel ? 'rgba(31, 163, 111, 0.15)' : '#0B0D0F',
+                        border: `1px solid ${isSel ? '#1FA36F' : '#2E2F35'}`,
+                        borderRadius: '8px',
+                        padding: '8px',
+                        color: isSel ? '#1FA36F' : '#A1A1AA',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span>{z.icon}</span>
+                      <span>{z.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Quick Icon Selector */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Icon
+              </label>
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+                {QUICK_ICONS.map((ic) => (
+                  <button
+                    key={ic}
+                    type="button"
+                    onClick={() => setForm(prev => ({ ...prev, icon: ic }))}
+                    style={{
+                      background: form.icon === ic ? '#1FA36F' : '#0B0D0F',
+                      border: `1px solid ${form.icon === ic ? '#1FA36F' : '#2E2F35'}`,
+                      borderRadius: '6px',
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {ic}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                style={{
+                  flex: 1,
+                  background: '#2E2F35',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '10px',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!form.name.trim() || isSubmittingForm}
+                onClick={saveHabit}
+                style={{
+                  flex: 1,
+                  background: form.name.trim() && !isSubmittingForm ? '#1FA36F' : '#2E2F35',
+                  color: form.name.trim() && !isSubmittingForm ? '#0B0D0F' : '#71717A',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '10px',
+                  fontWeight: 800,
+                  fontSize: '14px',
+                  cursor: form.name.trim() && !isSubmittingForm ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {isSubmittingForm ? 'Saving...' : editHabit ? 'Update' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteTarget && (
+        <div className="modal-overlay" style={{ background: '#000000D0', zIndex: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', inset: 0, padding: '16px' }}>
+          <div style={{
+            background: '#15181B',
+            border: '1px solid #26272C',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '340px',
+            width: '100%',
+            animation: 'scaleIn 0.3s ease',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '36px' }}>🗑️</div>
+            <div>
+              <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: 800, color: '#FFFFFF' }}>Delete Habit?</h3>
+              <p style={{ margin: 0, fontSize: '14px', color: '#A1A1AA' }}>
+                Are you sure you want to delete "{deleteTarget.name}"? This action cannot be undone.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setDeleteTarget(null)}
+                style={{ flex: 1, padding: '10px', background: '#2E2F35', border: 'none', borderRadius: '8px', color: '#FFF', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{ flex: 1, padding: '10px', background: '#EF4444', border: 'none', borderRadius: '8px', color: '#FFF', fontWeight: 800, cursor: 'pointer' }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PERFECT DAY CELEBRATION */}
       {showCelebration && (

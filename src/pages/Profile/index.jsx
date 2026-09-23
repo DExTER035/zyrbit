@@ -98,6 +98,7 @@ export default function Profile() {
   const totalHabits = habits.length
 
   const handleSignOut = async () => {
+    try { sessionStorage.removeItem('dexos_session_chat'); } catch { /* ignore */ }
     await supabase.auth.signOut()
     localStorage.removeItem('zyrbit_onboarded')
     navigate('/login', { replace: true })

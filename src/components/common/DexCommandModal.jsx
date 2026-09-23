@@ -17,12 +17,64 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem('dexos_session_chat');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed.slice(-5).map(m => ({
+            id: m.id || crypto.randomUUID(),
+            type: m.type || 'text',
+            role: m.role || 'assistant',
+            text: m.text || '',
+            displayMessage: m.displayMessage || m.text || '',
+            sender: m.sender || (m.role === 'user' ? 'user' : 'dex'),
+            timestamp: m.timestamp || Date.now(),
+            plan: m.plan || null,
+          }));
+        }
+      }
+    } catch {
+      // Safe fallback on malformed storage
+    }
+    return [];
+  });
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingConfirmation, setPendingConfirmation] = useState(null);
   const [pendingClarification, setPendingClarification] = useState(null);
   const [pendingPlan, setPendingPlan] = useState(null);
+
+  // Persist recent conversation window (last 5 messages) in sessionStorage
+  useEffect(() => {
+    try {
+      if (messages.length > 0) {
+        const sanitized = messages.slice(-5).map(m => ({
+          id: m.id,
+          type: m.type,
+          role: m.role,
+          text: m.text,
+          displayMessage: m.displayMessage,
+          sender: m.sender,
+          timestamp: m.timestamp,
+          plan: m.plan || null,
+        }));
+        sessionStorage.setItem('dexos_session_chat', JSON.stringify(sanitized));
+      }
+    } catch {
+      // Ignore quota errors safely
+    }
+  }, [messages]);
+
+  // Reset transient confirmation/plan states on modal close
+  useEffect(() => {
+    if (!isOpen) {
+      setPendingConfirmation(null);
+      setPendingClarification(null);
+      setPendingPlan(null);
+    }
+  }, [isOpen]);
 
 
   const inputRef = useRef(null);

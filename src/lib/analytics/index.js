@@ -4,6 +4,21 @@
 
 import { supabase } from '../supabase/index.js'
 
+// Helper to detect if failure is caused by missing tables (PGRST205 / 42P01 / 404)
+const isSchemaUnavailableError = (err) => {
+  if (!err) return false
+  const code = err.code || ''
+  const msg = err.message || ''
+  const status = err.status || err.statusCode || 0
+  return (
+    code === 'PGRST205' ||
+    code === '42P01' ||
+    status === 404 ||
+    msg.includes('Could not find the table') ||
+    (msg.includes('relation') && msg.includes('does not exist'))
+  )
+}
+
 // Generate or retrieve a session ID (resets per browser session)
 const getSessionId = () => {
   let sid = sessionStorage.getItem('zyrbit_session_id')
@@ -25,15 +40,21 @@ const getSessionId = () => {
 export const trackEvent = async (userId, eventName, properties = {}) => {
   if (!userId || !eventName) return
   try {
-    await supabase.from('analytics_events').insert({
+    const { error } = await supabase.from('analytics_events').insert({
       user_id:    userId,
       event_name: eventName,
       properties: properties,
       session_id: getSessionId(),
     })
+    if (error) {
+      if (!isSchemaUnavailableError(error)) {
+        console.warn('[Analytics] Failed to record event:', eventName, error.message)
+      }
+    }
   } catch (e) {
-    // Analytics must never crash the app
-    console.warn('[Analytics] Failed to track event:', eventName, e.message)
+    if (!isSchemaUnavailableError(e)) {
+      console.warn('[Analytics] Unexpected event tracking error:', eventName, e.message)
+    }
   }
 }
 
@@ -93,22 +114,35 @@ export const recordMilestone = async (userId, milestone) => {
 
   try {
     // Fetch existing record first to avoid overwriting non-null values
-    const { data: existing } = await supabase
+    const { data: existing, error: fetchErr } = await supabase
       .from('beta_onboarding')
       .select(col)
       .eq('user_id', userId)
       .maybeSingle()
 
+    if (fetchErr) {
+      if (!isSchemaUnavailableError(fetchErr)) {
+        console.warn('[Onboarding] Milestone check failed:', milestone, fetchErr.message)
+      }
+      return
+    }
+
     // Only set if not already recorded
     if (existing && existing[col]) return
 
-    await supabase.from('beta_onboarding').upsert({
+    const { error: upsertErr } = await supabase.from('beta_onboarding').upsert({
       user_id:    userId,
       [col]:      new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
+
+    if (upsertErr && !isSchemaUnavailableError(upsertErr)) {
+      console.warn('[Onboarding] Milestone recording failed:', milestone, upsertErr.message)
+    }
   } catch (e) {
-    console.warn('[Onboarding] Failed to record milestone:', milestone, e.message)
+    if (!isSchemaUnavailableError(e)) {
+      console.warn('[Onboarding] Unexpected milestone error:', milestone, e.message)
+    }
   }
 }
 
@@ -119,11 +153,18 @@ export const recordMilestone = async (userId, milestone) => {
 export const getOnboardingProgress = async (userId) => {
   if (!userId) return {}
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('beta_onboarding')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle()
+
+    if (error) {
+      if (!isSchemaUnavailableError(error)) {
+        console.warn('[Onboarding] Progress query failed:', error.message)
+      }
+      return {}
+    }
 
     return {
       first_login:           !!data?.first_login_at,
@@ -132,7 +173,10 @@ export const getOnboardingProgress = async (userId) => {
       first_reflection:      !!data?.first_reflection_at,
       first_dex_chat:        !!data?.first_dex_chat_at,
     }
-  } catch {
+  } catch (e) {
+    if (!isSchemaUnavailableError(e)) {
+      console.warn('[Onboarding] Unexpected progress error:', e.message)
+    }
     return {}
   }
 }

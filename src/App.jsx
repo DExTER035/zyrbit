@@ -217,6 +217,7 @@ export default function App() {
     setScreen('app')
   }
   const handleSignOut = () => {
+    try { sessionStorage.removeItem('dexos_session_chat'); } catch { /* ignore */ }
     setScreen('login')
   }
 

@@ -17,6 +17,9 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  let currentUserId: string | null = null;
+  let supabaseClient: any = null;
+
   try {
     // 1. AUTHENTICATION CHECK via Supabase JWT Authorization header
     const authHeader = req.headers.get('Authorization')
@@ -32,6 +35,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     })
+    supabaseClient = supabase;
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -40,10 +44,59 @@ serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+    currentUserId = user.id;
 
-    // 2. SERVER-SIDE GEMINI SECRET & CONFIGURATION
+    // 2. SERVER-AUTHORITATIVE RATE LIMITING
+    // Resolve user tier from profiles table to set daily limit (Free: 50, Premium: 200, Elite: 500)
+    let dailyLimit = 50;
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const tier = profile?.subscription_tier || 'free';
+      if (tier === 'premium') dailyLimit = 200;
+      else if (tier === 'elite') dailyLimit = 500;
+    } catch {
+      // Conservative default if profiles query fails
+      dailyLimit = 50;
+    }
+
+    // Atomic DB-safe rate limit check & increment via check_and_increment_ai_usage RPC
+    let usageAllowed = true;
+    let rateLimitInfo: any = {};
+    try {
+      const { data: usageData, error: rpcError } = await supabase
+        .rpc('check_and_increment_ai_usage', {
+          p_user_id: user.id,
+          p_daily_limit: dailyLimit
+        });
+
+      if (!rpcError && usageData) {
+        usageAllowed = !!usageData.allowed;
+        rateLimitInfo = usageData;
+      }
+    } catch {
+      // If RPC is pending database migration, fail-safe open to avoid breaking app
+      usageAllowed = true;
+    }
+
+    if (!usageAllowed) {
+      return new Response(
+        JSON.stringify({
+          error: `Daily AI request limit reached (${rateLimitInfo.current_count ?? dailyLimit}/${dailyLimit}). Upgrade or try again tomorrow.`,
+          code: 'RATE_LIMIT_EXCEEDED'
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 3. SERVER-SIDE GEMINI SECRET & CONFIGURATION
     const apiKey = Deno.env.get('GEMINI_API_KEY')
-    const geminiModel = Deno.env.get('GEMINI_MODEL') || 'gemini-2.0-flash'
+    const rawModel = Deno.env.get('GEMINI_MODEL') || 'gemini-3.8-flash'
+    const geminiModel = rawModel.replace(/^models\//, '').trim() || 'gemini-3.8-flash'
     const geminiBase = 'https://generativelanguage.googleapis.com/v1beta/models'
 
     if (!apiKey) {
@@ -53,7 +106,7 @@ serve(async (req) => {
       )
     }
 
-    // 3. PAYLOAD SIZE VALIDATION
+    // 4. PAYLOAD SIZE & INPUT VALIDATION
     const rawBody = await req.text()
     if (rawBody.length > MAX_PAYLOAD_BYTES) {
       return new Response(
@@ -74,7 +127,6 @@ serve(async (req) => {
 
     const { messages, systemPrompt } = parsed
 
-    // 4. INPUT & BOUND VALIDATION
     if (systemPrompt && typeof systemPrompt === 'string' && systemPrompt.length > MAX_SYSTEM_PROMPT_LENGTH) {
       return new Response(
         JSON.stringify({ error: 'System prompt exceeds maximum length limit.' }),
@@ -119,24 +171,56 @@ serve(async (req) => {
       contents.push({ role, parts: [{ text: m.text }] })
     }
 
-    // 5. CALL GEMINI SERVER-TO-SERVER
-    const res = await fetch(`${geminiBase}/${geminiModel}:generateContent?key=${apiKey}`, {
+    // 5. CALL PRIMARY GEMINI MODEL SERVER-TO-SERVER
+    let res = await fetch(`${geminiBase}/${geminiModel}:generateContent?key=${apiKey}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
+      },
       body: JSON.stringify({ contents })
     })
 
+    // If configured model returns 404 (deprecated/not found) or 503 (temporarily overloaded),
+    // iterate fallback models.
+    // NEVER fallback on 400 (malformed request), 401/403 (invalid key), or 429 (upstream quota).
+    if (res.status === 404 || res.status === 503) {
+      const FALLBACK_MODELS = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-2.5-flash']
+      for (const fallback of FALLBACK_MODELS) {
+        if (fallback === geminiModel) continue; // Skip model that already failed
+        res = await fetch(`${geminiBase}/${fallback}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey
+          },
+          body: JSON.stringify({ contents })
+        })
+        if (res.ok) break;
+        if (res.status !== 404 && res.status !== 503) break;
+      }
+    }
+
+    // Handle upstream failure: decrement user count so failure is not charged
     if (!res.ok) {
+      try {
+        if (currentUserId && supabaseClient) {
+          await supabaseClient.rpc('decrement_ai_usage', { p_user_id: currentUserId });
+        }
+      } catch {
+        // Ignore decrement errors
+      }
+
       const status = res.status
       if (status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Dex needs a breather! Please try again in a minute.' }),
+          JSON.stringify({ error: 'Upstream rate limit reached. Please try again in a minute.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
       return new Response(
         JSON.stringify({ error: 'AI request processing error.' }),
-        { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -148,8 +232,16 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
-  } catch (error) {
-    // Sanitized server error
+  } catch (_error) {
+    // Decrement count on unexpected exception
+    try {
+      if (currentUserId && supabaseClient) {
+        await supabaseClient.rpc('decrement_ai_usage', { p_user_id: currentUserId });
+      }
+    } catch {
+      // Ignore
+    }
+
     return new Response(
       JSON.stringify({ error: 'Internal AI processing error.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

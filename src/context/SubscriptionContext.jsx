@@ -19,19 +19,27 @@ export function SubscriptionProvider({ children }) {
         .from('profiles')
         .select('subscription_tier')
         .eq('id', uid)
-        .single();
+        .maybeSingle();
       
-      if (error) throw error;
-      if (data) {
-        setTier(data.subscription_tier || 'free');
+      if (error) {
+        // Safe default if subscription_tier column does not exist in schema yet
+        const isMissingColumn =
+          error.code === 'PGRST204' ||
+          error.code === 'PGRST205' ||
+          error.message?.includes('subscription_tier');
+
+        if (isMissingColumn) {
+          setTier('free');
+          return;
+        }
+        // Unrelated database or network error: report for diagnostics
+        throw error;
       }
+      
+      setTier(data?.subscription_tier || 'free');
     } catch (e) {
-      console.error('Error fetching subscription:', e);
-      // Fallback to local storage if offline/placeholder client
-      const savedTier = localStorage.getItem(`zyrbit_sub_tier_${uid}`);
-      if (savedTier) {
-        setTier(savedTier);
-      }
+      console.warn('[Subscription] Error fetching subscription tier:', e.message);
+      setTier('free');
     } finally {
       setLoading(false);
     }
@@ -72,7 +80,7 @@ export function SubscriptionProvider({ children }) {
     setPaywallReason('');
   }, []);
 
-  // Update subscription in database (and sync with local storage)
+  // Update subscription in database (server authoritative)
   const updateSubscription = useCallback(async (newTier) => {
     if (!userId) return false;
     try {
@@ -82,17 +90,19 @@ export function SubscriptionProvider({ children }) {
         .update({ subscription_tier: newTier })
         .eq('id', userId);
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST204' || error.message?.includes('subscription_tier')) {
+          console.warn('[Subscription] Cannot persist subscription: subscription_tier column pending migration.');
+          return false;
+        }
+        throw error;
+      }
       
       setTier(newTier);
-      localStorage.setItem(`zyrbit_sub_tier_${userId}`, newTier);
       return true;
     } catch (e) {
-      console.error('Error updating subscription:', e);
-      // Simulating update in local storage for placeholder/local-only setups
-      setTier(newTier);
-      localStorage.setItem(`zyrbit_sub_tier_${userId}`, newTier);
-      return true;
+      console.error('[Subscription] Error updating subscription:', e.message);
+      return false;
     } finally {
       setLoading(false);
     }

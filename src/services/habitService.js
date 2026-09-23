@@ -291,8 +291,7 @@ export async function getHabitsToday(userId, date = todayStr()) {
       supabase
         .from('habits')
         .select('id, name, frequency')
-        .eq('user_id', userId)
-        .eq('is_active', true),
+        .eq('user_id', userId),
       supabase
         .from('activity_log')
         .select('habit_id, status')
