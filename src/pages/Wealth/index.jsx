@@ -1258,37 +1258,6 @@ export default function Wealth() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Ask Dex Pill Button */}
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('dexos:open-dex'))}
-              style={{
-                background: '#15181B',
-                border: `1px solid ${W.borderMid}`,
-                borderRadius: '20px',
-                padding: '6px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                color: '#D1D5DB',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#E9B44C50';
-                e.currentTarget.style.color = '#F5F5F5';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = W.borderMid;
-                e.currentTarget.style.color = '#D1D5DB';
-              }}
-            >
-              <span style={{ fontSize: '13px' }}>💬</span>
-              <span>Ask Dex</span>
-            </button>
-
             {/* Manage Action */}
             <button
               type="button"
