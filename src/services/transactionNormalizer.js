@@ -30,6 +30,9 @@ export function extractCounterparty(rawDescription = '', explicitName = '') {
   // Remove UPI IDs/VPA endings like "...@okhdfcbank", "...@paytm", "...@ybl"
   str = str.replace(/\b[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\b/g, '').trim();
 
+  // Remove account numbers / masked account references like "from A/C XXXXXXXX1234", "A/c *1234"
+  str = str.replace(/\b(?:from|to)?\s*(?:a\/c|ac|account)\s*(?:no\.?)?\s*[*xX0-9-]+\b/gi, '').trim();
+
   // Remove trailing transaction numbers/order codes
   str = str.replace(/\b(?:order\s*#?|txn\s*#?|ref\s*#?|id:?)\s*[a-z0-9_-]+/gi, '').trim();
 
