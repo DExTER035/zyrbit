@@ -5,11 +5,11 @@ import HeatmapGrid from '../../common/HeatmapGrid.jsx';
 import { C } from './shared.jsx';
 
 const ZONE_OPTIONS = [
-  { id: 'all', label: 'All Zones', icon: '' },
-  { id: 'mind', label: 'Mind', icon: '🧠' },
-  { id: 'body', label: 'Body', icon: '⚡' },
-  { id: 'growth', label: 'Growth', icon: '🌱' },
-  { id: 'soul', label: 'Soul', icon: '🌌' },
+  { id: 'all', label: 'All Zones' },
+  { id: 'mind', label: 'Mind' },
+  { id: 'body', label: 'Body' },
+  { id: 'growth', label: 'Growth' },
+  { id: 'soul', label: 'Soul' },
 ];
 
 export default function HabitsTab({
@@ -126,8 +126,7 @@ export default function HabitsTab({
                   whiteSpace: 'nowrap',
                 }}
               >
-                <span>{z.icon}</span>
-                <span>{z.label}</span>
+                {z.label}
               </button>
             );
           })}
