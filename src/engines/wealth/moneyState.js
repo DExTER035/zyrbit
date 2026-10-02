@@ -308,13 +308,57 @@ export function computeMoneyState({
     .filter(e => (e.category || '').toLowerCase().includes('gold'))
     .reduce((s, e) => s + toNum(e.amount), 0);
 
+  const allTimeTransfers = expenses
+    .filter(e => {
+      const c = (e.category || '').toLowerCase();
+      const n = (e.note || '').toLowerCase();
+      return c.includes('transfer') || c.includes('saving') || n.includes('saving');
+    })
+    .reduce((s, e) => s + toNum(e.amount), 0);
+
+  const allTimeSavingsWithdraw = incomes
+    .filter(i => {
+      const s = (i.source || '').toLowerCase();
+      const n = (i.note || '').toLowerCase();
+      return s.includes('saving') || n.includes('saving');
+    })
+    .reduce((s, i) => s + toNum(i.amount), 0);
+
+  const calculatedSavings = Math.max(0, allTimeTransfers - allTimeSavingsWithdraw);
+
   const assets = {
     cash: Math.max(0, liquidCash),
-    savings: Math.max(0, liquidCash > 50000 ? Math.round(liquidCash * 0.4) : 0),
+    savings: calculatedSavings > 0 ? calculatedSavings : (liquidCash > 50000 ? Math.round(liquidCash * 0.4) : 0),
     invested: allTimeInvested,
     gold: allTimeGold,
     owedToYou: totalReceivables,
     total: Math.max(0, liquidCash) + allTimeInvested + allTimeGold + totalReceivables,
+  };
+
+  // ── Money State V1: Liabilities (I owe others) ───────────────────────────
+  const iOweBills = bills.filter(b => 
+    b.status !== 'paid' && 
+    ((b.name || '').toLowerCase().includes('return to') || 
+     (b.name || '').toLowerCase().includes('borrow') ||
+     (b.name || '').toLowerCase().includes('debt') ||
+     (b.name || '').toLowerCase().includes('owe '))
+  ).map(b => {
+    const due = new Date(b.due_date + 'T00:00:00');
+    const daysUntil = Math.round((due - now) / 86400000);
+    return {
+      id: b.id,
+      name: b.name,
+      person: b.name.replace(/^return to\s+/i, '').replace(/^borrowed from\s+/i, '').replace(/^owe\s+/i, '').trim(),
+      amount: toNum(b.amount),
+      dueDate: b.due_date,
+      daysUntil,
+      raw: b,
+    };
+  });
+  const iOweTotal = iOweBills.reduce((s, b) => s + b.amount, 0);
+  const liabilities = {
+    iOwe: iOweBills,
+    iOweTotal,
   };
 
   // ── Money State V1: Calibration Status ────────────────────────────────────
@@ -421,6 +465,7 @@ export function computeMoneyState({
     isCalibrated,
     flow,
     assets,
+    liabilities,
     next30Commitments,
     moneyPromises: explicitReceivables,
     unifiedRecent,

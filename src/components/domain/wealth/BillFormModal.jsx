@@ -19,19 +19,38 @@ const FREQUENCIES = [
 ];
 
 export default function BillFormModal({
+  isOpen = true,
   editingBill = null,
+  initialData = null,
   currencySymbol = '₹',
   onSave,
   onClose,
   onDelete,
 }) {
+  const activeBill = editingBill || initialData;
   const todayYMD = new Date().toISOString().split('T')[0];
 
-  const [name, setName]           = useState(editingBill ? editingBill.name : '');
-  const [amount, setAmount]       = useState(editingBill ? String(editingBill.amount) : '');
-  const [dueDate, setDueDate]     = useState(editingBill ? editingBill.due_date : todayYMD);
-  const [frequency, setFrequency] = useState(editingBill ? editingBill.frequency : 'monthly');
+  const [name, setName]           = useState('');
+  const [amount, setAmount]       = useState('');
+  const [dueDate, setDueDate]     = useState(todayYMD);
+  const [frequency, setFrequency] = useState('monthly');
   const [isSaving, setIsSaving]   = useState(false);
+
+  React.useEffect(() => {
+    if (activeBill) {
+      setName(activeBill.name || '');
+      setAmount(activeBill.amount !== undefined ? String(activeBill.amount) : '');
+      setDueDate(activeBill.due_date || todayYMD);
+      setFrequency(activeBill.frequency || 'monthly');
+    } else {
+      setName('');
+      setAmount('');
+      setDueDate(todayYMD);
+      setFrequency('monthly');
+    }
+  }, [activeBill, isOpen, todayYMD]);
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,12 +62,12 @@ export default function BillFormModal({
     setIsSaving(true);
     try {
       await onSave({
-        id: editingBill ? editingBill.id : null,
+        id: activeBill ? activeBill.id : null,
         name: name.trim().slice(0, 150),
         amount: Math.round(amt * 100) / 100,
         due_date: dueDate || todayYMD,
         frequency: frequency,
-        status: editingBill ? editingBill.status : 'unpaid',
+        status: activeBill ? activeBill.status : 'unpaid',
       });
       onClose();
     } finally {
@@ -81,7 +100,7 @@ export default function BillFormModal({
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <span style={{ fontSize: '16px', fontWeight: 800, color: W.text }}>
-            {editingBill ? 'Edit Recurring Bill' : 'Add Recurring Bill'}
+            {activeBill ? 'Edit Commitment' : 'Add Commitment'}
           </span>
           <button
             onClick={onClose}
@@ -210,17 +229,17 @@ export default function BillFormModal({
               marginTop: '8px',
             }}
           >
-            {isSaving ? 'Saving...' : (editingBill ? 'Save Bill 💾' : 'Add Bill 📅')}
+            {isSaving ? 'Saving...' : (activeBill ? 'Save Commitment 💾' : 'Add Commitment 📅')}
           </button>
 
-          {editingBill && onDelete && (
+          {activeBill && onDelete && (
             <button
               type="button"
               onClick={async () => {
                 if (isSaving) return;
                 setIsSaving(true);
                 try {
-                  await onDelete(editingBill.id);
+                  await onDelete(activeBill.id);
                   onClose();
                 } finally {
                   setIsSaving(false);

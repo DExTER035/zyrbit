@@ -122,6 +122,14 @@ export async function deleteExpense({ userId, id }) {
   }
 
   try {
+    // 1. Fetch expense first to detect cross-domain food logging
+    const { data: exp } = await supabase
+      .from('money_expenses')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .maybeSingle();
+
     const { error } = await supabase
       .from('money_expenses')
       .delete()
@@ -131,6 +139,22 @@ export async function deleteExpense({ userId, id }) {
     if (error) {
       return { success: false, error: error.message };
     }
+
+    // 2. Clean up associated food entry if this was a food expense
+    if (exp && (exp.category || '').toLowerCase() === 'food' && exp.note) {
+      const foodName = exp.note.trim();
+      await supabase
+        .from('meal_logs')
+        .delete()
+        .eq('user_id', userId)
+        .eq('date', exp.expense_date)
+        .ilike('food_name', foodName);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
+      }
+    }
+
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message || 'Failed to delete expense.' };
@@ -559,20 +583,33 @@ export async function getWealthSnapshot(userId) {
         .order('due_date', { ascending: true }),
     ]);
 
-    if (eRes.error) console.warn('[wealthService] expenses fetch:', eRes.error.message);
-    if (iRes.error) console.warn('[wealthService] income fetch:', iRes.error.message);
-    if (bRes.error) console.warn('[wealthService] bills fetch:', bRes.error.message);
+    const snapshotData = {
+      settings: sRes.data || null,
+      expenses: eRes.data || [],
+      incomes:  iRes.data || [],
+      bills:    bRes.data || [],
+    };
+
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem(`zyrbit_wealth_cache_${userId}`, JSON.stringify(snapshotData));
+      } catch { /* ignore */ }
+    }
 
     return {
       success: true,
-      data: {
-        settings: sRes.data || null,
-        expenses: eRes.data || [],
-        incomes:  iRes.data || [],
-        bills:    bRes.data || [],
-      },
+      data: snapshotData,
     };
   } catch (err) {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const cached = localStorage.getItem(`zyrbit_wealth_cache_${userId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          return { success: true, data: parsed, fromCache: true };
+        }
+      } catch { /* ignore */ }
+    }
     return { success: false, error: err.message || 'Failed to fetch wealth snapshot.' };
   }
 }

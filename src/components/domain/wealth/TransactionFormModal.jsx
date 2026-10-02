@@ -17,21 +17,40 @@ const EXP_CATEGORIES = ['Food', 'Rent & Bills', 'Tools & Subscriptions', 'Leisur
 const INC_SOURCES = ['Salary', 'Freelance', 'Side Income', 'One-time'];
 
 export default function TransactionFormModal({
+  isOpen = true,
   type = 'expense', // 'expense' | 'income'
   editingItem = null,
+  initialData = null,
   currencySymbol = '₹',
   onSave,
   onClose,
   onDelete,
 }) {
+  const activeItem = editingItem || initialData;
   const isExpense = type === 'expense';
   const todayYMD = new Date().toISOString().split('T')[0];
 
-  const [amount, setAmount]     = useState(editingItem ? String(editingItem.amount) : '');
-  const [category, setCategory] = useState(editingItem ? (isExpense ? editingItem.category : editingItem.source) : (isExpense ? 'Food' : 'Side Income'));
-  const [note, setNote]         = useState(editingItem ? (editingItem.note || '') : '');
-  const [date, setDate]         = useState(editingItem ? (editingItem.expense_date || editingItem.income_date) : todayYMD);
+  const [amount, setAmount]     = useState('');
+  const [category, setCategory] = useState(isExpense ? 'Food' : 'Side Income');
+  const [note, setNote]         = useState('');
+  const [date, setDate]         = useState(todayYMD);
   const [isSaving, setIsSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (activeItem) {
+      setAmount(activeItem.amount !== undefined ? String(activeItem.amount) : '');
+      setCategory(isExpense ? (activeItem.category || 'Food') : (activeItem.source || 'Side Income'));
+      setNote(activeItem.note || activeItem.title || '');
+      setDate(activeItem.expense_date || activeItem.income_date || activeItem.date || todayYMD);
+    } else {
+      setAmount('');
+      setCategory(isExpense ? 'Food' : 'Side Income');
+      setNote('');
+      setDate(todayYMD);
+    }
+  }, [activeItem, isExpense, isOpen, todayYMD]);
+
+  if (!isOpen) return null;
 
   const presets = currencySymbol === '₹'
     ? (isExpense ? [100, 200, 500, 1000] : [5000, 10000, 25000, 50000])
@@ -47,7 +66,7 @@ export default function TransactionFormModal({
     setIsSaving(true);
     try {
       await onSave({
-        id: editingItem ? editingItem.id : null,
+        id: activeItem ? activeItem.id : null,
         amount: Math.round(amt * 100) / 100,
         category: category,
         source: category,
@@ -236,17 +255,17 @@ export default function TransactionFormModal({
               marginTop: '8px',
             }}
           >
-            {isSaving ? 'Saving...' : (editingItem ? 'Save Changes 💾' : `Log ${isExpense ? 'Expense' : 'Income'} ⚡`)}
+            {isSaving ? 'Saving...' : (activeItem ? 'Save Changes 💾' : `Log ${isExpense ? 'Expense' : 'Income'} ⚡`)}
           </button>
 
-          {editingItem && onDelete && (
+          {activeItem && onDelete && (
             <button
               type="button"
               onClick={async () => {
                 if (isSaving) return;
                 setIsSaving(true);
                 try {
-                  await onDelete(editingItem.id);
+                  await onDelete(activeItem.id);
                   onClose();
                 } finally {
                   setIsSaving(false);

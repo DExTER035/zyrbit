@@ -26,10 +26,15 @@ export default function PromiseFormModal({
   onDelete,
   onResolve,
   editingPromise = null,
-  initialType = 'owed_to_me', // 'owed_to_me' | 'i_owe'
+  initialData = null,
+  initialType = 'owed_to_me',
+  defaultType = 'owed_to_me',
   currencySymbol = '₹',
 }) {
-  const [type, setType] = useState(initialType);
+  const activePromise = editingPromise || initialData;
+  const activeInitialType = defaultType || initialType || 'owed_to_me';
+
+  const [type, setType] = useState(activeInitialType);
   const [person, setPerson] = useState('');
   const [amount, setAmount] = useState('');
   const [dueDate, setDueDate] = useState(getLocalYMD());
@@ -37,21 +42,21 @@ export default function PromiseFormModal({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (editingPromise) {
-      const isOwed = editingPromise.status === 'receivable' || editingPromise.type === 'receivable';
+    if (activePromise) {
+      const isOwed = activePromise.status === 'receivable' || activePromise.type === 'receivable' || activePromise.type === 'LEND';
       setType(isOwed ? 'owed_to_me' : 'i_owe');
-      setPerson(editingPromise.person || editingPromise.name?.replace(/^return to\s+/i, '').replace(/\s+owes you$/i, '') || '');
-      setAmount(String(editingPromise.amount || ''));
-      setDueDate(editingPromise.due_date || editingPromise.dueDate || getLocalYMD());
-      setNote(editingPromise.note || '');
+      setPerson(activePromise.person || activePromise.name?.replace(/^return to\s+/i, '').replace(/\s+owes you$/i, '') || '');
+      setAmount(activePromise.amount !== undefined ? String(activePromise.amount) : '');
+      setDueDate(activePromise.due_date || activePromise.dueDate || getLocalYMD());
+      setNote(activePromise.note || '');
     } else {
-      setType(initialType);
+      setType(activeInitialType);
       setPerson('');
       setAmount('');
       setDueDate(getLocalYMD());
       setNote('');
     }
-  }, [editingPromise, initialType, isOpen]);
+  }, [activePromise, activeInitialType, isOpen]);
 
   if (!isOpen) return null;
 
@@ -63,7 +68,7 @@ export default function PromiseFormModal({
     setSaving(true);
     try {
       await onSave({
-        id: editingPromise?.id || null,
+        id: activePromise?.id || null,
         type: type === 'owed_to_me' ? 'LEND' : 'BORROW',
         person: person.trim(),
         amount: numAmount,
@@ -77,10 +82,10 @@ export default function PromiseFormModal({
   };
 
   const handleDelete = async () => {
-    if (!editingPromise?.id || !onDelete || saving) return;
+    if (!activePromise?.id || !onDelete || saving) return;
     setSaving(true);
     try {
-      await onDelete(editingPromise.id);
+      await onDelete(activePromise.id);
       onClose();
     } finally {
       setSaving(false);
@@ -88,10 +93,10 @@ export default function PromiseFormModal({
   };
 
   const handleResolve = async () => {
-    if (!editingPromise || !onResolve || saving) return;
+    if (!activePromise || !onResolve || saving) return;
     setSaving(true);
     try {
-      await onResolve(editingPromise);
+      await onResolve(activePromise);
       onClose();
     } finally {
       setSaving(false);
@@ -112,7 +117,7 @@ export default function PromiseFormModal({
         <div className="flex items-center justify-between pb-3 border-b border-white/5">
           <div>
             <h3 className="text-base font-bold text-[#F5F5F5]">
-              {editingPromise ? 'Edit Money Relationship' : 'Add Promise / Loan'}
+              {activePromise ? 'Edit Money Relationship' : 'Add Promise / Loan'}
             </h3>
             <p className="text-xs text-[#9CA3AF]">People and money obligations</p>
           </div>
@@ -127,7 +132,7 @@ export default function PromiseFormModal({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
           {/* Direction toggle */}
-          {!editingPromise && (
+          {!activePromise && (
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -214,10 +219,10 @@ export default function PromiseFormModal({
               disabled={saving || !person.trim() || !amount}
               className="w-full py-3 rounded-xl bg-[#1FA36F] text-[#0B0D0F] font-bold text-xs cursor-pointer hover:bg-[#1FA36F]/90 transition disabled:opacity-50"
             >
-              {saving ? 'Saving...' : editingPromise ? 'Save Changes' : 'Record Promise'}
+              {saving ? 'Saving...' : activePromise ? 'Save Changes' : 'Record Promise'}
             </button>
 
-            {editingPromise && onResolve && (
+            {activePromise && onResolve && (
               <button
                 type="button"
                 onClick={handleResolve}
@@ -229,7 +234,7 @@ export default function PromiseFormModal({
               </button>
             )}
 
-            {editingPromise && onDelete && (
+            {activePromise && onDelete && (
               <button
                 type="button"
                 onClick={handleDelete}

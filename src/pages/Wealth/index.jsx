@@ -1261,7 +1261,7 @@ export default function Wealth() {
             {/* Ask Dex Pill Button */}
             <button
               type="button"
-              onClick={() => setIsEventModalOpen(true)}
+              onClick={() => window.dispatchEvent(new CustomEvent('dexos:open-dex'))}
               style={{
                 background: '#15181B',
                 border: `1px solid ${W.borderMid}`,
@@ -1419,14 +1419,22 @@ export default function Wealth() {
                 gap: '6px',
               }}
             >
-              <div>
+              <div
+                onClick={() => setIsCalibrateModalOpen(true)}
+                style={{ cursor: 'pointer' }}
+                title="Tap to calibrate your cash balance"
+              >
                 <div style={{ fontSize: '11px', color: '#8E929B' }}>Cash</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#F5F5F5', marginTop: '2px' }}>
                   {fmtShort(liquidCash)}
                 </div>
               </div>
 
-              <div>
+              <div
+                onClick={() => setActiveView('commitments')}
+                style={{ cursor: 'pointer' }}
+                title="Tap to view commitments"
+              >
                 <div style={{ fontSize: '11px', color: '#8E929B' }}>Committed</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#F5F5F5', marginTop: '2px' }}>
                   {fmtShort(committedTotal)}
@@ -1987,6 +1995,8 @@ export default function Wealth() {
         }}
         onSave={handleSavePromise}
         onDelete={handleDeletePromise}
+        onResolve={handleResolvePromise}
+        editingPromise={editingPromise}
         initialData={editingPromise}
         defaultType={promisesTab === 'owed_to_me' ? 'LEND' : 'BORROW'}
         currencySymbol={currencySymbol}

@@ -40,15 +40,24 @@ export default function AssetAdjustmentModal({
   onClose,
   assetKey = 'savings', // 'savings' | 'investments' | 'gold'
   currentAmount = 0,
+  currentValues = null,
   currencySymbol = '₹',
   onSave,
 }) {
   const meta = ASSET_META[assetKey] || ASSET_META.savings;
   const Icon = meta.icon;
+  const effectiveCurrentAmount = currentAmount || (currentValues && currentValues[assetKey]) || 0;
 
   const [mode, setMode] = useState('add'); // 'add' | 'set'
   const [amount, setAmount] = useState('');
   const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setAmount('');
+      setSaving(false);
+    }
+  }, [isOpen, assetKey]);
 
   if (!isOpen) return null;
 
@@ -70,7 +79,7 @@ export default function AssetAdjustmentModal({
         });
       } else {
         // Calibrate / adjust holding directly
-        const diff = numAmount - (currentAmount || 0);
+        const diff = numAmount - (effectiveCurrentAmount || 0);
         if (Math.abs(diff) > 0) {
           await onSave({
             type: diff > 0 ? meta.transferType : 'INCOME',

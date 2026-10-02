@@ -8,7 +8,7 @@ import { isVoiceSupported } from '../../voice/index.js';
 function getActionDomain(action) {
   if (['create_task', 'complete_task', 'start_focus'].includes(action)) return 'growth';
   if (['log_water', 'log_sleep', 'log_activity', 'log_weight', 'log_meal'].includes(action)) return 'health';
-  if (['add_expense', 'add_income', 'add_bill'].includes(action)) return 'wealth';
+  if (['add_expense', 'add_income', 'add_bill', 'record_money_event', 'calibrate_cash', 'resolve_promise'].includes(action)) return 'wealth';
   if (['complete_habit', 'skip_habit'].includes(action)) return 'zenith';
   return null;
 }
