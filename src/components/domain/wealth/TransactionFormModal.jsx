@@ -22,6 +22,7 @@ export default function TransactionFormModal({
   currencySymbol = '₹',
   onSave,
   onClose,
+  onDelete,
 }) {
   const isExpense = type === 'expense';
   const todayYMD = new Date().toISOString().split('T')[0];
@@ -237,6 +238,35 @@ export default function TransactionFormModal({
           >
             {isSaving ? 'Saving...' : (editingItem ? 'Save Changes 💾' : `Log ${isExpense ? 'Expense' : 'Income'} ⚡`)}
           </button>
+
+          {editingItem && onDelete && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (isSaving) return;
+                setIsSaving(true);
+                try {
+                  await onDelete(editingItem.id);
+                  onClose();
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '12px',
+                background: 'transparent',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#EF4444',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Delete {isExpense ? 'Expense' : 'Income'} 🗑️
+            </button>
+          )}
         </form>
       </div>
     </div>

@@ -23,6 +23,7 @@ export default function BillFormModal({
   currencySymbol = '₹',
   onSave,
   onClose,
+  onDelete,
 }) {
   const todayYMD = new Date().toISOString().split('T')[0];
 
@@ -211,6 +212,35 @@ export default function BillFormModal({
           >
             {isSaving ? 'Saving...' : (editingBill ? 'Save Bill 💾' : 'Add Bill 📅')}
           </button>
+
+          {editingBill && onDelete && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (isSaving) return;
+                setIsSaving(true);
+                try {
+                  await onDelete(editingBill.id);
+                  onClose();
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '12px',
+                background: 'transparent',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#EF4444',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Delete Commitment 🗑️
+            </button>
+          )}
         </form>
       </div>
     </div>
