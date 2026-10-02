@@ -639,19 +639,35 @@ export default function Wealth() {
             <span>Ask Dex</span>
           </button>
 
-          {/* Settings icon */}
+          {/* Manage Action */}
           <button
             type="button"
             onClick={() => setIsSettingsOpen(true)}
             style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#6B7280',
+              background: '#15181B',
+              border: `1px solid ${W.borderMid}`,
+              borderRadius: '20px',
+              padding: '6px 13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              color: '#9CA3AF',
+              fontSize: '12px',
+              fontWeight: 500,
               cursor: 'pointer',
-              padding: '4px',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#F5F5F5';
+              e.currentTarget.style.borderColor = '#9CA3AF50';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#9CA3AF';
+              e.currentTarget.style.borderColor = W.borderMid;
             }}
           >
-            <Settings2 size={16} />
+            <Settings2 size={13} />
+            <span>Manage</span>
           </button>
         </div>
       </div>
@@ -783,6 +799,32 @@ export default function Wealth() {
               </div>
             </div>
           </div>
+
+          {/* Uncalibrated Cash prompt */}
+          {!moneyState.isCalibrated && (
+            <button
+              type="button"
+              onClick={() => setIsCalibrateModalOpen(true)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                background: '#1A1813',
+                border: '1px dashed #E9B44C50',
+                borderRadius: '8px',
+                color: '#E9B44C',
+                fontSize: '11.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                transition: 'all 0.15s',
+              }}
+            >
+              <span>Set your current cash balance →</span>
+            </button>
+          )}
         </div>
 
         {/* ── 2. SIDE-BY-SIDE CARDS: FLOW & ASSETS ────────────────────────── */}
@@ -1312,12 +1354,22 @@ export default function Wealth() {
                 />
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 flex flex-col gap-2">
                 <button
                   type="submit"
                   className="w-full py-3 rounded-xl bg-[#1FA36F] text-[#0B0D0F] font-bold text-xs cursor-pointer"
                 >
                   Save Settings
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSettingsOpen(false);
+                    setIsCalibrateModalOpen(true);
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-[#F5F5F5] font-semibold text-xs cursor-pointer hover:bg-white/10 transition"
+                >
+                  Set / Calibrate Cash Balance
                 </button>
               </div>
             </form>

@@ -165,6 +165,16 @@ export default function MoneyEventModal({
             category: 'Investment',
             date: p.date,
           };
+        } else if (p.category === 'Lend') {
+          eventParams = {
+            type: 'LEND',
+            amount: p.amount,
+            title: p.note || 'Lent money',
+            person: p.person || p.note?.replace(/\s+owes me/i, '') || 'Friend',
+            category: 'Lend',
+            dueDate: p.dueDate,
+            date: p.date,
+          };
         } else {
           eventParams = {
             type: 'SPEND',
