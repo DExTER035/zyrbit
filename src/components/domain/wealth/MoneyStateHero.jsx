@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Calendar, Wallet, ShieldAlert, ArrowUpRight } from 'lucide-react';
+import { Sparkles, Wallet, ShieldAlert } from 'lucide-react';
 
 const W = {
   bg: '#0B0D0F',
@@ -22,20 +22,20 @@ const W = {
  * Honest uncalibrated state when cash balance is not known.
  */
 export default function MoneyStateHero({
-  moneyState,
+  moneyState = {},
   currencySymbol = '₹',
   onOpenCalibrate,
   onOpenEventModal,
 }) {
   const {
-    isCalibrated,
-    safeToSpendDaily,
-    liquidCash,
-    committedNext30Total,
-    runwayDays,
-    runwayHasData,
-    dexGuidance,
-  } = moneyState;
+    isCalibrated = false,
+    safeToSpendDaily = 0,
+    liquidCash = 0,
+    committedNext30Total = 0,
+    runwayDays = null,
+    runwayHasData = false,
+    dexGuidance = null,
+  } = moneyState || {};
 
   // Actual current date e.g. "Friday, October 2"
   const formattedDate = new Date().toLocaleDateString('en-US', {

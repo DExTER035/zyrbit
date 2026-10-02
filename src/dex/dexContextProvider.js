@@ -14,7 +14,7 @@
 
 import { getGrowthData } from '../services/growthService.js';
 import { getHealthSnapshot } from '../services/healthService.js';
-import { getWealthSnapshot } from '../services/wealthService.js';
+import { getWealthSnapshot, getPendingClarifications } from '../services/wealthService.js';
 import { getHabitsToday } from '../services/habitService.js';
 import { computeMoneyState } from '../engines/wealth/moneyState.js';
 
@@ -149,6 +149,66 @@ async function fetchWealthContext(userId, today) {
     const { settings, expenses, incomes, bills } = snapshot.data;
     const ms = computeMoneyState({ incomes, expenses, bills, settings, today });
 
+    // Compute yesterday
+    const yesterdayDate = new Date(`${today}T00:00:00`);
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+
+    const curMonth = today.slice(0, 7);
+    const monthExpenses = expenses.filter(e => e.expense_date?.startsWith(curMonth));
+    const monthIncomes = incomes.filter(i => i.income_date?.startsWith(curMonth));
+
+    const spentYesterday = expenses
+      .filter(e => e.expense_date === yesterdayStr)
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+    const foodSpentMonth = monthExpenses
+      .filter(e => (e.category || '').toLowerCase() === 'food')
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+    const upiSpentMonth = monthExpenses
+      .filter(e => {
+        const text = `${e.category || ''} ${e.note || ''}`.toLowerCase();
+        return text.includes('upi') || text.includes('paytm') || text.includes('gpay') || text.includes('phonepe') || text.includes('transfer');
+      })
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+    const transfersMonth = ms.flow?.transfers || 0;
+
+    // Subscriptions paid this month
+    const subsExpenses = monthExpenses.filter(e =>
+      (e.category || '').toLowerCase().includes('subscription') ||
+      (e.note || '').toLowerCase().includes('spotify') ||
+      (e.note || '').toLowerCase().includes('netflix') ||
+      (e.note || '').toLowerCase().includes('youtube') ||
+      (e.note || '').toLowerCase().includes('prime')
+    );
+    const subscriptionsPaidMonth = subsExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const subscriptionItems = subsExpenses.map(e => ({ name: e.note || e.category, amount: Number(e.amount) || 0, date: e.expense_date }));
+
+    // Payees (who I paid)
+    const payeeMap = {};
+    monthExpenses.forEach(e => {
+      const name = (e.note || e.category || 'Other').trim();
+      payeeMap[name] = (payeeMap[name] || 0) + (Number(e.amount) || 0);
+    });
+    const whoIPaid = Object.entries(payeeMap)
+      .map(([payee, amount]) => ({ payee, amount }))
+      .sort((a, b) => b.amount - a.amount);
+
+    // Payers (who paid me)
+    const payerMap = {};
+    monthIncomes.forEach(i => {
+      const name = (i.source || i.note || 'Other').trim();
+      payerMap[name] = (payerMap[name] || 0) + (Number(i.amount) || 0);
+    });
+    const whoPaidMe = Object.entries(payerMap)
+      .map(([payer, amount]) => ({ payer, amount }))
+      .sort((a, b) => b.amount - a.amount);
+
+    // Check pending clarification items from imported_transactions (or localStorage)
+    const pendingClarifications = await getPendingClarifications(userId);
+
     return {
       // ── Core numbers Dex needs to answer questions ──────────────────────────
       safeToSpendDaily:    ms.safeToSpendDaily,
@@ -160,8 +220,17 @@ async function fetchWealthContext(userId, today) {
       budgetRemaining:     ms.budgetRemaining,
       // ── Period figures ──────────────────────────────────────────────────────
       spentToday:          ms.todaySpend,
+      spentYesterday:      Math.round(spentYesterday * 100) / 100,
       totalExpensesMonth:  ms.monthSpend,
       totalIncomeMonth:    ms.monthEarned,
+      foodSpentMonth:      Math.round(foodSpentMonth * 100) / 100,
+      upiSpentMonth:       Math.round(upiSpentMonth * 100) / 100,
+      transfersMonth:      Math.round(transfersMonth * 100) / 100,
+      subscriptionsPaidMonth: Math.round(subscriptionsPaidMonth * 100) / 100,
+      subscriptionItems,
+      whoPaidMe,
+      whoIPaid,
+      pendingClarifications,
       // ── Runway ─────────────────────────────────────────────────────────────
       runwayDays:          ms.runwayDays,
       runwayHasData:       ms.runwayHasData,

@@ -32,6 +32,7 @@ import {
   TransactionFormModal,
   PromiseFormModal,
   AssetAdjustmentModal,
+  ConnectMoneyModal,
 } from '../../components/domain/wealth/index.js';
 
 // ─── Service Facade & Pure Engine ─────────────────────────────────────────────
@@ -105,6 +106,7 @@ export default function Wealth() {
   const [editingPromise, setEditingPromise] = useState(null);
   const [isAssetAdjustOpen, setIsAssetAdjustOpen] = useState(false);
   const [activeAssetKey, setActiveAssetKey] = useState('savings');
+  const [isConnectMoneyOpen, setIsConnectMoneyOpen] = useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [transactionModalType, setTransactionModalType] = useState('expense');
   const [editingTransaction, setEditingTransaction] = useState(null);
@@ -1257,7 +1259,30 @@ export default function Wealth() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Connect Money Statement Import */}
+            <button
+              type="button"
+              onClick={() => setIsConnectMoneyOpen(true)}
+              style={{
+                background: 'rgba(31, 163, 111, 0.1)',
+                border: '1px solid rgba(31, 163, 111, 0.3)',
+                borderRadius: '20px',
+                padding: '6px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                color: '#1FA36F',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              <LinkIcon size={12} />
+              <span>Connect</span>
+            </button>
+
             {/* Manage Action */}
             <button
               type="button"
@@ -1825,6 +1850,82 @@ export default function Wealth() {
             </button>
           </div>
 
+          {/* ── CONNECT MONEY CARD ────────────────────────────────────────── */}
+          <div
+            style={{
+              background: W.surfaceCard,
+              border: `1px solid ${W.border}`,
+              borderRadius: '16px',
+              padding: '16px 16px 14px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <LinkIcon size={12} color="#1FA36F" />
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5F5F5', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    Connect Money
+                  </span>
+                </div>
+                <div style={{ fontSize: '11px', color: '#8E929B', marginTop: '1px' }}>
+                  Keep your financial picture current
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsConnectMoneyOpen(true)}
+                style={{
+                  background: 'rgba(31, 163, 111, 0.12)',
+                  border: '1px solid rgba(31, 163, 111, 0.3)',
+                  color: '#1FA36F',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '5px 11px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <span>Import</span>
+                <ChevronRight size={11} />
+              </button>
+            </div>
+
+            <div
+              onClick={() => setIsConnectMoneyOpen(true)}
+              style={{
+                background: '#0B0D0F',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(31, 163, 111, 0.3)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)'; }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(31, 163, 111, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1FA36F' }}>
+                  <Repeat size={14} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#F5F5F5' }}>Paytm Statement</div>
+                  <div style={{ fontSize: '11px', color: '#8E929B' }}>Import UPI Excel / CSV passbook</div>
+                </div>
+              </div>
+              <span style={{ fontSize: '11px', color: '#1FA36F', fontWeight: 600 }}>Choose file →</span>
+            </div>
+          </div>
+
           {/* ── 5. RECENT CARD ───────────────────────────────────────────────── */}
           <div
             style={{
@@ -2082,6 +2183,15 @@ export default function Wealth() {
           </div>
         </div>
       )}
+
+      {/* Connect Money Statement Import Modal */}
+      <ConnectMoneyModal
+        isOpen={isConnectMoneyOpen}
+        onClose={() => setIsConnectMoneyOpen(false)}
+        userId={user?.id}
+        currencySymbol={currencySymbol}
+        onImportComplete={() => user && loadData(user.id)}
+      />
 
       {/* ── Navigation ───────────────────────────────────────────── */}
       <BottomNav activeTab="wealth" onTabChange={(t) => navigate(`/${t}`)} />

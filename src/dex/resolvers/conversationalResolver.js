@@ -47,7 +47,18 @@ export function isConversationalQuery(userMessage) {
  * @param {Object|null} args.context - Dex context snapshot from dexContextProvider
  * @returns {{ isHandled: boolean, displayMessage?: string }}
  */
-export function resolveConversationalQuery({ userMessage, context }) {
+export function resolveConversationalQuery(arg1, arg2) {
+  let userMessage = '';
+  let context = null;
+
+  if (typeof arg1 === 'string') {
+    userMessage = arg1;
+    context = arg2;
+  } else if (arg1 && typeof arg1 === 'object') {
+    userMessage = arg1.userMessage;
+    context = arg1.context;
+  }
+
   if (!userMessage || typeof userMessage !== 'string') {
     return { isHandled: false };
   }
@@ -70,7 +81,34 @@ export function resolveConversationalQuery({ userMessage, context }) {
     };
   }
 
-  // 1. Spending Query: "How much did I spend today?" / "What did I spend today?"
+  // 1a. Specific spending queries (must precede generic "what did I spend" / "how much did I spend")
+  if (/spend(?:t)? on food|food spend(?:ing)?|how much for food/i.test(str)) {
+    const food = Number(context?.wealth?.foodSpentMonth || 0);
+    return {
+      isHandled: true,
+      displayMessage: `You spent ₹${food.toLocaleString('en-IN')} on food this month.`,
+    };
+  }
+
+  if (/spend(?:t)? (?:through|via|on|using) upi|upi spend(?:ing)?/i.test(str)) {
+    const upi = Number(context?.wealth?.upiSpentMonth || 0);
+    return {
+      isHandled: true,
+      displayMessage: `You spent ₹${upi.toLocaleString('en-IN')} through UPI this month.`,
+    };
+  }
+
+  if (/spend(?:t)? yesterday|yesterday(?:'s)? spend(?:ing)?/i.test(str)) {
+    const yest = Number(context?.wealth?.spentYesterday || 0);
+    return {
+      isHandled: true,
+      displayMessage: yest > 0
+        ? `You spent ₹${yest.toLocaleString('en-IN')} yesterday.`
+        : 'You had no expenses recorded yesterday.',
+    };
+  }
+
+  // 1b. Generic Spending Query: "How much did I spend today?" / "What did I spend today?"
   if (/how much (did i spend|have i spent|spent today)|what did i spend/i.test(str)) {
     const spentToday = context?.wealth?.spentToday || 0;
     const formatted = Number(spentToday).toLocaleString('en-IN');
@@ -80,7 +118,7 @@ export function resolveConversationalQuery({ userMessage, context }) {
     };
   }
 
-  // 1b. Can I afford / Safe-to-Spend Query: "Can I afford ₹2,000?" / "How much can I safely spend?"
+  // 1c. Can I afford / Safe-to-Spend Query: "Can I afford ₹2,000?" / "How much can I safely spend?"
   if (/can i afford|how much can i (safely )?spend|what can i spend|safe to spend|can i spend/i.test(str)) {
     const targetMatch = str.match(/(?:can i afford|can i spend)\s*(?:₹|rs\.?|inr)?\s*(\d+(?:,\d+)?)/i);
     const unencumbered = Number(context?.wealth?.unencumberedCash || context?.wealth?.liquidCash || 0);
@@ -172,8 +210,8 @@ export function resolveConversationalQuery({ userMessage, context }) {
     };
   }
 
-  // 1g. "What subscriptions are coming?"
-  if (/subscriptions/i.test(str)) {
+  // 1g. "What subscriptions are coming?" (exclude "did I pay")
+  if (/upcoming subscriptions|subscriptions coming|scheduled subscriptions|active subscriptions/i.test(str) || (/subscriptions/i.test(str) && !/paid|did i pay/i.test(str))) {
     const subs = context?.wealth?.subscriptions || [];
     if (subs.length === 0) {
       return {
@@ -212,6 +250,89 @@ export function resolveConversationalQuery({ userMessage, context }) {
     return {
       isHandled: true,
       displayMessage: `Upcoming bills: ${billList}.`,
+    };
+  }
+
+  // 1m. "Who paid me?" / "Income sources"
+  if (/who paid me|who sent me money|received money from whom/i.test(str)) {
+    const payers = context?.wealth?.whoPaidMe || [];
+    if (!payers.length) {
+      return {
+        isHandled: true,
+        displayMessage: 'No incoming payments or income recorded this month.',
+      };
+    }
+    const list = payers.slice(0, 5).map(p => `${p.payer}: ₹${p.amount.toLocaleString('en-IN')}`).join(', ');
+    return {
+      isHandled: true,
+      displayMessage: `Incoming payments this month: ${list}.`,
+    };
+  }
+
+  // 1n. "Who did I pay?" / "Top payees"
+  if (/who did i pay|who i paid|payees/i.test(str)) {
+    const payees = context?.wealth?.whoIPaid || [];
+    if (!payees.length) {
+      return {
+        isHandled: true,
+        displayMessage: 'No expenses recorded this month.',
+      };
+    }
+    const list = payees.slice(0, 5).map(p => `${p.payee}: ₹${p.amount.toLocaleString('en-IN')}`).join(', ');
+    return {
+      isHandled: true,
+      displayMessage: `Your top payments this month: ${list}.`,
+    };
+  }
+
+  // 1o. "How much money came in?" / "Total income"
+  if (/how much (?:money )?came in|total income(?: this month)?|money received/i.test(str)) {
+    const inc = Number(context?.wealth?.totalIncomeMonth || 0);
+    return {
+      isHandled: true,
+      displayMessage: `Total money that came in this month: ₹${inc.toLocaleString('en-IN')}.`,
+    };
+  }
+
+  // 1p. "How much did I transfer?" / "Transfers"
+  if (/how much did i transfer|transfers this month|total transferred/i.test(str)) {
+    const tr = Number(context?.wealth?.transfersMonth || 0);
+    return {
+      isHandled: true,
+      displayMessage: `You transferred ₹${tr.toLocaleString('en-IN')} between accounts this month (not counted as spending).`,
+    };
+  }
+
+  // 1q. "What subscriptions did I pay?"
+  if (/what subscriptions did i pay|subscriptions paid|paid subscriptions/i.test(str)) {
+    const total = Number(context?.wealth?.subscriptionsPaidMonth || 0);
+    const items = context?.wealth?.subscriptionItems || [];
+    if (!items.length) {
+      return {
+        isHandled: true,
+        displayMessage: 'No subscription charges logged this month.',
+      };
+    }
+    const list = items.map(s => `${s.name} (₹${s.amount.toLocaleString('en-IN')})`).join(', ');
+    return {
+      isHandled: true,
+      displayMessage: `Subscriptions paid this month: ₹${total.toLocaleString('en-IN')} across ${list}.`,
+    };
+  }
+
+  // 1r. "What transactions need clarification?" / "Unclarified transactions"
+  if (/transactions? need(?:s)? clarification|clarif(?:y|ication) (?:transactions|items)|unclarified/i.test(str)) {
+    const pending = context?.wealth?.pendingClarifications || [];
+    if (!pending.length) {
+      return {
+        isHandled: true,
+        displayMessage: 'All imported transactions are fully resolved and clarified.',
+      };
+    }
+    const list = pending.slice(0, 3).map(p => `₹${Number(p.amount).toLocaleString('en-IN')} (${p.counterparty}): ${p.review_reason || 'Needs classification'}`).join('; ');
+    return {
+      isHandled: true,
+      displayMessage: `${pending.length} transaction${pending.length > 1 ? 's need' : ' needs'} clarification: ${list}. Review them in Connect Money.`,
     };
   }
 

@@ -959,3 +959,30 @@ export async function resolveMoneyPromise({ userId, billId, amount, person = '' 
     return { success: false, error: err.message || 'Failed to resolve promise.' };
   }
 }
+
+/**
+ * Fetches pending unclarified imported transactions for Dex context.
+ * @param {string} userId
+ * @returns {Promise<Array<Object>>}
+ */
+export async function getPendingClarifications(userId) {
+  if (!userId) return [];
+  try {
+    const { data: clarif } = await supabase
+      .from('imported_transactions')
+      .select('id, counterparty, amount, direction, raw_description, review_reason')
+      .eq('user_id', userId)
+      .eq('resolution_state', 'needs_review')
+      .eq('status', 'pending')
+      .limit(10);
+    if (clarif && clarif.length) return clarif;
+
+    if (typeof window !== 'undefined') {
+      const local = JSON.parse(localStorage.getItem('zyrbit_import_txs_fallback') || '[]');
+      return local.filter(t => t.user_id === userId && t.resolution_state === 'needs_review' && t.status === 'pending');
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
