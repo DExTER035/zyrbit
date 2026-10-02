@@ -555,6 +555,95 @@ export const ACTION_SCHEMAS = {
     },
   },
 
+  record_money_event: {
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: 'Records a canonical Money Event (Spend, Income, Lend, Borrow, Commitment, Investment, Transfer).',
+    params: {
+      type: { type: 'string', required: false, default: 'SPEND', description: 'Semantic event type' },
+      amount: { type: 'number', required: true, min: 0.01, description: 'Event amount' },
+      title: { type: 'string', required: false, default: '', description: 'Event description or title' },
+      category: { type: 'string', required: false, default: 'General', description: 'Expense category' },
+      source: { type: 'string', required: false, default: 'Other', description: 'Income source' },
+      person: { type: 'string', required: false, default: '', description: 'Person involved in loan/borrow' },
+      date: { type: 'date', required: false, default: null, description: 'Event date' },
+      dueDate: { type: 'date', required: false, default: null, description: 'Due date for commitments/loans' },
+      frequency: { type: 'string', required: false, default: 'one_off', description: 'Recurrence frequency' },
+    },
+    formatConfirmation: (params) => {
+      const amtStr = Number(params.amount).toLocaleString('en-IN');
+      const type = (params.type || 'SPEND').toUpperCase();
+      if (type === 'LEND') return `Record ₹${amtStr} lent to ${params.person || params.title || 'someone'}?`;
+      if (type === 'BORROW') return `Record ₹${amtStr} borrowed from ${params.person || params.title || 'someone'}?`;
+      if (type === 'INCOME') return `Record ₹${amtStr} income from ${params.source || params.title || 'other'}?`;
+      if (type === 'COMMITMENT') return `Schedule ₹${amtStr} commitment for "${params.title || 'scheduled payment'}"?`;
+      if (type === 'INVESTMENT') return `Record ₹${amtStr} investment?`;
+      return `Record ₹${amtStr} expense for ${params.title || params.category || 'general'}?`;
+    },
+    validate: (params) => {
+      const amount = parseSafeNumber(params.amount);
+      if (amount === null || amount <= 0) {
+        return { valid: false, error: 'Amount must be a positive number greater than 0.' };
+      }
+
+      const type = typeof params.type === 'string' ? params.type.trim().toUpperCase() : 'SPEND';
+      const title = typeof params.title === 'string' ? params.title.trim() : '';
+      const category = typeof params.category === 'string' ? params.category.trim() : 'General';
+      const source = typeof params.source === 'string' ? params.source.trim() : 'Other';
+      const person = typeof params.person === 'string' ? params.person.trim() : '';
+
+      let date = getLocalTodayStr();
+      if (params.date && isValidDateStr(params.date)) {
+        date = params.date;
+      }
+
+      let dueDate = null;
+      if (params.dueDate && isValidDateStr(params.dueDate)) {
+        dueDate = params.dueDate;
+      }
+
+      return {
+        valid: true,
+        normalized: {
+          type,
+          amount: Number(amount.toFixed(2)),
+          title,
+          category,
+          source,
+          person,
+          date,
+          dueDate,
+          frequency: params.frequency || 'one_off',
+        },
+      };
+    },
+  },
+
+  calibrate_cash: {
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: 'Calibrates the user current liquid cash balance.',
+    params: {
+      targetCash: { type: 'number', required: true, min: 0, description: 'Current cash balance' },
+    },
+    formatConfirmation: (params) => {
+      const amtStr = Number(params.targetCash).toLocaleString('en-IN');
+      return `Calibrate current cash balance to ₹${amtStr}?`;
+    },
+    validate: (params) => {
+      const targetCash = parseSafeNumber(params.targetCash);
+      if (targetCash === null || targetCash < 0) {
+        return { valid: false, error: 'Cash balance must be a non-negative number.' };
+      }
+      return {
+        valid: true,
+        normalized: { targetCash: Number(targetCash.toFixed(2)) },
+      };
+    },
+  },
+
   // ─── HABITS ───────────────────────────────────────────────────────────────
   complete_habit: {
     domain: 'habits',

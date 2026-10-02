@@ -14,8 +14,9 @@
 
 import { getGrowthData } from '../services/growthService.js';
 import { getHealthSnapshot } from '../services/healthService.js';
-import { getWealthSummary } from '../services/wealthService.js';
+import { getWealthSnapshot } from '../services/wealthService.js';
 import { getHabitsToday } from '../services/habitService.js';
+import { computeMoneyState } from '../engines/wealth/moneyState.js';
 
 /**
  * Returns the local YYYY-MM-DD string for today.
@@ -133,18 +134,85 @@ async function fetchHealthContext(userId, today) {
 }
 
 /**
- * Wealth context: today's spending and this month's income/expense totals.
+ * Wealth context: full MoneyState for Dex — answers safe-to-spend, runway,
+ * income, upcoming bills, spending pace, etc.
  * @param {string} userId
  * @param {string} today
  * @returns {Promise<Object>}
  */
 async function fetchWealthContext(userId, today) {
   try {
-    const result = await getWealthSummary(userId, today);
-    if (!result.success) {
-      return { unavailable: true, error: result.error || 'Wealth data unavailable.' };
+    const snapshot = await getWealthSnapshot(userId);
+    if (!snapshot.success) {
+      return { unavailable: true, error: snapshot.error || 'Wealth data unavailable.' };
     }
-    return result.data;
+    const { settings, expenses, incomes, bills } = snapshot.data;
+    const ms = computeMoneyState({ incomes, expenses, bills, settings, today });
+
+    return {
+      // ── Core numbers Dex needs to answer questions ──────────────────────────
+      safeToSpendDaily:    ms.safeToSpendDaily,
+      safeToSpendStatus:   ms.safeToSpendStatus,
+      safeToSpendHint:     ms.safeToSpendHint,
+      liquidCash:          ms.liquidCash,
+      unencumberedCash:    ms.unencumberedCash,
+      monthlyBudget:       ms.monthlyBudget,
+      budgetRemaining:     ms.budgetRemaining,
+      // ── Period figures ──────────────────────────────────────────────────────
+      spentToday:          ms.todaySpend,
+      totalExpensesMonth:  ms.monthSpend,
+      totalIncomeMonth:    ms.monthEarned,
+      // ── Runway ─────────────────────────────────────────────────────────────
+      runwayDays:          ms.runwayDays,
+      runwayHasData:       ms.runwayHasData,
+      dailyBurnRate:       ms.dailyBurnRate,
+      safeUntil:           ms.safeUntil,
+      // ── Bills ──────────────────────────────────────────────────────────────
+      upcomingBills: ms.unpaidBills.map(b => ({
+        name:    b.name,
+        amount:  Number(b.amount) || 0,
+        dueDate: b.due_date,
+        daysUntil: b.daysUntil,
+      })),
+      upcomingBillTotal: ms.upcomingBillTotal,
+      // ── Spending pace ───────────────────────────────────────────────────────
+      spendingPace: ms.spendingPace
+        ? { status: ms.spendingPace.status, label: ms.spendingPace.label }
+        : null,
+      // ── Promises & Obligations ─────────────────────────────────────────────
+      moneyPromises: (ms.moneyPromises || []).map(r => ({
+        person: r.person,
+        amount: r.amount,
+        dueDate: r.dueDate,
+        daysUntil: r.daysUntil,
+      })),
+      liabilities: ms.unpaidBills
+        .filter(b => b.name?.toLowerCase().includes('return to') || b.name?.toLowerCase().includes('borrow'))
+        .map(b => ({
+          person: b.name.replace(/^Return to\s+/i, ''),
+          amount: Number(b.amount) || 0,
+          dueDate: b.due_date,
+        })),
+      commitmentsThisWeek: ms.unpaidBills
+        .filter(b => b.status !== 'receivable' && b.daysUntil >= 0 && b.daysUntil <= 7)
+        .map(b => ({
+          name: b.name,
+          amount: Number(b.amount) || 0,
+          dueDate: b.due_date,
+        })),
+      subscriptions: ms.unpaidBills
+        .filter(b => b.frequency && b.frequency !== 'one_off')
+        .map(b => ({
+          name: b.name,
+          amount: Number(b.amount) || 0,
+          frequency: b.frequency,
+          dueDate: b.due_date,
+        })),
+      zoneBreakdown: ms.zoneBreakdown || [],
+      // ── Calendar ───────────────────────────────────────────────────────────
+      daysLeftInMonth: ms.daysLeft,
+      currency: settings?.currency || 'INR',
+    };
   } catch (err) {
     return { unavailable: true, error: err.message || 'Failed to fetch wealth context.' };
   }

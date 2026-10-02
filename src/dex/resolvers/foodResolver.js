@@ -125,6 +125,9 @@ export function parseFoodItemPhrase(itemStr) {
   // Strip leading filler
   str = str.replace(/^(i ate|i had|had|ate|logged|log|eating|ate some|had some)\s+/i, '').trim();
 
+  // Strip trailing context / ownership phrases: e.g. "I already owned", "at home"
+  str = str.replace(/\s+(?:i\s+already\s+owned|already\s+owned|i\s+already\s+had|already\s+had|at\s+home|from\s+home|that\s+i\s+owned)$/i, '').trim();
+
   // Check for weight with explicit grams/ml: e.g. "200g rice", "200 gms of chicken", "300ml milk"
   const gramMatch = str.match(/^(\d+(?:\.\d+)?)\s*(?:g|gm|gms|gram|grams|ml)\s+(?:of\s+)?(.+)$/);
   if (gramMatch) {

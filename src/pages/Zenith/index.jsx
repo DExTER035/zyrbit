@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase/index.js';
 import BottomNav from '../../components/layout/BottomNav.jsx';
 import { showToast } from '../../components/ui/Toast.jsx';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ArrowRight } from 'lucide-react';
 import HabitCard from '../../components/domain/zenith/HabitCard.jsx';
 import ZoneTab from '../../components/domain/zenith/ZoneTab.jsx';
 import HeatmapGrid from '../../components/common/HeatmapGrid.jsx';
 import ErrorState from '../../components/ui/ErrorState.jsx';
+import BrainDumpEntry from '../../components/domain/zenith/BrainDumpEntry.jsx';
+import { TimeSpine } from '../../components/primitives/index.jsx';
 import { computeHabitImpact } from '../../engines/zenith/index.js';
 import {
   toggleHabit as serviceToggleHabit,
@@ -20,26 +22,27 @@ import {
 } from '../../services/habitService.js';
 import { completeTask as serviceCompleteTask } from '../../services/growthService.js';
 import { getHealthSnapshot } from '../../services/healthService.js';
+import DayReceiptModal from '../../components/domain/zenith/DayReceiptModal.jsx';
 
 const ZONE_OPTIONS = [
-  { id: 'mind', label: 'Mind', icon: '🧠' },
-  { id: 'body', label: 'Body', icon: '⚡' },
-  { id: 'growth', label: 'Growth', icon: '🌱' },
-  { id: 'soul', label: 'Soul', icon: '🌌' },
+  { id: 'mind', label: 'Mind', icon: 'ðŸ§ ' },
+  { id: 'body', label: 'Body', icon: 'âš¡' },
+  { id: 'growth', label: 'Growth', icon: 'ðŸŒ±' },
+  { id: 'soul', label: 'Soul', icon: 'ðŸŒŒ' },
 ];
 
-const QUICK_ICONS = ['🌱', '⚡', '🧠', '🌌', '💧', '🏃', '📚', '🧘', '🎯', '💤'];
+const QUICK_ICONS = ['ðŸŒ±', 'âš¡', 'ðŸ§ ', 'ðŸŒŒ', 'ðŸ’§', 'ðŸƒ', 'ðŸ“š', 'ðŸ§˜', 'ðŸŽ¯', 'ðŸ’¤'];
 
-// ─── colour tokens (Zenith Premium palette) ─────────────────────────────────
+// â”€â”€â”€ colour tokens (Zenith Premium palette) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const C = {
   bg:        '#0B0D0F',
   surface:   '#17181B',
   surfaceAlt:'#1C1D21',
   border:    '#26272C',
   border2:   '#2E2F35',
-  accent:    '#8B7FFF',   // violet  – OS Score
-  cyan:      '#5EE6F5',   // cyan    – briefing
-  green:     '#10B981',   // emerald – completed
+  accent:    '#8B7FFF',   // violet  â€“ OS Score
+  cyan:      '#5EE6F5',   // cyan    â€“ briefing
+  green:     '#10B981',   // emerald â€“ completed
   amber:     '#F59E0B',
   red:       '#EF4444',
   muted:     '#71717A',
@@ -175,7 +178,7 @@ const compileTopPriorities = (
   if (recoveryScore < 50) {
     candidates.push({
       id: 'low_recovery_protocol',
-      name: `Rest day — focus on sleep and water (${recoveryScore}% recovery)`,
+      name: `Rest day â€” focus on sleep and water (${recoveryScore}% recovery)`,
       pScore: 95,
       type: 'health_action'
     });
@@ -184,7 +187,7 @@ const compileTopPriorities = (
   if (monthlyBudgetExceeded) {
     candidates.push({
       id: 'discretionary_freeze',
-      name: 'Monthly budget reached — slow down spending today',
+      name: 'Monthly budget reached â€” slow down spending today',
       pScore: 90,
       type: 'wealth_action'
     });
@@ -206,7 +209,7 @@ const compileTopPriorities = (
     const priorityWeight = priority === 1 ? 10 : priority === 2 ? 5 : 0;
     candidates.push({
       id: t.id,
-      name: `${t.name} — overdue${daysOverdue > 1 ? ` ${daysOverdue}d` : ''}`,
+      name: `${t.name} â€” overdue${daysOverdue > 1 ? ` ${daysOverdue}d` : ''}`,
       pScore: Math.min(93, 80 + priorityWeight + daysOverdue),
       type: 'task',
       taskObj: t
@@ -267,6 +270,7 @@ export default function Zenith() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
   const [bestStreak, setBestStreak] = useState(0);
+  const [showDayReceipt, setShowDayReceipt] = useState(false);
 
   const userRef = useRef(null);
 
@@ -280,7 +284,7 @@ export default function Zenith() {
   const [editHabit, setEditHabit] = useState(null);
   const [skipTarget, setSkipTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [form, setForm] = useState({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
+  const [form, setForm] = useState({ name: '', zone: 'mind', icon: 'ðŸŒ±', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
 
   // Submission Locks
   const [submittingHabits, setSubmittingHabits] = useState({});
@@ -288,7 +292,7 @@ export default function Zenith() {
 
   const today = getTodayStr();
 
-  // ── Derived State Calculations (useMemo) ──────────────────────────────────
+  // â”€â”€ Derived State Calculations (useMemo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const ctx = React.useMemo(() => {
     const completedTasksToday = tasks.filter(t => t.status === 'done' && isTodayLocal(t.completed_at, today)).length;
     const totalTasksToday = tasks.filter(t => t.due_date === today || (t.status === 'done' && isTodayLocal(t.completed_at, today))).length;
@@ -445,7 +449,7 @@ export default function Zenith() {
     return winsToday;
   }, [ctx, focusSessions, sleepLogs, waterLogs, moveLogs, today]);
 
-  // ── Food totals for today ──────────────────────────────────────────────────
+  // â”€â”€ Food totals for today â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const foodTotals = React.useMemo(() => ({
     calories: Math.round(foodLogs.reduce((s, l) => s + (l.calories || 0), 0)),
     protein:  Math.round(foodLogs.reduce((s, l) => s + (l.protein  || 0), 0)),
@@ -505,7 +509,7 @@ export default function Zenith() {
       rawEvents.push({
         ts: new Date(log.created_at || today + 'T07:00:00').getTime(),
         type: 'task',
-        text: `${h ? h.icon : '✅'} Habit done: ${h ? h.name : 'Unknown'}`
+        text: `${h ? h.icon : 'âœ…'} Habit done: ${h ? h.name : 'Unknown'}`
       });
     });
     
@@ -521,7 +525,7 @@ export default function Zenith() {
       rawEvents.push({
         ts: new Date(today + 'T06:00:00').getTime(),
         type: 'sleep',
-        text: `Slept ${Number(lastSleep.duration_hours).toFixed(1)}h — Quality ${lastSleep.quality}/5`
+        text: `Slept ${Number(lastSleep.duration_hours).toFixed(1)}h â€” Quality ${lastSleep.quality}/5`
       });
     }
     
@@ -537,7 +541,7 @@ export default function Zenith() {
       rawEvents.push({
         ts: new Date(m.created_at || today + 'T09:00:00').getTime(),
         type: 'workout',
-        text: `${m.activity_type} — ${m.active_minutes}min (RPE ${m.rpe})`
+        text: `${m.activity_type} â€” ${m.active_minutes}min (RPE ${m.rpe})`
       });
     });
     
@@ -545,7 +549,7 @@ export default function Zenith() {
       rawEvents.push({
         ts: new Date(f.started_at || today + 'T10:00:00').getTime(),
         type: 'focus',
-        text: `Focus session — ${f.duration_minutes}min`
+        text: `Focus session â€” ${f.duration_minutes}min`
       });
     });
 
@@ -553,7 +557,7 @@ export default function Zenith() {
       rawEvents.push({
         ts: new Date(l.created_at || today + 'T12:30:00').getTime(),
         type: 'food',
-        text: `${l.meal_type ? l.meal_type.charAt(0).toUpperCase() + l.meal_type.slice(1) : 'Meal'}: ${l.food_name} — ${Math.round(l.calories || 0)} kcal`
+        text: `${l.meal_type ? l.meal_type.charAt(0).toUpperCase() + l.meal_type.slice(1) : 'Meal'}: ${l.food_name} â€” ${Math.round(l.calories || 0)} kcal`
       });
     });
     
@@ -561,7 +565,7 @@ export default function Zenith() {
       rawEvents.push({
         ts: new Date(e.created_at || today + 'T12:00:00').getTime(),
         type: 'expense',
-        text: `₹${Number(e.amount).toFixed(0)} — ${e.note || e.category || 'Expense'}`
+        text: `â‚¹${Number(e.amount).toFixed(0)} â€” ${e.note || e.category || 'Expense'}`
       });
     });
     
@@ -771,7 +775,7 @@ export default function Zenith() {
     }
   }, [loadHabitsAndStreaks, loadGrowthData, loadHealthData, loadWealthData, loadFoodData]);
 
-  // ── load ──────────────────────────────────────────────────────────────────
+  // â”€â”€ load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -791,7 +795,7 @@ export default function Zenith() {
       }
     }).catch(() => setLoading(false));
 
-    // Weekly Review — show every Sunday
+    // Weekly Review â€” show every Sunday
     const now = new Date();
     if (now.getDay() === 0) {
       const weekKey = `${now.getFullYear()}-W${Math.ceil(now.getDate() / 7)}`;
@@ -802,7 +806,7 @@ export default function Zenith() {
     }
   }, [loadData]);
 
-  // ─── Dex OS Live Invalidation ───────────────────────────────────────────────
+  // â”€â”€â”€ Dex OS Live Invalidation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const handleDexRefresh = () => {
       const activeUid = userRef.current?.id || user?.id;
@@ -851,10 +855,10 @@ export default function Zenith() {
       });
 
       if (!res.success) {
-        showToast(isCompleted ? '❌ Failed to uncheck habit.' : "❌ Failed to log today's habit.", 'error');
+        showToast(isCompleted ? 'âŒ Failed to uncheck habit.' : "âŒ Failed to log today's habit.", 'error');
       } else {
         if (!isCompleted) {
-          showToast('✅ Habit logged!', 'success');
+          showToast('âœ… Habit logged!', 'success');
           const nextActivity = [...activity, res.data];
           setActivity(nextActivity);
           checkAllDone(nextActivity);
@@ -889,11 +893,11 @@ export default function Zenith() {
       });
 
       if (res.success) {
-        showToast('⏭️ Skipped — stay consistent tomorrow!', 'warning');
+        showToast('â­ï¸ Skipped â€” stay consistent tomorrow!', 'warning');
         setActivity(prev => [...prev, res.data]);
         await loadHabitsAndStreaks(currentUser.id);
       } else {
-        showToast('❌ Failed to skip habit.', 'error');
+        showToast('âŒ Failed to skip habit.', 'error');
       }
     } finally {
       setSubmittingHabits(prev => {
@@ -925,11 +929,11 @@ export default function Zenith() {
         });
 
         if (res.success) {
-          showToast('✅ Habit updated!', 'success');
+          showToast('âœ… Habit updated!', 'success');
           setShowModal(false);
           await loadHabitsAndStreaks(currentUser.id);
         } else {
-          showToast('❌ Failed to update habit.', 'error');
+          showToast('âŒ Failed to update habit.', 'error');
         }
       } else {
         const res = await serviceCreateHabit({
@@ -944,11 +948,11 @@ export default function Zenith() {
         });
 
         if (res.success) {
-          showToast('🌱 New habit added!', 'success');
+          showToast('ðŸŒ± New habit added!', 'success');
           setShowModal(false);
           await loadHabitsAndStreaks(currentUser.id);
         } else {
-          showToast('❌ Failed to add habit.', 'error');
+          showToast('âŒ Failed to add habit.', 'error');
         }
       }
     } finally {
@@ -975,10 +979,10 @@ export default function Zenith() {
       if (res.success) {
         setShowModal(false);
         setDeleteTarget(null);
-        showToast('🗑️ Habit removed', 'info');
+        showToast('ðŸ—‘ï¸ Habit removed', 'info');
         await loadHabitsAndStreaks(currentUser.id);
       } else {
-        showToast('❌ Delete failed. Try again.', 'error');
+        showToast('âŒ Delete failed. Try again.', 'error');
       }
     } finally {
       setIsSubmittingForm(false);
@@ -1003,12 +1007,12 @@ export default function Zenith() {
       });
       
       if (res.success) {
-        showToast('📝 Daily reflection saved!', 'success');
+        showToast('ðŸ“ Daily reflection saved!', 'success');
         setShowReflection(false);
         setReflectionText('');
         setTimeout(() => setShowCelebration(true), 300);
       } else {
-        showToast('❌ Failed to save reflection.', 'error');
+        showToast('âŒ Failed to save reflection.', 'error');
       }
     } finally {
       setIsSubmittingForm(false);
@@ -1022,7 +1026,7 @@ export default function Zenith() {
     setShowWeeklyReview(false)
   }
 
-  // ── Toggle priority done ──────────────────────────────────────────────────
+  // â”€â”€ Toggle priority done â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const togglePriority = async (p) => {
     if (p.done || !user) return;
     if (p.type !== 'task') {
@@ -1040,7 +1044,7 @@ export default function Zenith() {
       });
 
       if (!res.success) throw new Error(res.error || 'Failed to complete task');
-      showToast('🎯 Priority complete!', 'success');
+      showToast('ðŸŽ¯ Priority complete!', 'success');
       await loadGrowthData(user.id);
     } catch (e) {
       console.error(e);
@@ -1049,7 +1053,60 @@ export default function Zenith() {
     }
   };
 
-  // ── Loading & Error states ──────────────────────────────────────────────────
+  // Contextual state sentence
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 6 ? 'Early morning' : hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : hour < 21 ? 'Evening' : 'Night';
+
+  const contextSentence = React.useMemo(() => {
+    const parts = [];
+    if (ctx.sleep > 0) {
+      if (ctx.sleep < 6) parts.push('Short on sleep');
+      else if (ctx.sleep >= 7.5) parts.push('Well rested');
+    }
+    const remainingTasks = ctx.totalTasks - ctx.completedTasks;
+    if (ctx.totalTasks > 0) {
+      if (remainingTasks === 1) parts.push('with one important thing left today');
+      else if (remainingTasks > 1) parts.push(`with ${remainingTasks} tasks left`);
+      else if (ctx.completedTasks > 0) parts.push('all tasks done');
+    }
+    if (ctx.lastFocusMins > 0 && parts.length < 2) {
+      parts.push(`${ctx.lastFocusMins}m focused`);
+    }
+    if (parts.length === 0) return "Nothing captured yet. Tell me what's going on.";
+    return `${parts.join(', ')}.`;
+  }, [ctx]);
+
+  const accentWord = React.useMemo(() => {
+    if (ctx.sleep > 0 && ctx.sleep < 6) return 'Short on sleep';
+    if (ctx.totalTasks - ctx.completedTasks === 1) return 'one important thing left';
+    return null;
+  }, [ctx]);
+
+  const timeSpineEvents = React.useMemo(() => {
+    const events = [];
+    const lastSleep = sleepLogs[0];
+    if (lastSleep && lastSleep.sleep_date === today) {
+      events.push({ hour: 7, label: `Slept ${Number(lastSleep.duration_hours).toFixed(1)}h`, color: '#1FA36F' });
+    }
+    focusSessions.filter(f => f.session_date === today).forEach(f => {
+      const h = f.started_at ? new Date(f.started_at).getHours() + (new Date(f.started_at).getMinutes() / 60) : 10;
+      events.push({ hour: h, label: `Focus ${f.duration_minutes}m`, color: '#A78BFA' });
+    });
+    foodLogs.forEach(l => {
+      const h = l.created_at ? new Date(l.created_at).getHours() + (new Date(l.created_at).getMinutes() / 60) : 12;
+      events.push({ hour: h, label: l.food_name || 'Food', color: '#F59E0B' });
+    });
+    expenses.filter(e => e.expense_date === today).forEach(e => {
+      const h = e.created_at ? new Date(e.created_at).getHours() + (new Date(e.created_at).getMinutes() / 60) : 13;
+      events.push({ hour: h, label: `₹${e.amount} ${e.note || e.category || ''}`, color: '#60A5FA' });
+    });
+    tasks.filter(t => t.status === 'done' && isTodayLocal(t.completed_at, today)).forEach(t => {
+      const h = t.completed_at ? new Date(t.completed_at).getHours() + (new Date(t.completed_at).getMinutes() / 60) : 15;
+      events.push({ hour: h, label: t.name, color: '#10B981' });
+    });
+    return events;
+  }, [sleepLogs, focusSessions, foodLogs, expenses, tasks, today]);
+
   if (error) {
     return <ErrorState message={error} onRetry={() => loadData(userRef.current?.id || user?.id || profile?.id)} />;
   }
@@ -1088,231 +1145,299 @@ export default function Zenith() {
     );
   }
 
-  // ── Greeting ──────────────────────────────────────────────────────────────
-  const hour = new Date().getHours();
-  const finalGreeting = (hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening') + '.';
-
   return (
     <div className="app-container page-enter" style={{
       background: '#0B0D0F',
       minHeight: '100vh',
-      color: '#FFFFFF',
+      color: '#F5F5F5',
       position: 'relative',
-      padding: '40px 24px 120px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '24px',
     }}>
-      {/* Greeting */}
-      <div>
-        <h1 style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.5px' }}>
-          {finalGreeting}
-        </h1>
-      </div>
+      <div style={{ padding: '44px 24px 120px', display: 'flex', flexDirection: 'column', gap: '0' }}>
 
-      <div style={{ borderBottom: '1px solid #1C1D21' }} />
-
-      {/* Body Status */}
-      <div
-        onClick={() => navigate('/health')}
-        style={{ display: 'flex', flexDirection: 'column', gap: '6px', cursor: 'pointer', padding: '4px 0', transition: 'opacity 0.2s' }}
-        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
-        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-      >
-        <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Body</div>
-        <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>
-          {ctx.sleep > 0 ? `${ctx.sleep.toFixed(1)}h sleep · ${Math.round(ctx.water / 250)} glasses water` : 'No health data yet'}
-        </div>
-        <div style={{ fontSize: '32px', fontWeight: 900, color: '#1FA36F', marginTop: '2px' }}>{recoveryScore}%</div>
-      </div>
-
-      <div style={{ borderBottom: '1px solid #1C1D21' }} />
-
-      {/* Food Status */}
-      <div
-        onClick={() => navigate('/food')}
-        style={{ display: 'flex', flexDirection: 'column', gap: '6px', cursor: 'pointer', padding: '4px 0', transition: 'opacity 0.2s' }}
-        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
-        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-      >
-        <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Food</div>
-        <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>
-          {foodTotals.meals > 0 ? `${foodTotals.meals} meal${foodTotals.meals > 1 ? 's' : ''} · ${foodTotals.protein}g protein` : 'No meals logged yet'}
-        </div>
-        <div style={{ fontSize: '32px', fontWeight: 900, color: '#F59E0B', marginTop: '2px' }}>
-          {foodTotals.calories > 0 ? `${foodTotals.calories} kcal` : '—'}
-        </div>
-      </div>
-
-      <div style={{ borderBottom: '1px solid #1C1D21' }} />
-
-      {/* Money Status */}
-      <div
-        onClick={() => navigate('/wealth')}
-        style={{ display: 'flex', flexDirection: 'column', gap: '6px', cursor: 'pointer', padding: '4px 0', transition: 'opacity 0.2s' }}
-        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
-        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-      >
-        <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Money</div>
-        <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>
-          {ctx.spent > 0 ? `₹${Math.round(ctx.spent)} spent today` : 'No expenses today'}
-        </div>
-        <div style={{ fontSize: '32px', fontWeight: 900, color: ctx.runwayDays >= 999 ? '#1FA36F' : ctx.runwayDays > 90 ? '#1FA36F' : ctx.runwayDays > 0 ? '#F59E0B' : '#9CA3AF', marginTop: '2px' }}>
-          {ctx.runwayDays >= 9999 ? 'Stable ✓' : ctx.runwayDays === 0 ? 'Set up income →' : `${ctx.runwayDays}d runway`}
-        </div>
-      </div>
-
-      <div style={{ borderBottom: '1px solid #1C1D21' }} />
-
-      {/* Focus Status */}
-      <div
-        onClick={() => navigate('/growth')}
-        style={{ display: 'flex', flexDirection: 'column', gap: '6px', cursor: 'pointer', padding: '4px 0', transition: 'opacity 0.2s' }}
-        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
-        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-      >
-        <div style={{ fontSize: '11px', fontWeight: 800, color: '#71717A', letterSpacing: '2px', textTransform: 'uppercase' }}>Focus</div>
-        <div style={{ fontSize: '18px', fontWeight: 700, color: '#A1A1AA' }}>
-          {ctx.lastFocusTopic}
-        </div>
-        <div style={{ fontSize: '32px', fontWeight: 900, color: '#1FA36F', marginTop: '2px' }}>
-          {ctx.lastFocusMins > 0 ? `${ctx.lastFocusMins} min` : '—'}
-        </div>
-      </div>
-
-      <div style={{ borderBottom: '1px solid #1C1D21' }} />
-
-      {/* Onboarding Welcome Card — genuinely new users only */}
-      {habits.length === 0 && tasks.length === 0 && foodLogs.length === 0 && sleepLogs.length === 0 && expenses.length === 0 && !welcomeDismissed && (
+        {/* â”€â”€â”€ DOMAIN LABEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div style={{
-          background: '#15181B',
-          border: '1px solid #26272C',
-          borderRadius: '16px',
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-          position: 'relative',
+          fontSize: '10px',
+          fontWeight: 700,
+          color: '#4B5563',
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+          marginBottom: '10px',
         }}>
-          <button
-            onClick={() => {
-              setWelcomeDismissed(true);
-              try { localStorage.setItem('zyrbit_welcome_dismissed', 'true'); } catch { /* ignore */ }
-            }}
-            style={{
-              position: 'absolute',
-              top: '16px',
-              right: '16px',
-              background: 'transparent',
-              border: 'none',
-              color: '#71717A',
-              fontSize: '16px',
-              cursor: 'pointer',
-            }}
-            title="Dismiss"
-          >
-            ✕
-          </button>
+          Zenith
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>🌌</span>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#1FA36F', letterSpacing: '2px', textTransform: 'uppercase' }}>
-              Welcome to Zyrbit
-            </span>
-          </div>
+        {/* â”€â”€â”€ CONTEXT SENTENCE â€” Primary Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        <h1 style={{
+          fontSize: '28px',
+          fontWeight: 800,
+          color: '#F5F5F5',
+          margin: '0 0 6px',
+          letterSpacing: '-0.04em',
+          lineHeight: 1.2,
+        }}>
+          {contextSentence.split(accentWord || '|||').map((part, i, arr) =>
+            i < arr.length - 1 ? (
+              <React.Fragment key={i}>
+                {part}
+                <span style={{ color: '#F59E0B', fontStyle: 'italic' }}>{accentWord}</span>
+              </React.Fragment>
+            ) : part
+          )}
+        </h1>
 
-          <p style={{
-            fontSize: '15px',
-            color: '#A1A1AA',
-            lineHeight: 1.5,
-            margin: 0,
-            fontWeight: 500,
-          }}>
-            Zyrbit unifies your habits, focus, health, and wealth into one calm operating system.
-          </p>
+        {/* Supporting date line */}
+        <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '24px', fontWeight: 400 }}>
+          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button
-              onClick={() => navigate('/growth')}
-              style={{
-                background: '#1FA36F',
-                color: '#0B0D0F',
-                fontWeight: 800,
-                fontSize: '14px',
-                padding: '12px 20px',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                transition: 'opacity 0.2s',
-              }}
-            >
-              <span>Manage Habits & Tasks in Growth →</span>
-            </button>
+        {/* ─── TIME SPINE ────────────────────────────────────────── */}
+        <div style={{ marginBottom: '28px' }}>
+          <TimeSpine events={timeSpineEvents} />
+        </div>
 
-            <div style={{
-              fontSize: '12px',
-              color: '#71717A',
-              fontWeight: 500,
-              textAlign: 'center',
-              padding: '4px 0',
-            }}>
-              Dex accepts voice & text commands like <span style={{ color: '#E4E4E7' }}>"I drank 500ml water"</span> or <span style={{ color: '#E4E4E7' }}>"Plan my next 45 minutes"</span>. Press <kbd style={{ background: '#26272C', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', color: '#1FA36F' }}>Ctrl+K</kbd> anytime.
+        {/* ─── BRAIN DUMP — primary capture ──────────────────────── */}
+        <div style={{ marginBottom: '32px' }}>
+          <BrainDumpEntry
+            userId={user?.id}
+            onStateChange={() => user?.id && loadData(user.id)}
+          />
+        </div>
+
+        {/* ─── HAIRLINE ──────────────────────────────────────────── */}
+        <div style={{ borderBottom: '1px solid #1C1D21', marginBottom: '0' }} />
+
+        {/* ─── DOMAIN STATE ROWS — sentence-first, tap to navigate ─── */}
+
+        {/* GROWTH */}
+        <div
+          onClick={() => navigate('/growth')}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '15px 0', cursor: 'pointer', borderBottom: '1px solid #1C1D21',
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#1FA36F', flexShrink: 0 }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#1FA36F', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Growth</span>
+            </div>
+            <div style={{ fontSize: '14px', color: '#9CA3AF', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+              {ctx.totalTasks - ctx.completedTasks > 0
+                ? `${ctx.totalTasks - ctx.completedTasks} task${ctx.totalTasks - ctx.completedTasks > 1 ? 's' : ''} remaining`
+                : ctx.completedTasks > 0
+                ? 'All tasks complete today'
+                : 'Nothing needs your attention yet.'}
             </div>
           </div>
+          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 900, color: '#1FA36F', letterSpacing: '-0.03em' }}>
+              {ctx.lastFocusMins > 0 ? `${ctx.lastFocusMins}m` : '—'}
+            </div>
+            <div style={{ fontSize: '9px', color: '#4B5563', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>focused</div>
+          </div>
         </div>
-      )}
 
-      {/* Calm Dex Trigger */}
-      <div
-        onClick={() => {
-          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
-        }}
-        style={{
-          background: '#15181B',
-          border: '1px solid #26272C',
-          borderRadius: '14px',
-          padding: '14px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
-          marginTop: '4px',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = '#1FA36F';
-          e.currentTarget.style.background = '#1A1E22';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = '#26272C';
-          e.currentTarget.style.background = '#15181B';
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '16px' }}>✨</span>
-          <span style={{ fontSize: '14px', color: '#71717A', fontWeight: 500 }}>
-            Ask Dex anything or log an action...
-          </span>
+        {/* HEALTH */}
+        <div
+          onClick={() => navigate('/health')}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '15px 0', cursor: 'pointer', borderBottom: '1px solid #1C1D21',
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#F59E0B', flexShrink: 0 }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#F59E0B', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Health</span>
+            </div>
+            <div style={{ fontSize: '14px', color: '#9CA3AF', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+              {ctx.sleep > 0
+                ? (ctx.sleep < 6 ? `Running on ${ctx.sleep.toFixed(1)}h sleep` : `${ctx.sleep.toFixed(1)}h sleep · ${foodTotals.calories > 0 ? `${foodTotals.calories} kcal` : 'well rested'}`)
+                : foodTotals.meals > 0 ? `${foodTotals.meals} meals logged`
+                : 'Tell Zyrbit how you slept.'}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 900, color: recoveryScore >= 70 ? '#1FA36F' : recoveryScore >= 45 ? '#F59E0B' : '#EF4444', letterSpacing: '-0.03em' }}>
+              {ctx.sleep > 0 ? `${recoveryScore}%` : '—'}
+            </div>
+            <div style={{ fontSize: '9px', color: '#4B5563', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>recovery</div>
+          </div>
         </div>
-        <kbd style={{
-          background: '#26272C',
-          border: '1px solid #3F3F46',
-          borderRadius: '6px',
-          padding: '2px 8px',
-          fontSize: '11px',
-          fontWeight: 700,
-          color: '#1FA36F',
-        }}>
-          Ctrl+K
-        </kbd>
+
+        {/* WEALTH */}
+        <div
+          onClick={() => navigate('/wealth')}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '15px 0', cursor: 'pointer', borderBottom: '1px solid #1C1D21',
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#60A5FA', flexShrink: 0 }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#60A5FA', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Wealth</span>
+            </div>
+            <div style={{ fontSize: '14px', color: '#9CA3AF', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+              {ctx.nextBill
+                ? `₹${Number(ctx.nextBill.amount || 0).toLocaleString()} committed (${ctx.nextBill.name || ctx.nextBill.label || 'Bill'})`
+                : ctx.spent > 0
+                ? `₹${Math.round(ctx.spent).toLocaleString()} spent today`
+                : ctx.liquidCash > 0
+                ? `₹${Math.round(ctx.liquidCash).toLocaleString()} available today`
+                : 'Set your current cash balance.'}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 900, color: ctx.runwayDays >= 999 ? '#1FA36F' : ctx.runwayDays > 90 ? '#1FA36F' : ctx.runwayDays > 0 ? '#F59E0B' : '#9CA3AF', letterSpacing: '-0.03em' }}>
+              {ctx.runwayDays >= 9999 ? '∞' : ctx.runwayDays === 0 ? '—' : `${ctx.runwayDays}d`}
+            </div>
+            <div style={{ fontSize: '9px', color: '#4B5563', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>runway</div>
+          </div>
+        </div>
+
+        {/* FOCUS */}
+        <div
+          onClick={() => navigate('/growth')}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '15px 0', cursor: 'pointer',
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#A78BFA', flexShrink: 0 }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#A78BFA', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Focus</span>
+            </div>
+            <div style={{ fontSize: '14px', color: '#9CA3AF', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+              {ctx.lastFocusMins > 0 ? `${ctx.lastFocusMins} min completed today` : '45 min recommended'}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 900, color: '#A78BFA', letterSpacing: '-0.03em' }}>
+              {ctx.lastFocusMins > 0 ? `${ctx.lastFocusMins}m` : '45m'}
+            </div>
+            <div style={{ fontSize: '9px', color: '#4B5563', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>block</div>
+          </div>
+        </div>
+
+        {/* ── DAY RECEIPT SYNTHESIS ENTRY ── */}
+        <div
+          onClick={() => setShowDayReceipt(true)}
+          style={{
+            marginTop: '28px',
+            padding: '16px 20px',
+            borderRadius: '12px',
+            background: '#15181B',
+            border: '1px solid #23272E',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#1FA36F50';
+            e.currentTarget.style.background = '#181C20';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#23272E';
+            e.currentTarget.style.background = '#15181B';
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#F59E0B' }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#F59E0B', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                DAY RECEIPT
+              </span>
+            </div>
+            <div style={{ fontSize: '13px', color: '#9CA3AF' }}>
+              {timeline.length > 0 ? 'Your day is synthesized. View receipt →' : 'View daily receipt artifact →'}
+            </div>
+          </div>
+          <div
+            style={{
+              padding: '6px 12px',
+              borderRadius: '6px',
+              background: '#F3EFE6',
+              color: '#141517',
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              fontFamily: 'monospace',
+            }}
+          >
+            RECEIPT
+          </div>
+        </div>
+
+        {/* ── ONBOARDING — new user only ───────────────────────────── */}
+        {habits.length === 0 && tasks.length === 0 && foodLogs.length === 0 && sleepLogs.length === 0 && expenses.length === 0 && !welcomeDismissed && (
+          <div style={{
+            marginTop: '24px',
+            padding: '20px',
+            borderRadius: '14px',
+            background: '#15181B',
+            border: '1px solid #1FA36F20',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            position: 'relative',
+          }}>
+            <button
+              onClick={() => {
+                setWelcomeDismissed(true);
+                try { localStorage.setItem('zyrbit_welcome_dismissed', 'true'); } catch { /* ignore */ }
+              }}
+              style={{ position: 'absolute', top: '14px', right: '14px', background: 'transparent', border: 'none', color: '#6B7280', fontSize: '14px', cursor: 'pointer' }}
+            >✕</button>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#1FA36F', letterSpacing: '0.16em', textTransform: 'uppercase' }}>Start here</div>
+            <p style={{ fontSize: '14px', color: '#9CA3AF', lineHeight: 1.55, margin: 0, fontWeight: 400 }}>
+              Tell Zyrbit what's on your mind. It understands your life across all domains — health, focus, and money.
+            </p>
+            <div style={{ fontSize: '11px', color: '#4B5563' }}>
+              Or press <kbd style={{ background: '#23272E', padding: '1px 6px', borderRadius: '4px', fontSize: '10px', color: '#1FA36F', fontFamily: 'monospace' }}>Ctrl+K</kbd> for Dex anywhere.
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* ── DAY RECEIPT MODAL ── */}
+      <DayReceiptModal
+        isOpen={showDayReceipt}
+        onClose={() => setShowDayReceipt(false)}
+        userId={user?.id}
+        initialDate={today}
+        preloadedData={{
+          tasks,
+          focusSessions,
+          sleepLogs,
+          waterLogs,
+          foodLogs,
+          moveLogs,
+          expenses,
+          incomes: income,
+          bills,
+          habits,
+          activity,
+          currencySymbol: expSettings?.currency === 'USD' ? '$' : '₹',
+        }}
+      />
 
       <BottomNav activeTab="zenith" onTabChange={(t) => navigate(`/${t}`)} />
     </div>
   );
 }
-

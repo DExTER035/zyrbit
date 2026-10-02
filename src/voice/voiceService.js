@@ -77,7 +77,9 @@ export function createSpeechRecognizer({
 
   const SpeechRecognitionConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognition = null;
-  let hasReceivedFinal = false;
+  let isAborted = false;
+  let latestFinalTranscript = '';
+  let latestInterimTranscript = '';
 
   try {
     recognition = new SpeechRecognitionConstructor();
@@ -87,34 +89,50 @@ export function createSpeechRecognizer({
     recognition.lang = lang || DEFAULT_VOICE_LANGUAGE;
 
     recognition.onstart = () => {
-      hasReceivedFinal = false;
+      if (isAborted) return;
+      latestFinalTranscript = '';
+      latestInterimTranscript = '';
+      if (import.meta.env?.DEV) console.log('[VOICE] recognition started');
       if (onStart) onStart();
     };
 
     recognition.onresult = (event) => {
+      if (isAborted) return;
       let finalTranscript = '';
       let interimTranscript = '';
 
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
+      // Aggregate across all results in the current session
+      for (let i = 0; i < event.results.length; ++i) {
         const item = event.results[i];
         if (item.isFinal) {
           finalTranscript += item[0].transcript;
-          hasReceivedFinal = true;
         } else {
           interimTranscript += item[0].transcript;
         }
       }
 
+      latestFinalTranscript = finalTranscript.trim();
+      latestInterimTranscript = interimTranscript.trim();
+
+      const liveTranscript = (latestFinalTranscript + (latestFinalTranscript && latestInterimTranscript ? ' ' : '') + latestInterimTranscript).trim();
+
+      if (import.meta.env?.DEV) {
+        if (latestInterimTranscript) console.log('[VOICE] interim:', latestInterimTranscript);
+        if (latestFinalTranscript) console.log('[VOICE] final:', latestFinalTranscript);
+      }
+
       if (onTranscript) {
         onTranscript({
-          transcript: finalTranscript.trim() || interimTranscript.trim(),
-          interimTranscript: interimTranscript.trim(),
-          isFinal: hasReceivedFinal,
+          transcript: liveTranscript,
+          interimTranscript: latestInterimTranscript,
+          finalTranscript: latestFinalTranscript,
+          isFinal: Boolean(latestFinalTranscript && !latestInterimTranscript),
         });
       }
     };
 
     recognition.onerror = (event) => {
+      if (isAborted) return;
       const normalizedCode = normalizeVoiceError(event.error);
       const userMessage = VOICE_ERROR_MESSAGES[normalizedCode] || VOICE_ERROR_MESSAGES[VOICE_ERROR.UNKNOWN];
 
@@ -122,6 +140,8 @@ export function createSpeechRecognizer({
       if (normalizedCode === VOICE_ERROR.ABORTED) {
         return;
       }
+
+      if (import.meta.env?.DEV) console.warn('[VOICE] recognition error:', normalizedCode, userMessage);
 
       if (onError) {
         onError({
@@ -133,7 +153,14 @@ export function createSpeechRecognizer({
     };
 
     recognition.onend = () => {
-      if (onEnd) onEnd({ hasReceivedFinal });
+      if (isAborted) return;
+      if (import.meta.env?.DEV) console.log('[VOICE] recognition ended, final:', latestFinalTranscript || '(none)');
+      if (onEnd) {
+        onEnd({
+          hasReceivedFinal: Boolean(latestFinalTranscript),
+          finalTranscript: latestFinalTranscript,
+        });
+      }
     };
   } catch (err) {
     if (onError) {
@@ -147,7 +174,10 @@ export function createSpeechRecognizer({
   return {
     start: () => {
       try {
-        hasReceivedFinal = false;
+        isAborted = false;
+        latestFinalTranscript = '';
+        latestInterimTranscript = '';
+        if (import.meta.env?.DEV) console.log('[VOICE] start');
         recognition?.start();
       } catch (err) {
         // Recognition might already be running
@@ -161,6 +191,7 @@ export function createSpeechRecognizer({
     },
     stop: () => {
       try {
+        if (import.meta.env?.DEV) console.log('[VOICE] stop requested');
         recognition?.stop();
       } catch {
         // Ignore stop on inactive instance
@@ -168,6 +199,8 @@ export function createSpeechRecognizer({
     },
     abort: () => {
       try {
+        isAborted = true;
+        if (import.meta.env?.DEV) console.log('[VOICE] abort requested');
         recognition?.abort();
       } catch {
         // Ignore abort on inactive instance

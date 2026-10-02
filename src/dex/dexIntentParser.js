@@ -22,8 +22,9 @@ import {
   parseSleepDetails,
   parseActivityDetails,
   resolveFinancialInput,
+  parseCurrencyAmount,
 } from './resolvers/index.js';
-import { isPlanningIntent, generatePlan } from './planning/index.js';
+import { isPlanningIntent, generatePlan, createPlan } from './planning/index.js';
 
 
 /**
@@ -343,10 +344,45 @@ export function resolveDeterministicIntent(userMessage, context) {
     }
   }
 
-  // 6. Food Log: "I ate 4 boiled eggs and a banana", "I had two boiled eggs", "Had rice and dal"
-  if (/\b(?:ate|had|eating|lunch|dinner|breakfast|snack)\b/i.test(lower) && !/\b(?:spent|cost|paid|money|bill)\b/i.test(lower)) {
+  // 6. Food Log: "I ate 4 boiled eggs and a banana", "I ate poha for ₹30", "Poha 30"
+  if (/\b(?:ate|had|eating|lunch|dinner|breakfast|snack|poha|dosa|idli)\b/i.test(lower)) {
     const foodRes = resolveFoodInput(str);
     if (foodRes.success && foodRes.resolved) {
+      const finAmount = parseCurrencyAmount(str);
+      if (finAmount && finAmount > 0) {
+        // Cross-domain capture: Food/Fuel state and Wealth spending together
+        return {
+          intent: 'plan',
+          plan: createPlan({
+            goal: `Log ${foodRes.mealParams.foodName} & record ₹${finAmount} spending`,
+            rationale: `Cross-domain capture: updates Health fuel state and Wealth everyday spending.`,
+            steps: [
+              {
+                id: crypto.randomUUID(),
+                action: 'log_meal',
+                params: foodRes.mealParams,
+                label: `Log ${foodRes.mealParams.foodName} (${foodRes.mealParams.calories} kcal)`,
+                order: 1,
+              },
+              {
+                id: crypto.randomUUID(),
+                action: 'add_expense',
+                params: {
+                  amount: finAmount,
+                  category: 'Food',
+                  note: foodRes.mealParams.foodName,
+                  date: new Date().toISOString().split('T')[0],
+                },
+                label: `Record ₹${finAmount} food expense`,
+                order: 2,
+                requiresConfirmation: true,
+              },
+            ],
+          }),
+          displayMessage: `Understood: Log ${foodRes.mealParams.foodName} and record ₹${finAmount} food spending.`,
+        };
+      }
+
       return {
         intent: 'action',
         action: 'log_meal',
@@ -354,7 +390,7 @@ export function resolveDeterministicIntent(userMessage, context) {
         confidence: 'high',
         displayMessage: `Logged ${foodRes.mealParams.foodName} (${foodRes.mealParams.calories} kcal).`,
       };
-    } else if (foodRes.clarificationNeeded) {
+    } else if (foodRes.clarificationNeeded && !parseCurrencyAmount(str)) {
       return {
         intent: 'clarify',
         question: foodRes.question || 'What food did you have?',
@@ -410,11 +446,11 @@ export function resolveDeterministicIntent(userMessage, context) {
     };
   }
 
-  // 9a. Complete Task: "Mark clean my room as done", "clean my room is done", "complete task study DSA"
+  // 9a. Complete Task: "Mark clean my room as done", "clean my room is done", "complete task study DSA", "Finished the Wealth UI"
   const doneMatch = str.match(/^(?:mark\s+task\s+|mark\s+)?(.+?)\s+(?:as\s+done|as\s+completed|done|completed)$/i) ||
-    str.match(/^(?:complete\s+task|finish\s+task)\s+(.+)$/i);
+    str.match(/^(?:complete\s+task|finish\s+task|finished\s+the|finished|completed|done\s+with)\s+(.+)$/i);
   if (doneMatch && !/\b(?:habit|run|workout|reading|meditation)\b/i.test(str)) {
-    const rawTarget = doneMatch[1].replace(/^(?:task\s+|my\s+)/i, '').trim().toLowerCase();
+    const rawTarget = doneMatch[1].replace(/^(?:the\s+|task\s+|my\s+)/i, '').trim().toLowerCase();
     const pendingTasks = context?.growth?.pendingTasks || [];
     if (pendingTasks.length > 0) {
       const match = pendingTasks.find((t) => t.name.toLowerCase().includes(rawTarget) || rawTarget.includes(t.name.toLowerCase()));

@@ -11,6 +11,7 @@ export default function AppLayout({ children, userId }) {
 
   useEffect(() => {
     const handleVoiceOpen = () => setVoiceOpen(true);
+    const handleDexOpen = () => setDexOpen(true);
     const handleNavigate = (e) => {
       if (e.detail?.route) {
         navigate(e.detail.route);
@@ -18,10 +19,12 @@ export default function AppLayout({ children, userId }) {
     };
 
     window.addEventListener('dexos:voice-open', handleVoiceOpen);
+    window.addEventListener('dexos:open-dex', handleDexOpen);
     window.addEventListener('dexos:navigate', handleNavigate);
 
     return () => {
       window.removeEventListener('dexos:voice-open', handleVoiceOpen);
+      window.removeEventListener('dexos:open-dex', handleDexOpen);
       window.removeEventListener('dexos:navigate', handleNavigate);
     };
   }, [navigate]);

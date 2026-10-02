@@ -9,14 +9,9 @@ import { showToast } from '../../components/ui/Toast.jsx';
 import {
   C,
   todayStr,
-  HealthStateHero,
-  QuickCaptureBar,
-  WaterCard,
-  SleepCard,
-  ActivityCard,
   NutritionCard,
-  WeightCard,
 } from '../../components/domain/health/index.js';
+import { BodyRhythmRow } from '../../components/primitives/index.jsx';
 
 import HeatmapGrid from '../../components/common/HeatmapGrid.jsx';
 
@@ -58,6 +53,7 @@ export default function Health() {
   const [activePickerMealType, setActivePickerMealType] = useState(null);
   const [editingMealLog, setEditingMealLog] = useState(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showDetailedLogs, setShowDetailedLogs] = useState(false);
 
   // ─── Telemetry Data States ─────────────────────────────────────────────────
   const [sleepLogs, setSleepLogs] = useState([]);           // Rolling 7 days
@@ -131,6 +127,34 @@ export default function Health() {
     );
   }, [sleepLogs, waterLogs, moveLogs, mealLogs, weightLogs, settings]);
 
+  // ─── Pure Deterministic Body State Sentence (The Product) ───────────────────
+  const bodySentence = useMemo(() => {
+    const sleepHrs = healthState.sleep?.hours || 0;
+    const waterMl = healthState.hydration?.ml || 0;
+    const workoutMins = healthState.movement?.minutes || 0;
+    const mealsLogged = healthState.fuel?.mealsLogged || 0;
+
+    if (sleepHrs > 0 && sleepHrs < 6) {
+      return "Running on short sleep.";
+    }
+    if (sleepHrs >= 7 && waterMl >= 2000 && workoutMins >= 20) {
+      return "Well rested. Hydrated. Ready to train.";
+    }
+    if (sleepHrs >= 7 && waterMl >= 1500) {
+      return "Well rested. Hydration on track.";
+    }
+    if (sleepHrs >= 7) {
+      return "Well rested. Hydration pending.";
+    }
+    if (mealsLogged > 0 && waterMl >= 1000) {
+      return "Fueled and steady.";
+    }
+    if (sleepHrs === 0 && waterMl === 0 && mealsLogged === 0) {
+      return "Tell Zyrbit how you slept.";
+    }
+    return "Body baseline steady.";
+  }, [healthState]);
+
   // ─── Ranked Personal Usuals (Fast 1-Tap Logging) ───────────────────────────
   const personalUsuals = useMemo(() => {
     return computePersonalUsuals(personalFoods, mealLogs, 6);
@@ -162,6 +186,7 @@ export default function Health() {
         return;
       }
       setWaterLogs((prev) => [...prev, res.data]);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
       showToast(`💧 +${res.data?.amount_ml || amount}ml water logged!`, 'success');
     } catch (err) {
       showToast(`Failed to log water: ${err.message}`, 'error');
@@ -170,7 +195,7 @@ export default function Health() {
     }
   };
 
-  const handleDeleteWater = async (logId) => {
+  const _handleDeleteWater = async (logId) => {
     if (!user || isSubmitting || !logId) return;
     setIsSubmitting(true);
     try {
@@ -180,6 +205,7 @@ export default function Health() {
         return;
       }
       setWaterLogs((prev) => prev.filter((w) => w.id !== logId));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
       showToast('💧 Water log deleted', 'success');
     } catch (err) {
       showToast(`Failed to delete water log: ${err.message}`, 'error');
@@ -204,6 +230,7 @@ export default function Health() {
         const filtered = prev.filter((l) => l.sleep_date !== today);
         return [res.data, ...filtered];
       });
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
       showToast('😴 Sleep logged!', 'success');
     } catch (err) {
       showToast(`Failed to log sleep: ${err.message}`, 'error');
@@ -212,7 +239,7 @@ export default function Health() {
     }
   };
 
-  const handleDeleteSleep = async (logId) => {
+  const _handleDeleteSleep = async (logId) => {
     if (!user || isSubmitting || !logId) return;
     setIsSubmitting(true);
     try {
@@ -222,6 +249,7 @@ export default function Health() {
         return;
       }
       setSleepLogs((prev) => prev.filter((s) => s.id !== logId));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
       showToast('😴 Sleep log deleted', 'success');
     } catch (err) {
       showToast(`Failed to delete sleep log: ${err.message}`, 'error');
@@ -250,6 +278,7 @@ export default function Health() {
         return;
       }
       setMoveLogs((prev) => [res.data, ...prev]);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
       showToast('🏋️ Workout logged!', 'success');
     } catch (err) {
       showToast(`Failed to log workout: ${err.message}`, 'error');
@@ -258,7 +287,7 @@ export default function Health() {
     }
   };
 
-  const handleDeleteWorkout = async (logId) => {
+  const _handleDeleteWorkout = async (logId) => {
     if (!user || isSubmitting || !logId) return;
     setIsSubmitting(true);
     try {
@@ -268,6 +297,7 @@ export default function Health() {
         return;
       }
       setMoveLogs((prev) => prev.filter((m) => m.id !== logId));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
       showToast('🏋️ Workout deleted', 'success');
     } catch (err) {
       showToast(`Failed to delete workout: ${err.message}`, 'error');
@@ -277,7 +307,7 @@ export default function Health() {
   };
 
   // 4. Weight
-  const handleLogWeight = async (weightVal) => {
+  const _handleLogWeight = async (weightVal) => {
     if (!user || isSubmitting) return;
     setIsSubmitting(true);
     const today = todayStr();
@@ -300,7 +330,7 @@ export default function Health() {
     }
   };
 
-  const handleDeleteWeight = async (logId) => {
+  const _handleDeleteWeight = async (logId) => {
     if (!user || isSubmitting || !logId) return;
     setIsSubmitting(true);
     try {
@@ -346,6 +376,7 @@ export default function Health() {
       }
 
       setMealLogs((prev) => [...prev, res.data]);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
       showToast(`🍱 ${cleanName} logged!`, 'success');
     } catch (err) {
       showToast(`Failed to log food: ${err.message}`, 'error');
@@ -375,6 +406,7 @@ export default function Health() {
       }
 
       setMealLogs((prev) => prev.map((l) => (l.id === logId ? res.data : l)));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
       showToast('✏️ Meal updated!', 'success');
     } catch (err) {
       showToast(`Failed to update meal: ${err.message}`, 'error');
@@ -390,6 +422,7 @@ export default function Health() {
         return;
       }
       setMealLogs((prev) => prev.filter((l) => l.id !== logId));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
       showToast('🗑 Meal deleted', 'success');
     } catch (err) {
       showToast(`Failed to delete meal: ${err.message}`, 'error');
@@ -414,6 +447,7 @@ export default function Health() {
       }
 
       setMealLogs((prev) => [...prev, ...(res.data || [])]);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
       showToast(`🍱 Saved meal "${savedMeal.name}" logged!`, 'success');
     } catch (err) {
       showToast(`Failed to log saved meal: ${err.message}`, 'error');
@@ -556,43 +590,37 @@ export default function Health() {
     <div
       className="app-container page-enter"
       style={{
-        background: C.bg,
+        background: '#0B0D0F',
         minHeight: '100vh',
-        color: C.text,
+        color: '#F5F5F5',
         position: 'relative',
-        '--color-accent': C.recovery,
-        '--color-accent-dim': `${C.recovery}20`,
       }}
     >
       {/* ─── 1. HEADER ──────────────────────────────────────────────────────── */}
-      <div style={{ padding: '28px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ padding: '36px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div
             style={{
-              fontSize: '10px',
-              color: C.recovery,
-              fontWeight: 800,
-              letterSpacing: 'var(--ls-caps)',
+              fontSize: '11px',
+              color: '#6B7280',
+              fontWeight: 700,
+              letterSpacing: '0.14em',
               textTransform: 'uppercase',
-              marginBottom: '4px',
+              marginBottom: '6px',
             }}
           >
             HEALTH
           </div>
-          <h1
+          <div
             style={{
-              fontSize: '24px',
-              fontWeight: 700,
-              margin: 0,
-              color: C.text,
-              lineHeight: 1.1,
-              letterSpacing: '-0.5px',
+              fontSize: '26px',
+              fontWeight: 800,
+              color: '#F5F5F5',
+              letterSpacing: '-0.03em',
+              lineHeight: 1.2,
             }}
           >
-            Physical OS.
-          </h1>
-          <div style={{ fontSize: '11px', color: C.muted, marginTop: '3px' }}>
-            {todayDisplay}
+            Body State.
           </div>
         </div>
 
@@ -600,25 +628,11 @@ export default function Health() {
           type="button"
           onClick={() => setShowSettingsModal(true)}
           style={{
-            background: C.surface,
-            border: `1px solid ${C.border}`,
-            borderRadius: '14px',
-            width: '40px',
-            height: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: C.sub,
+            background: 'transparent',
+            border: 'none',
+            color: '#6B7280',
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = C.recovery;
-            e.currentTarget.style.color = C.recovery;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = C.border;
-            e.currentTarget.style.color = C.sub;
+            padding: '4px',
           }}
           aria-label="Health and Nutrition Settings"
         >
@@ -626,100 +640,206 @@ export default function Health() {
         </button>
       </div>
 
-      {/* ─── 2. MAIN HEALTH FEED ────────────────────────────────────────────── */}
-      <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '120px' }}>
-        {/* HOW AM I? ── HEALTH STATE HERO */}
-        <HealthStateHero healthState={healthState} />
+      {/* ─── 2. PRIMARY HERO: BODY STATE SENTENCE ──────────────────────────── */}
+      <div style={{ padding: '24px 20px 0' }}>
+        <h2 style={{
+          fontSize: '28px',
+          fontWeight: 800,
+          color: '#F5F5F5',
+          margin: '0 0 6px',
+          letterSpacing: '-0.03em',
+          lineHeight: 1.25,
+        }}>
+          "{bodySentence}"
+        </h2>
+        <div style={{ fontSize: '12px', color: '#6B7280' }}>
+          {todayDisplay}
+        </div>
+      </div>
 
-        {/* QUICK CAPTURE ── 1-TAP FAST INPUTS */}
-        <QuickCaptureBar
-          onQuickWater={handleLogWater}
-          onQuickSleepWell={() => handleLogSleep(7.5, 3)}
-          onOpenMealPicker={() => setActivePickerMealType('lunch')}
-          onOpenWorkoutModal={() => {
-            // Smoothly scrolls to movement card
-            const el = document.getElementById('movement-section');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}
-          onOpenWeightModal={() => {
-            const el = document.getElementById('weight-section');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}
-          topUsual={personalUsuals[0] || null}
-          isSubmitting={isSubmitting}
+      {/* ─── 3. BODY RHYTHM ROWS ────────────────────────────────────────────── */}
+      <div style={{ padding: '24px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        {/* SLEEP */}
+        <BodyRhythmRow
+          label="Sleep"
+          state={healthState.sleep.hours > 0 ? (healthState.sleep.hours >= 7 ? 'Good' : 'Short') : 'Not logged'}
+          value={healthState.sleep.hours > 0 ? `${Math.floor(healthState.sleep.hours)}h ${Math.round((healthState.sleep.hours % 1) * 60)}m` : '—'}
+          stateColor={healthState.sleep.hours >= 7 ? '#1FA36F' : healthState.sleep.hours > 0 ? '#F59E0B' : '#6B7280'}
+          onClick={() => handleLogSleep(7.5, 3)}
         />
 
-        {/* HEALTH PILLARS ── SLEEP & HYDRATION */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <SleepCard
-            sleepLogs={sleepLogs}
-            sleepDebt={healthState.sleep.debt}
-            onLogSleep={handleLogSleep}
-            onDeleteSleep={handleDeleteSleep}
-            isSubmitting={isSubmitting}
-          />
-
-          <WaterCard
-            todayWater={healthState.hydration.ml}
-            dynamicTarget={healthState.hydration.targetMl}
-            onLogWater={handleLogWater}
-            onDeleteWater={handleDeleteWater}
-            waterLogs={waterLogs}
-            isSubmitting={isSubmitting}
-          />
-        </div>
-
-        {/* HEALTH PILLAR ── NUTRITION & FUEL (SUBDOMAIN UNDER HEALTH) */}
-        <NutritionCard
-          fuel={healthState.fuel}
-          mealLogs={mealLogs}
-          personalUsuals={personalUsuals}
-          savedMeals={savedMeals}
-          userId={user?.id}
-          onAddFood={(type) => setActivePickerMealType(type)}
-          onDeleteLog={handleDeleteMealLog}
-          onEditLog={(log) => setEditingMealLog(log)}
-          onLogSavedMeal={handleLogSavedMeal}
-          onDeleteSavedMeal={handleDeleteSavedMeal}
-          onSelectUsual={handleSelectUsual}
-          onRepeatYesterday={handleRepeatYesterday}
-          onMealSaved={(newMeal) => setSavedMeals((prev) => [newMeal, ...prev])}
+        {/* WATER */}
+        <BodyRhythmRow
+          label="Water"
+          state={healthState.hydration.ml >= (healthState.hydration.targetMl || 2500) ? 'Optimal' : `${(healthState.hydration.ml / 1000).toFixed(1)}L logged`}
+          value={`${(healthState.hydration.ml / 1000).toFixed(1)}L`}
+          stateColor={healthState.hydration.ml >= 2000 ? '#1FA36F' : '#60A5FA'}
+          onClick={() => handleLogWater(250)}
         />
 
-        {/* HEALTH PILLARS ── MOVEMENT & WEIGHT */}
-        <div id="movement-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <ActivityCard
-            moveLogs={moveLogs}
-            onLogWorkout={handleLogWorkout}
-            onDeleteWorkout={handleDeleteWorkout}
-            isSubmitting={isSubmitting}
-          />
-        </div>
+        {/* FUEL */}
+        <BodyRhythmRow
+          label="Fuel"
+          state={healthState.fuel.calorieScore >= 70 ? 'Good' : healthState.fuel.mealsLogged > 0 ? `${healthState.fuel.mealsLogged} logged` : 'Pending'}
+          value={healthState.fuel.calories > 0 ? `${Math.round(healthState.fuel.calories)} kcal` : '—'}
+          stateColor={healthState.fuel.calorieScore >= 70 ? '#1FA36F' : '#9CA3AF'}
+          onClick={() => setActivePickerMealType('lunch')}
+        />
 
-        <div id="weight-section">
-          <WeightCard
-            weightLogs={weightLogs}
-            onLogWeight={handleLogWeight}
-            onDeleteWeight={handleDeleteWeight}
-            isSubmitting={isSubmitting}
-          />
-        </div>
+        {/* MOVEMENT */}
+        <BodyRhythmRow
+          label="Movement"
+          state={healthState.movement.minutes >= 30 ? 'Active' : healthState.movement.minutes > 0 ? 'Light' : 'Rest'}
+          value={healthState.movement.minutes > 0 ? `${healthState.movement.minutes}m` : '—'}
+          stateColor={healthState.movement.minutes >= 30 ? '#1FA36F' : '#9CA3AF'}
+          onClick={() => handleLogWorkout('Workout', 30, 7)}
+        />
+      </div>
 
-        {/* 90-DAY BIO CONSISTENCY */}
-        <div
+      {/* ─── 4. QUICK CAPTURE STRIP (SECONDARY) ────────────────────────────── */}
+      <div style={{ padding: '24px 20px 0' }}>
+        <div style={{
+          fontSize: '10px',
+          fontWeight: 700,
+          color: '#6B7280',
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          marginBottom: '10px',
+        }}>
+          Quick Log
+        </div>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => handleLogWater(250)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '8px',
+              background: 'rgba(96, 165, 250, 0.1)',
+              border: '1px solid rgba(96, 165, 250, 0.25)',
+              color: '#60A5FA',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            + 250ml Water
+          </button>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => handleLogSleep(7.5, 3)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '8px',
+              background: 'rgba(31, 163, 111, 0.1)',
+              border: '1px solid rgba(31, 163, 111, 0.25)',
+              color: '#1FA36F',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            + 7.5h Sleep
+          </button>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => setActivePickerMealType('lunch')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '8px',
+              background: 'rgba(245, 158, 11, 0.1)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              color: '#F59E0B',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            + Food
+          </button>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => handleLogWorkout('Workout', 30, 7)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '8px',
+              background: 'rgba(167, 139, 250, 0.1)',
+              border: '1px solid rgba(167, 139, 250, 0.25)',
+              color: '#A78BFA',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            + 30m Workout
+          </button>
+        </div>
+      </div>
+
+      {/* ─── 5. PROGRESSIVE DISCLOSURE: DETAILED LOGS & CONSISTENCY ─────────── */}
+      <div style={{ padding: '24px 20px 120px' }}>
+        <button
+          type="button"
+          onClick={() => setShowDetailedLogs((p) => !p)}
           style={{
-            background: C.surface,
-            border: `1px solid ${C.border}`,
-            borderRadius: '16px',
-            padding: '16px 18px',
+            background: 'transparent',
+            border: 'none',
+            color: '#6B7280',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            padding: '8px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            outline: 'none',
           }}
         >
-          <HeatmapGrid
-            color={C.recovery}
-            dataMap={heatmapData}
-            label="Bio Consistency (90 Days)"
-          />
-        </div>
+          <span>{showDetailedLogs ? '▲ Hide detailed logs & consistency' : '▼ View detailed telemetry & consistency'}</span>
+        </button>
+
+        {showDetailedLogs && (
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Heatmap */}
+            <div style={{
+              background: '#15181B',
+              border: '1px solid #1C1D21',
+              borderRadius: '12px',
+              padding: '16px',
+            }}>
+              <HeatmapGrid color="#1FA36F" dataMap={heatmapData} label="Bio Consistency (90 Days)" />
+            </div>
+
+            {/* Nutrition Breakdown */}
+            <NutritionCard
+              fuel={healthState.fuel}
+              mealLogs={mealLogs}
+              personalUsuals={personalUsuals}
+              savedMeals={savedMeals}
+              userId={user?.id}
+              onAddFood={(type) => setActivePickerMealType(type)}
+              onDeleteLog={handleDeleteMealLog}
+              onEditLog={(log) => setEditingMealLog(log)}
+              onLogSavedMeal={handleLogSavedMeal}
+              onDeleteSavedMeal={handleDeleteSavedMeal}
+              onSelectUsual={handleSelectUsual}
+              onRepeatYesterday={handleRepeatYesterday}
+              onMealSaved={(newMeal) => setSavedMeals((prev) => [newMeal, ...prev])}
+            />
+          </div>
+        )}
       </div>
 
       {/* ─── 3. MODALS ──────────────────────────────────────────────────────── */}

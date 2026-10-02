@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Mic, MicOff, X, Check, AlertCircle, ArrowRight, CornerDownLeft, Volume2 } from 'lucide-react';
 import { useVoiceInput, isVoiceSupported, VOICE_STATUS, VOICE_LANGUAGES } from '../../voice/index.js';
 import { processUserInput, DEX_RESULT_TYPE } from '../../dex/index.js';
+import { supabase } from '../../lib/supabase/index.js';
 
 // Domain mapping helper for live UI invalidation
 function getActionDomain(action) {
@@ -44,18 +45,30 @@ export default function VoiceCommandOverlay({ userId, isOpen, onClose }) {
   const handleProcessTranscript = useCallback(async (transcriptText, options = {}) => {
     if (!transcriptText || !transcriptText.trim()) return;
 
-    if (!userId) {
+    let activeUserId = userId;
+    if (!activeUserId) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        activeUserId = session?.user?.id || null;
+      } catch {
+        activeUserId = null;
+      }
+    }
+
+    if (!activeUserId) {
       setOverlayStatus(VOICE_STATUS.ERROR);
       setDisplayText('Authentication required. Please log in.');
       return;
     }
 
     setOverlayStatus(VOICE_STATUS.PROCESSING);
-    setDisplayText('Processing...');
+    setDisplayText('Interpreting...');
+
+    if (import.meta.env?.DEV) console.log('[DEX] processUserInput:', transcriptText.trim());
 
     try {
       const result = await processUserInput({
-        userId,
+        userId: activeUserId,
         userMessage: transcriptText.trim(),
         confirmed: Boolean(options.confirmed),
         pendingAction: options.pendingAction || pendingClarification?.action || null,
@@ -66,7 +79,10 @@ export default function VoiceCommandOverlay({ userId, isOpen, onClose }) {
         },
       });
 
+      if (import.meta.env?.DEV) console.log('[DEX] result:', result.type, result.action || '');
+
       if (result.type === DEX_RESULT_TYPE.CONFIRMATION_REQUIRED) {
+        if (import.meta.env?.DEV) console.log('[ACTION] confirmation required for:', result.action);
         setPendingConfirmation({
           action: result.action,
           params: result.params,
@@ -84,6 +100,7 @@ export default function VoiceCommandOverlay({ userId, isOpen, onClose }) {
         setOverlayStatus(VOICE_STATUS.CLARIFICATION_REQUIRED);
         setDisplayText(result.displayMessage);
       } else if (result.type === DEX_RESULT_TYPE.SUCCESS) {
+        if (import.meta.env?.DEV) console.log('[ACTION] success:', result.action);
         setPendingConfirmation(null);
         setPendingClarification(null);
         setOverlayStatus(VOICE_STATUS.SUCCESS);
@@ -107,6 +124,7 @@ export default function VoiceCommandOverlay({ userId, isOpen, onClose }) {
 
         // Special handling for navigation
         if (result.action === 'navigate' && result.data?.route) {
+          if (import.meta.env?.DEV) console.log('[NAVIGATION] navigating to:', result.data.route);
           navigate(result.data.route);
         }
 
@@ -120,6 +138,8 @@ export default function VoiceCommandOverlay({ userId, isOpen, onClose }) {
           );
         }
 
+        if (import.meta.env?.DEV) console.log('[VOICE] completed');
+
         // Auto close after calm delay
         autoCloseTimerRef.current = setTimeout(() => {
           onClose();
@@ -129,6 +149,7 @@ export default function VoiceCommandOverlay({ userId, isOpen, onClose }) {
         setPendingClarification(null);
         setOverlayStatus(VOICE_STATUS.SUCCESS);
         setDisplayText(result.displayMessage);
+        if (import.meta.env?.DEV) console.log('[VOICE] completed (conversational)');
       } else {
         setPendingConfirmation(null);
         setPendingClarification(null);
@@ -156,6 +177,7 @@ export default function VoiceCommandOverlay({ userId, isOpen, onClose }) {
     language,
     setLanguage,
     start,
+    stop,
     cancel,
     reset,
   } = useVoiceInput({
@@ -208,6 +230,8 @@ export default function VoiceCommandOverlay({ userId, isOpen, onClose }) {
     setOverlayStatus(VOICE_STATUS.EXECUTING);
     setDisplayText('Executing...');
 
+    if (import.meta.env?.DEV) console.log('[ACTION] executing confirmed action:', pending.action);
+
     try {
       const result = await processUserInput({
         userId,
@@ -219,6 +243,7 @@ export default function VoiceCommandOverlay({ userId, isOpen, onClose }) {
       });
 
       if (result.type === DEX_RESULT_TYPE.SUCCESS) {
+        if (import.meta.env?.DEV) console.log('[ACTION] success:', result.action);
         setOverlayStatus(VOICE_STATUS.SUCCESS);
         setDisplayText(result.displayMessage);
 
@@ -230,6 +255,8 @@ export default function VoiceCommandOverlay({ userId, isOpen, onClose }) {
             })
           );
         }
+
+        if (import.meta.env?.DEV) console.log('[VOICE] completed');
 
         autoCloseTimerRef.current = setTimeout(() => {
           onClose();
@@ -281,7 +308,7 @@ export default function VoiceCommandOverlay({ userId, isOpen, onClose }) {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 100,
+        zIndex: 10001,
         background: 'rgba(11, 13, 15, 0.88)',
         backdropFilter: 'blur(10px)',
         display: 'flex',

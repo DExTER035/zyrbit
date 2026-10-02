@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { X, Send, Sparkles, AlertCircle, CheckCircle2, RotateCcw, CornerDownLeft, Mic, MicOff } from 'lucide-react';
 import { processUserInput, DEX_RESULT_TYPE } from '../../dex/index.js';
-import { useVoiceInput, VOICE_STATUS } from '../../voice/index.js';
+import { isVoiceSupported } from '../../voice/index.js';
 
 // Domain mapping helper for live UI invalidation
 function getActionDomain(action) {
@@ -69,23 +69,6 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
 
   const handleSendRef = useRef(null);
 
-  const {
-    isSupported: isVoiceSupported,
-    status: voiceStatus,
-    start: startVoice,
-    stop: stopVoice,
-    cancel: cancelVoice,
-  } = useVoiceInput({
-    onFinalTranscript: (text) => {
-      if (text && text.trim()) {
-        setInputText(text.trim());
-        if (handleSendRef.current) {
-          handleSendRef.current(text.trim());
-        }
-      }
-    },
-  });
-
   // Listen to dexos:navigate events
   useEffect(() => {
     const handleNavigate = (e) => {
@@ -104,9 +87,8 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
       setPendingConfirmation(null);
       setPendingClarification(null);
       setPendingPlan(null);
-      cancelVoice();
     }
-  }, [isOpen, cancelVoice]);
+  }, [isOpen]);
 
 
   const inputRef = useRef(null);
@@ -213,6 +195,9 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
         pendingAction: pendingClarification?.action || null,
         pendingParams: pendingClarification?.params || null,
         pendingPlan: pendingPlan || null,
+        metadata: {
+          source: 'text',
+        },
       });
 
       if (result.type === DEX_RESULT_TYPE.PLAN_PROPOSED) {
@@ -925,6 +910,58 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
 
                   <div>{msg.content}</div>
 
+                  {/* Contextual Action Trigger (e.g. [Start 45 min Focus]) */}
+                  {!isUser && msg.content && (msg.content.toLowerCase().includes('focus') || msg.content.includes('[Start')) && (
+                    <div style={{ marginTop: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const match = msg.content.match(/(\d+)\s*(?:min|minute)/i);
+                          const minutes = match ? parseInt(match[1], 10) : 45;
+                          window.dispatchEvent(
+                            new CustomEvent('dexos:start-focus', {
+                              detail: {
+                                minutes,
+                                notes: 'Focus block',
+                                projectId: null,
+                              },
+                            })
+                          );
+                          if (!location.pathname.includes('growth')) {
+                            navigate('/growth');
+                          }
+                          onClose();
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'rgba(31, 163, 111, 0.12)',
+                          color: '#1FA36F',
+                          border: '1px solid rgba(31, 163, 111, 0.3)',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          fontFamily: 'monospace',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#1FA36F';
+                          e.currentTarget.style.color = '#0B0D0F';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(31, 163, 111, 0.12)';
+                          e.currentTarget.style.color = '#1FA36F';
+                        }}
+                      >
+                        <Sparkles size={12} />
+                        [Start {msg.content.match(/(\d+)\s*(?:min|minute)/i)?.[1] || 45} min Focus]
+                      </button>
+                    </div>
+                  )}
+
                   {/* Plan Proposal Card */}
                   {msg.type === 'plan_proposed' && msg.plan && (
                     <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1135,7 +1172,7 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={loading}
-              placeholder="Tell Dex what you did, or ask for guidance..."
+              placeholder="Ask Dex anything or log an action..."
               aria-label="Dex command input"
               style={{
                 flex: 1,
@@ -1147,24 +1184,20 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
                 padding: '6px 0',
               }}
             />
-            {/* Microphone Dictation Button */}
-            {isVoiceSupported && (
+            {/* Authoritative Global Voice Command Button */}
+            {isVoiceSupported() && (
               <button
                 type="button"
                 onClick={() => {
-                  if (voiceStatus === VOICE_STATUS.LISTENING) {
-                    stopVoice();
-                  } else {
-                    startVoice();
-                  }
+                  window.dispatchEvent(new CustomEvent('dexos:voice-open'));
                 }}
                 disabled={loading}
-                aria-label={voiceStatus === VOICE_STATUS.LISTENING ? "Stop listening" : "Dictate with voice"}
-                title={voiceStatus === VOICE_STATUS.LISTENING ? "Stop listening" : "Dictate with voice"}
+                aria-label="Voice Command (Ctrl+M)"
+                title="Voice Command (Ctrl+M)"
                 style={{
-                  background: voiceStatus === VOICE_STATUS.LISTENING ? 'rgba(31, 163, 111, 0.25)' : 'transparent',
-                  color: voiceStatus === VOICE_STATUS.LISTENING ? '#1FA36F' : '#6B7280',
-                  border: `1px solid ${voiceStatus === VOICE_STATUS.LISTENING ? 'rgba(31, 163, 111, 0.4)' : 'transparent'}`,
+                  background: 'transparent',
+                  color: '#1FA36F',
+                  border: 'none',
                   borderRadius: '8px',
                   width: '32px',
                   height: '32px',

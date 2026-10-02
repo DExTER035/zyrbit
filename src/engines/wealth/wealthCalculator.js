@@ -59,7 +59,7 @@ export function computeBurnRateAndRunway(expenses = [], liquidCash = 0, thirtyDa
   const dailyBurnRate = burnLast30 > 0 ? burnLast30 / 30 : 0;
   const runwayDays = (liquidCash > 0 && dailyBurnRate > 0)
     ? Math.round(liquidCash / dailyBurnRate)
-    : (liquidCash <= 0 ? 0 : 999);
+    : (liquidCash <= 0 ? 0 : null); // null = no burn-rate data, not 999
 
   return {
     burnLast30,

@@ -220,6 +220,46 @@ export const ACTION_REGISTRY = {
     },
   },
 
+  record_money_event: {
+    action: 'record_money_event',
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: ACTION_SCHEMAS.record_money_event.description,
+    schema: ACTION_SCHEMAS.record_money_event,
+    formatConfirmation: (params) => ACTION_SCHEMAS.record_money_event.formatConfirmation(params),
+    execute: async ({ userId, params }) => {
+      return await wealthService.recordMoneyEvent({
+        userId,
+        type: params.type,
+        amount: params.amount,
+        title: params.title,
+        category: params.category,
+        source: params.source,
+        person: params.person,
+        date: params.date,
+        dueDate: params.dueDate,
+        frequency: params.frequency,
+      });
+    },
+  },
+
+  calibrate_cash: {
+    action: 'calibrate_cash',
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: ACTION_SCHEMAS.calibrate_cash.description,
+    schema: ACTION_SCHEMAS.calibrate_cash,
+    formatConfirmation: (params) => ACTION_SCHEMAS.calibrate_cash.formatConfirmation(params),
+    execute: async ({ userId, params }) => {
+      return await wealthService.calibrateCashBalance({
+        userId,
+        targetCash: params.targetCash,
+      });
+    },
+  },
+
   // ─── HABITS ───────────────────────────────────────────────────────────────
   complete_habit: {
     action: 'complete_habit',

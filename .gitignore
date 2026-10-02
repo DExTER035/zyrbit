@@ -30,3 +30,8 @@ dist-ssr
 .env.local
 .env.*.local
 .env.production
+
+# Scratch & temporary scripts
+*.ps1
+test_voice_system.mjs
+scratch/

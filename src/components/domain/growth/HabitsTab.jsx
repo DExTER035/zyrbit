@@ -5,7 +5,7 @@ import HeatmapGrid from '../../common/HeatmapGrid.jsx';
 import { C } from './shared.jsx';
 
 const ZONE_OPTIONS = [
-  { id: 'all', label: 'All Zones', icon: '✨' },
+  { id: 'all', label: 'All Zones', icon: '' },
   { id: 'mind', label: 'Mind', icon: '🧠' },
   { id: 'body', label: 'Body', icon: '⚡' },
   { id: 'growth', label: 'Growth', icon: '🌱' },

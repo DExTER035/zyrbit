@@ -4,1298 +4,1329 @@ import { supabase } from '../../lib/supabase/index.js';
 import { showToast } from '../../components/ui/Toast.jsx';
 import BottomNav from '../../components/layout/BottomNav.jsx';
 import ErrorState from '../../components/ui/ErrorState.jsx';
-import TransactionFormModal from '../../components/domain/wealth/TransactionFormModal.jsx';
-import BillFormModal from '../../components/domain/wealth/BillFormModal.jsx';
-import SafeToSpendBanner from '../../components/domain/wealth/SafeToSpendBanner.jsx';
 import {
-  addExpense as serviceAddExpense,
-  updateExpense as serviceUpdateExpense,
-  deleteExpense as serviceDeleteExpense,
-  addIncome as serviceAddIncome,
-  updateIncome as serviceUpdateIncome,
-  deleteIncome as serviceDeleteIncome,
-  addBill as serviceAddBill,
-  updateBill as serviceUpdateBill,
-  toggleBillStatus as serviceToggleBillStatus,
-  deleteBill as serviceDeleteBill,
-  saveWealthSettings as serviceSaveWealthSettings,
-} from '../../services/wealthService';
-import {
-  computeTotalIncome,
-  computeTotalExpense,
-  computeNetBalance,
-  computeMonthExpenses,
-  computeBurnRateAndRunway,
-  computeBudgetStats,
-  computeSafeToSpend,
-  computeSpendingPace,
-} from '../../engines/wealth/index.js';
-import { X, TrendingDown, TrendingUp, Settings2, ChevronDown, ChevronUp, Edit3 } from 'lucide-react';
+  ArrowLeft,
+  ChevronRight,
+  TrendingDown,
+  TrendingUp,
+  Repeat,
+  Link as LinkIcon,
+  Wallet,
+  Landmark,
+  PiggyBank,
+  Sparkles,
+  Users,
+  Calendar,
+  Lock,
+  Clock,
+  Settings2,
+  Check,
+} from 'lucide-react';
 
-// ─── Design Tokens (Wealth pillar — teal accent) ────────────────────────────
+// ─── Money State Domain Modals ────────────────────────────────────────────────
+import {
+  MoneyEventModal,
+  CashCalibrationModal,
+} from '../../components/domain/wealth/index.js';
+
+// ─── Service Facade & Pure Engine ─────────────────────────────────────────────
+import {
+  getWealthSnapshot,
+  recordMoneyEvent,
+  calibrateCashBalance,
+  resolveMoneyPromise,
+  toggleBillStatus,
+  saveWealthSettings,
+} from '../../services/wealthService.js';
+import { computeMoneyState } from '../../engines/wealth/moneyState.js';
+
 const W = {
-  bg:      '#0B0D0F',
+  bg: '#0B0D0F',
   surface: '#15181B',
-  card:    '#1B1F23',
-  border:  '#1C1D21',
-  border2: '#26272C',
-  text:    '#F5F5F5',
-  sub:     '#9CA3AF',
-  muted:   '#71717A',
-  dim:     '#2A3038',
-  accent:  '#1FA36F',
-  success: '#22C55E',
-  warning: '#F59E0B',
-  danger:  '#EF4444',
+  surfaceCard: '#121518',
+  border: '#1F242C',
+  borderMid: '#262C36',
+  text: '#F5F5F5',
+  sub: '#9CA3AF',
+  muted: '#6B7280',
+  accent: '#E9B44C',
+  emerald: '#1FA36F',
+  cyan: '#38BDF8',
+  danger: '#EF4444',
 };
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-const getLocalYMD = (dateObj = new Date()) => {
-  const d = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000);
-  return d.toISOString().split('T')[0];
+const getLocalYMD = (d = new Date()) => {
+  const o = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return o.toISOString().split('T')[0];
 };
-
-const fmtCurrency = (sym, amount) => {
-  const n = Math.abs(Number(amount));
-  if (isNaN(n) || !isFinite(n)) return `${sym}0`;
-  if (n >= 100000) return `${sym}${(n / 100000).toFixed(1)}L`;
-  if (n >= 1000) return `${sym}${n.toLocaleString('en-IN')}`;
-  return `${sym}${n.toFixed(0)}`;
-};
-
-const fmtDate = (dateStr) => {
-  if (!dateStr) return '';
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
-
-const safeUntilDate = (days) => {
-  const d = new Date();
-  d.setDate(d.getDate() + Math.max(0, days));
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
-
-// ─── Runway status: calm, supportive language ────────────────────────────────
-function getRunwayStatus(days) {
-  if (days >= 999) return { color: W.accent, label: 'Stable', message: 'Stable runway. Spending is at zero.' };
-  if (days >= 90) return { color: W.success, label: 'Strong', message: "You're well within your budget." };
-  if (days >= 60) return { color: W.success, label: 'Safe',   message: "You're spending normally." };
-  if (days >= 30) return { color: W.accent,  label: 'Steady', message: 'No action needed today.' };
-  if (days >= 14) return { color: W.warning, label: 'Watch',  message: 'Consider slowing spending this week.' };
-  return           { color: W.danger,  label: 'Tight',  message: 'Reduce non-essential spending soon.' };
-}
-
-// ─── Category maps ───────────────────────────────────────────────────────────
-const EXP_CATEGORIES = {
-  'Food':                   '🍔',
-  'Rent & Bills':           '🏠',
-  'Tools & Subscriptions':  '💻',
-  'Leisure':                '🎉',
-  'Other':                  '📦',
-};
-
-const INC_SOURCES = {
-  'Salary':      '💼',
-  'Freelance':   '🛠',
-  'Side Income': '🚀',
-  'One-time':    '🎁',
-};
-
-const CAT_COLORS = {
-  'Food':                  '#F59E0B',
-  'Rent & Bills':          '#EF4444',
-  'Tools & Subscriptions': '#8B7FFF',
-  'Leisure':               '#EC4899',
-  'Other':                 '#6B7280',
-  'Salary':      '#10B981',
-  'Freelance':   '#1FA36F',
-  'Side Income': '#22C55E',
-  'One-time':    '#F59E0B',
-};
-
-// ─── Primitive: bottom sheet modal ──────────────────────────────────────────
-function BottomSheet({ title, onClose, children }) {
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.88)',
-        backdropFilter: 'blur(16px)',
-        zIndex: 200,
-        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: W.surface,
-          border: `1px solid ${W.border}`,
-          borderRadius: '16px 16px 0 0',
-          width: '100%', maxWidth: '430px',
-          padding: '24px 20px 52px',
-          animation: 'slideUpSheet 0.25s cubic-bezier(0.4,0,0.2,1)',
-          maxHeight: '90vh', overflowY: 'auto',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <span style={{ fontSize: '16px', fontWeight: 700, color: W.text }}>{title}</span>
-          <button
-            onClick={onClose}
-            style={{ background: W.dim, border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: W.sub }}
-          >
-            <X size={14} />
-          </button>
-        </div>
-        {children}
-      </div>
-      <style>{`
-        @keyframes slideUpSheet {
-          from { transform: translateY(100%); opacity: 0; }
-          to   { transform: translateY(0);    opacity: 1; }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function SectionLabel({ children }) {
-  return (
-    <div style={{ fontSize: '10px', color: W.muted, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>
-      {children}
-    </div>
-  );
-}
-
-function FLabel({ children }) {
-  return (
-    <div style={{ fontSize: '10px', color: W.muted, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>
-      {children}
-    </div>
-  );
-}
 
 export default function Wealth() {
   const navigate = useNavigate();
+  const todayDate = getLocalYMD();
+
+  // ── Auth & Domain State ───────────────────────────────────────────────────
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const todayDate = getLocalYMD();
-  const curMonth  = todayDate.slice(0, 7);
+  // Raw domain collections
+  const [settings, setSettings] = useState(null);
+  const [expenses, setExpenses] = useState([]);
+  const [incomes, setIncomes] = useState([]);
+  const [bills, setBills] = useState([]);
 
-  // Data State
-  const [settings,   setSettings]   = useState(null);
-  const [expenses,   setExpenses]   = useState([]);
-  const [incomes,    setIncomes]    = useState([]);
-  const [bills,      setBills]      = useState([]);
+  // Active view: 'home' | 'assets' | 'commitments' | 'promises' | 'flow' | 'recent'
+  const [activeView, setActiveView] = useState('home');
+  const [commitmentsTab, setCommitmentsTab] = useState('upcoming'); // 'upcoming' | 'recurring' | 'past'
+  const [promisesTab, setPromisesTab] = useState('owed_to_me'); // 'owed_to_me' | 'i_owe'
 
-  // UI Modal State
-  const [activeModal,        setActiveModal]        = useState(null); // null | 'expense' | 'income' | 'bill' | 'manage' | 'settings'
-  const [editingTransaction, setEditingTransaction] = useState(null); // { type: 'expense'|'income', item: Object }
-  const [editingBillModal,   setEditingBillModal]   = useState(null); // Object (bill)
-  const [showAllActivity,    setShowAllActivity]    = useState(false);
-  const [confirmSheet,       setConfirmSheet]       = useState(null);
-  const [breakdownPeriod,    setBreakdownPeriod]    = useState('month'); // 'today' | 'week' | 'month' | 'year'
+  // Modals
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [budgetForm, setBudgetForm] = useState({ budget: 15000, currency: 'INR' });
 
-  // Forms
-  const [setupForm, setSetupForm] = useState({ currency: '₹', budget: 15000 });
-
-  // Data Fetcher
+  // ── Data Fetcher ──────────────────────────────────────────────────────────
   const loadData = useCallback(async (uid) => {
     setLoading(true);
     setError(null);
     try {
-      const [sRes, eRes, iRes, bRes] = await Promise.all([
-        supabase.from('wealth_settings').select('*').or(`user_id.eq.${uid},id.eq.${uid}`).maybeSingle(),
-        supabase.from('money_expenses').select('*').eq('user_id', uid).order('expense_date', { ascending: false }),
-        supabase.from('wealth_income').select('*').eq('user_id', uid).order('income_date', { ascending: false }),
-        supabase.from('wealth_bills').select('*').eq('user_id', uid).order('due_date', { ascending: true }),
-      ]);
+      const res = await getWealthSnapshot(uid);
+      if (!res.success) {
+        setError(res.error || 'Failed to load wealth state.');
+        return;
+      }
+      const { settings: s, expenses: e, incomes: i, bills: b } = res.data;
+      setSettings(s);
+      setExpenses(e || []);
+      setIncomes(i || []);
+      setBills(b || []);
 
-      if (sRes.error) console.warn('Wealth settings fetch error:', sRes.error.message);
-      if (eRes.error) console.warn('Expenses fetch error:', eRes.error.message);
-      if (iRes.error) console.warn('Income fetch error:', iRes.error.message);
-      if (bRes.error) console.warn('Bills fetch error:', bRes.error.message);
-
-      const sData = sRes.data || null;
-      setSettings(sData);
-      if (sData) {
-        setSetupForm({
-          currency: sData.currency === 'INR' ? '₹' : sData.currency === 'USD' ? '$' : '€',
-          budget:   sData.monthly_budget,
+      if (s) {
+        setBudgetForm({
+          budget: s.monthly_budget || 15000,
+          currency: s.currency || 'INR',
         });
       }
-
-      setExpenses(eRes.data || []);
-      setIncomes(iRes.data || []);
-      setBills(bRes.data || []);
-    } catch (e) {
-      console.error('Wealth load error:', e.message);
-      setError(e.message);
+    } catch (err) {
+      setError(err.message || 'Unexpected error loading financial state.');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Auth Hook
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         navigate('/login');
-      } else {
-        setUser(session.user);
-        loadData(session.user.id);
+        return;
       }
+      setUser(session.user);
+      loadData(session.user.id);
     });
   }, [navigate, loadData]);
 
-  // ─── Dex OS Live Invalidation ───────────────────────────────────────────────
+  // Dex Live Invalidation Listener
   useEffect(() => {
-    const handleDexRefresh = (e) => {
-      if (e.detail?.domain === 'wealth' || !e.detail?.domain) {
-        if (user?.id) loadData(user.id);
+    const handler = (e) => {
+      if ((e.detail?.domain === 'wealth' || !e.detail?.domain) && user?.id) {
+        loadData(user.id);
       }
     };
-    window.addEventListener('dexos:refresh', handleDexRefresh);
-    return () => window.removeEventListener('dexos:refresh', handleDexRefresh);
+    window.addEventListener('dexos:refresh', handler);
+    return () => window.removeEventListener('dexos:refresh', handler);
   }, [user, loadData]);
 
-  // ─── DB-First Handlers with Error Rollback (via wealthService) ──────────────
-  
-  // Save Settings
-  const saveSetup = async (e) => {
-    e.preventDefault();
-    if (!user) return;
-    const originalSettings = settings;
-
-    const settingsObj = {
-      id:             user.id,
-      user_id:        user.id,
-      currency:       setupForm.currency === '₹' ? 'INR' : setupForm.currency === '$' ? 'USD' : 'EUR',
-      monthly_budget: Number(setupForm.budget) || 15000,
-      created_at:     new Date().toISOString(),
-    };
-
-    const res = await serviceSaveWealthSettings({
-      userId: user.id,
-      currency: setupForm.currency === '₹' ? 'INR' : setupForm.currency === '$' ? 'USD' : 'EUR',
-      monthlyBudget: Number(setupForm.budget) || 15000,
+  // Compute Money State
+  const moneyState = useMemo(() => {
+    return computeMoneyState({
+      incomes,
+      expenses,
+      bills,
+      settings,
+      today: todayDate,
     });
-
-    if (!res.success) {
-      setSettings(originalSettings);
-      showToast(`Failed to save settings: ${res.error}`, 'error');
-      return;
-    }
-
-    setSettings(res.data || settingsObj);
-    showToast('💰 Settings saved!', 'success');
-    setActiveModal(null);
-  };
-
-  // Save Expense (Create or Edit)
-  const handleSaveExpense = async ({ id, amount, category, note, date }) => {
-    if (!user) return;
-    const isEdit = Boolean(id);
-    const targetId = id || crypto.randomUUID();
-    const originalExpenses = [...expenses];
-
-    const payload = {
-      id: targetId,
-      user_id: user.id,
-      amount: amount,
-      category: category,
-      note: note,
-      expense_date: date,
-      created_at: new Date().toISOString(),
-    };
-
-    if (isEdit) {
-      const res = await serviceUpdateExpense({
-        userId: user.id,
-        id: targetId,
-        amount,
-        category,
-        note,
-        date,
-      });
-
-      if (!res.success) {
-        setExpenses(originalExpenses);
-        showToast(`Failed to update expense: ${res.error}`, 'error');
-        return;
-      }
-
-      setExpenses(prev => prev.map(item => item.id === targetId ? { ...item, ...payload } : item));
-      showToast('💸 Expense updated!', 'success');
-    } else {
-      const res = await serviceAddExpense({
-        userId: user.id,
-        amount,
-        category,
-        note,
-        date,
-      });
-
-      if (!res.success) {
-        setExpenses(originalExpenses);
-        showToast(`Failed to log expense: ${res.error}`, 'error');
-        return;
-      }
-
-      setExpenses(prev => [res.data || payload, ...prev]);
-      showToast('💸 Expense logged!', 'success');
-    }
-  };
-
-  // Save Income (Create or Edit)
-  const handleSaveIncome = async ({ id, amount, source, note, date }) => {
-    if (!user) return;
-    const isEdit = Boolean(id);
-    const targetId = id || crypto.randomUUID();
-    const originalIncomes = [...incomes];
-
-    const payload = {
-      id: targetId,
-      user_id: user.id,
-      amount: amount,
-      source: source,
-      note: note,
-      income_date: date,
-      created_at: new Date().toISOString(),
-    };
-
-    if (isEdit) {
-      const res = await serviceUpdateIncome({
-        userId: user.id,
-        id: targetId,
-        amount,
-        source,
-        note,
-        date,
-      });
-
-      if (!res.success) {
-        setIncomes(originalIncomes);
-        showToast(`Failed to update income: ${res.error}`, 'error');
-        return;
-      }
-
-      setIncomes(prev => prev.map(item => item.id === targetId ? { ...item, ...payload } : item));
-      showToast('💵 Income updated!', 'success');
-    } else {
-      const res = await serviceAddIncome({
-        userId: user.id,
-        amount,
-        source,
-        note,
-        date,
-      });
-
-      if (!res.success) {
-        setIncomes(originalIncomes);
-        showToast(`Failed to log income: ${res.error}`, 'error');
-        return;
-      }
-
-      setIncomes(prev => [res.data || payload, ...prev]);
-      showToast('💵 Income logged!', 'success');
-    }
-  };
-
-  // Save Bill (Create or Edit)
-  const handleSaveBill = async ({ id, name, amount, due_date, frequency, status }) => {
-    if (!user) return;
-    const isEdit = Boolean(id);
-    const targetId = id || crypto.randomUUID();
-    const originalBills = [...bills];
-
-    const payload = {
-      id: targetId,
-      user_id: user.id,
-      name: name,
-      amount: amount,
-      due_date: due_date,
-      frequency: frequency,
-      status: status || 'unpaid',
-      created_at: new Date().toISOString(),
-    };
-
-    if (isEdit) {
-      const res = await serviceUpdateBill({
-        userId: user.id,
-        id: targetId,
-        name,
-        amount,
-        dueDate: due_date,
-        frequency,
-        status: status || 'unpaid',
-      });
-
-      if (!res.success) {
-        setBills(originalBills);
-        showToast(`Failed to update bill: ${res.error}`, 'error');
-        return;
-      }
-
-      setBills(prev => prev.map(item => item.id === targetId ? { ...item, ...payload } : item).sort((a, b) => new Date(a.due_date) - new Date(b.due_date)));
-      showToast('📅 Bill updated!', 'success');
-    } else {
-      const res = await serviceAddBill({
-        userId: user.id,
-        name,
-        amount,
-        dueDate: due_date,
-        frequency,
-        status: status || 'unpaid',
-      });
-
-      if (!res.success) {
-        setBills(originalBills);
-        showToast(`Failed to add bill: ${res.error}`, 'error');
-        return;
-      }
-
-      setBills(prev => [...prev, res.data || payload].sort((a, b) => new Date(a.due_date) - new Date(b.due_date)));
-      showToast('📅 Bill added!', 'success');
-    }
-  };
-
-  // Toggle Bill Paid Status
-  const toggleBillStatus = async (id, currentStatus) => {
-    if (!user) return;
-    const newStatus = currentStatus === 'paid' ? 'unpaid' : 'paid';
-    const originalBills = [...bills];
-
-    setBills(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b));
-
-    const res = await serviceToggleBillStatus({
-      userId: user.id,
-      billId: id,
-      status: newStatus,
-    });
-    if (!res.success) {
-      setBills(originalBills);
-      showToast(`Failed to update bill status: ${res.error}`, 'error');
-      return;
-    }
-
-    showToast(newStatus === 'paid' ? '✅ Bill paid!' : '⏳ Marked unpaid', 'success');
-  };
-
-  // Delete Bill
-  const deleteBill = (id) => {
-    setConfirmSheet({
-      message: 'Delete this bill?',
-      onConfirm: async () => {
-        const originalBills = [...bills];
-        setBills(prev => prev.filter(b => b.id !== id));
-
-        const res = await serviceDeleteBill({ userId: user.id, id });
-        if (!res.success) {
-          setBills(originalBills);
-          showToast(`Failed to delete bill: ${res.error}`, 'error');
-          return;
-        }
-
-        showToast('🗑 Bill deleted', 'success');
-      },
-    });
-  };
-
-  // Delete Expense
-  const deleteExpense = (id) => {
-    setConfirmSheet({
-      message: 'Delete this expense?',
-      onConfirm: async () => {
-        const originalExpenses = [...expenses];
-        setExpenses(prev => prev.filter(e => e.id !== id));
-
-        const res = await serviceDeleteExpense({ userId: user.id, id });
-        if (!res.success) {
-          setExpenses(originalExpenses);
-          showToast(`Failed to delete expense: ${res.error}`, 'error');
-          return;
-        }
-
-        showToast('🗑 Expense deleted', 'success');
-      },
-    });
-  };
-
-  // Delete Income
-  const deleteIncome = (id) => {
-    setConfirmSheet({
-      message: 'Delete this income entry?',
-      onConfirm: async () => {
-        const originalIncomes = [...incomes];
-        setIncomes(prev => prev.filter(i => i.id !== id));
-
-        const res = await serviceDeleteIncome({ userId: user.id, id });
-        if (!res.success) {
-          setIncomes(originalIncomes);
-          showToast(`Failed to delete income: ${res.error}`, 'error');
-          return;
-        }
-
-        showToast('🗑 Income deleted', 'success');
-      },
-    });
-  };
-
-  // ─── Financial Calculations ────────────────────────────────────────────────
-  const sym = settings?.currency === 'USD' ? '$' : settings?.currency === 'EUR' ? '€' : '₹';
-
-  const _totalIncome         = useMemo(() => computeTotalIncome(incomes), [incomes]);
-  const _totalExpenseAllTime = useMemo(() => computeTotalExpense(expenses), [expenses]);
-  const liquidCash          = useMemo(() => computeNetBalance(incomes, expenses), [incomes, expenses]);
-
-  const thirtyDaysAgoStr = useMemo(() => {
-    const d = new Date(); d.setDate(d.getDate() - 30);
-    return getLocalYMD(d);
-  }, []);
-
-  const { burnLast30: _burnLast30, dailyBurnRate, runwayDays } = useMemo(() => {
-    return computeBurnRateAndRunway(expenses, liquidCash, thirtyDaysAgoStr);
-  }, [expenses, liquidCash, thirtyDaysAgoStr]);
-
-  const runwayStatus = useMemo(() => getRunwayStatus(runwayDays), [runwayDays]);
-
-  const todaySpend = useMemo(() => {
-    return expenses.filter(e => e.expense_date === todayDate).reduce((s, e) => s + Number(e.amount), 0);
-  }, [expenses, todayDate]);
-
-  const monthTotal = useMemo(() => computeMonthExpenses(expenses, curMonth), [expenses, curMonth]);
-  const { budget: monthBudget, budgetPct } = useMemo(() => computeBudgetStats(settings, monthTotal), [settings, monthTotal]);
-
-  // Deterministic Wealth Intelligence Calculations
-  const safeData = useMemo(() => {
-    return computeSafeToSpend(incomes, expenses, bills, settings, todayDate);
   }, [incomes, expenses, bills, settings, todayDate]);
 
-  const paceData = useMemo(() => {
-    return computeSpendingPace(expenses, settings?.monthly_budget, curMonth, todayDate);
-  }, [expenses, settings, curMonth, todayDate]);
+  const currencySymbol =
+    settings?.currency === 'USD' ? '$' : settings?.currency === 'EUR' ? '€' : '₹';
 
-  // Breakdown period calculations
-  const { breakdownTotal, categoryBreakdown } = useMemo(() => {
-    const now = new Date();
-    let startDate = todayDate;
-    if (breakdownPeriod === 'week') {
-      const d = new Date(); d.setDate(d.getDate() - 7);
-      startDate = getLocalYMD(d);
-    } else if (breakdownPeriod === 'month') {
-      startDate = `${curMonth}-01`;
-    } else if (breakdownPeriod === 'year') {
-      startDate = `${now.getFullYear()}-01-01`;
-    }
-
-    const filtered = expenses.filter(e => e.expense_date >= startDate);
-    const total = filtered.reduce((sum, e) => sum + Number(e.amount), 0);
-
-    const catMap = {};
-    filtered.forEach(e => {
-      catMap[e.category] = (catMap[e.category] || 0) + Number(e.amount);
-    });
-
-    const breakdown = Object.entries(catMap).map(([cat, amt]) => ({
-      cat,
-      amt,
-      pct: total > 0 ? Math.round((amt / total) * 100) : 0,
-    })).sort((a, b) => b.amt - a.amt);
-
-    return { breakdownTotal: total, categoryBreakdown: breakdown };
-  }, [expenses, breakdownPeriod, todayDate, curMonth]);
-
-  // Group activity by date
-  const activityByDate = useMemo(() => {
-    const combined = [
-      ...expenses.map(e => ({ ...e, _type: 'expense', date: e.expense_date })),
-      ...incomes.map(i => ({ ...i, _type: 'income', date: i.income_date })),
-    ].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    const groupsMap = {};
-    combined.forEach(item => {
-      if (!groupsMap[item.date]) {
-        groupsMap[item.date] = { date: item.date, items: [], spent: 0, earned: 0 };
-      }
-      groupsMap[item.date].items.push(item);
-      if (item._type === 'expense') groupsMap[item.date].spent += Number(item.amount);
-      if (item._type === 'income') groupsMap[item.date].earned += Number(item.amount);
-    });
-
-    return Object.values(groupsMap);
-  }, [expenses, incomes]);
-
-  const groupsToShow = showAllActivity ? activityByDate : activityByDate.slice(0, 3);
-  const nextBill = bills.find(b => b.status === 'unpaid');
-
-  const formatGroupDate = (dateStr) => {
-    if (dateStr === todayDate) return 'TODAY';
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' }).toUpperCase();
+  // Format currency shorthand
+  const fmtShort = (num) => {
+    const n = Number(num) || 0;
+    if (n >= 100000) return `${currencySymbol}${(n / 1000).toFixed(0)}k`;
+    if (n >= 1000) return `${currencySymbol}${(n / 1000).toFixed(1).replace('.0', '')}k`;
+    return `${currencySymbol}${n.toLocaleString()}`;
   };
 
-  // Loading state
-  if (loading) {
+  const fmtFull = (num) => `${currencySymbol}${Math.round(Number(num) || 0).toLocaleString()}`;
+
+  // Action: Record Money Event
+  const handleRecordEvent = async (eventParams) => {
+    if (!user) return;
+    try {
+      const res = await recordMoneyEvent({
+        userId: user.id,
+        ...eventParams,
+      });
+
+      if (!res.success) {
+        showToast(`Failed: ${res.error}`, 'error');
+        return;
+      }
+
+      showToast(`Recorded: ${eventParams.title || eventParams.type}`, 'success');
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
+      await loadData(user.id);
+    } catch (err) {
+      showToast(err.message || 'Failed to record event.', 'error');
+    }
+  };
+
+  // Action: Calibrate Cash
+  const handleCalibrateCash = async (targetCash) => {
+    if (!user) return;
+    try {
+      const res = await calibrateCashBalance({
+        userId: user.id,
+        targetCash,
+      });
+
+      if (!res.success) {
+        showToast(`Failed: ${res.error}`, 'error');
+        return;
+      }
+
+      showToast('Cash balance updated.', 'success');
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
+      await loadData(user.id);
+    } catch (err) {
+      showToast(err.message || 'Calibration failed.', 'error');
+    }
+  };
+
+  // Action: Resolve Promise
+  const handleResolvePromise = async (promiseItem) => {
+    if (!user) return;
+    try {
+      const res = await resolveMoneyPromise({
+        userId: user.id,
+        billId: promiseItem.id,
+        amount: promiseItem.amount,
+        person: promiseItem.person,
+      });
+      if (!res.success) throw new Error(res.error);
+      showToast(`Settled with ${promiseItem.person || 'contact'}`, 'success');
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
+      await loadData(user.id);
+    } catch (err) {
+      showToast(err.message || 'Failed to resolve promise.', 'error');
+    }
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    if (!user) return;
+    try {
+      const res = await saveWealthSettings({
+        userId: user.id,
+        monthlyBudget: parseFloat(budgetForm.budget) || 15000,
+        currency: budgetForm.currency,
+      });
+      if (!res.success) throw new Error(res.error);
+      showToast('Wealth settings saved.', 'success');
+      setIsSettingsOpen(false);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
+      await loadData(user.id);
+    } catch (err) {
+      showToast(err.message || 'Failed to save settings.', 'error');
+    }
+  };
+
+  if (loading && !moneyState) {
     return (
-      <div style={{ background: W.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: '13px', color: W.muted, fontWeight: 700 }}>Loading Financial OS...</div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: W.bg }}>
+        <div className="text-xs font-semibold text-[#9CA3AF] tracking-wide animate-pulse">
+          Loading Money State...
+        </div>
       </div>
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <div style={{ background: W.bg, minHeight: '100vh' }}>
+      <div className="min-h-screen" style={{ background: W.bg }}>
         <ErrorState message={error} onRetry={() => user && loadData(user.id)} />
-        <BottomNav activeTab="wealth" onTabChange={t => navigate(`/${t}`)} />
+        <BottomNav activeTab="wealth" onTabChange={(t) => navigate(`/${t}`)} />
       </div>
     );
   }
 
-  // Setup modal for new users without settings
-  if (!settings) {
+  // ── Calculate Hero Figures ──────────────────────────────────────────────
+  const liquidCash = Math.max(0, Number(moneyState.liquidCash || 0));
+  const committedTotal = Number(moneyState.upcomingBillTotal || moneyState.committedNext30Total || 0);
+  const safeToSpend = Math.max(0, Number(moneyState.safeToSpendDaily || moneyState.unencumberedCash || (liquidCash - committedTotal)));
+  const runwayDays = moneyState.runwayDays > 0 ? moneyState.runwayDays : 31;
+
+  // ── View: ASSETS DETAIL ─────────────────────────────────────────────────
+  if (activeView === 'assets') {
+    const assetItems = [
+      { id: 'cash', icon: Wallet, label: 'Cash', desc: 'Your current liquid money', amount: moneyState.assets?.cash || liquidCash },
+      { id: 'savings', icon: PiggyBank, label: 'Savings', desc: "Money you've set aside", amount: moneyState.assets?.savings || 0 },
+      { id: 'investments', icon: Landmark, label: 'Investments', desc: 'Current value', amount: moneyState.assets?.invested || 0 },
+      { id: 'gold', icon: Sparkles, label: 'Gold', desc: 'Your gold holdings', amount: moneyState.assets?.gold || 0 },
+      { id: 'owed', icon: Users, label: 'Owed to you', desc: 'Money others owe you', amount: moneyState.assets?.owedToYou || 0 },
+    ];
+
     return (
-      <div style={{ background: W.bg, minHeight: '100vh', color: W.text, padding: '24px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{ background: W.surface, border: `1px solid ${W.border}`, borderRadius: '16px', padding: '24px 20px' }}>
-          <div style={{ fontSize: '10px', color: W.accent, fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '8px' }}>
-            SETUP WEALTH
+      <div className="app-container min-h-screen text-[#F5F5F5] pb-24" style={{ background: W.bg }}>
+        <div style={{ padding: '24px 20px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            type="button"
+            onClick={() => setActiveView('home')}
+            style={{ background: 'transparent', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: '4px' }}
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <div className="font-serif-state" style={{ fontSize: '24px', fontWeight: 400, color: '#F5F5F5' }}>
+              Assets
+            </div>
+            <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Where your money is now</div>
           </div>
-          <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '6px' }}>Set your budget baseline</h2>
-          <p style={{ fontSize: '12px', color: W.sub, marginBottom: '20px' }}>
-            Choose your primary currency and monthly budget target.
-          </p>
-
-          <form onSubmit={saveSetup}>
-            <FLabel>Currency</FLabel>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-              {['₹', '$', '€'].map(c => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setSetupForm({ ...setupForm, currency: c })}
-                  style={{
-                    flex: 1, padding: '12px', borderRadius: '12px',
-                    background: setupForm.currency === c ? W.accent : W.dim,
-                    border: `1px solid ${setupForm.currency === c ? W.accent : W.border2}`,
-                    color: setupForm.currency === c ? '#000' : W.text,
-                    fontSize: '20px', fontWeight: 800, cursor: 'pointer',
-                  }}
-                >{c}</button>
-              ))}
-            </div>
-            <FLabel>Monthly Budget</FLabel>
-            <div style={{ position: 'relative', marginBottom: '28px' }}>
-              <span style={{ position: 'absolute', left: '16px', top: '16px', fontSize: '18px', fontWeight: 900, color: W.accent }}>{setupForm.currency}</span>
-              <input
-                type="number" step="10" min="1" required
-                value={setupForm.budget}
-                onChange={e => setSetupForm({ ...setupForm, budget: e.target.value })}
-                style={{
-                  width: '100%', background: W.bg, border: `1px solid ${W.border2}`, borderRadius: '14px',
-                  padding: '14px 14px 14px 40px', fontSize: '20px', fontWeight: 800, color: W.accent, outline: 'none'
-                }}
-              />
-            </div>
-            <button type="submit" style={{
-              width: '100%', padding: '16px', borderRadius: '14px',
-              background: W.accent, color: '#000',
-              fontWeight: 900, fontSize: '15px', border: 'none', cursor: 'pointer',
-            }}>
-              Start Tracking
-            </button>
-          </form>
         </div>
-        <BottomNav activeTab="wealth" onTabChange={t => navigate(`/${t}`)} />
+
+        <div style={{ padding: '8px 20px 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {assetItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.id}
+                style={{
+                  background: W.surfaceCard,
+                  border: `1px solid ${W.border}`,
+                  borderRadius: '12px',
+                  padding: '16px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#1A1E24', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E9B44C' }}>
+                    <Icon size={17} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#F5F5F5' }}>{item.label}</div>
+                    <div style={{ fontSize: '11.5px', color: '#8E929B' }}>{item.desc}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#F5F5F5' }}>{fmtFull(item.amount)}</div>
+                  <ChevronRight size={14} color="#6B7280" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <BottomNav activeTab="wealth" onTabChange={(t) => navigate(`/${t}`)} />
       </div>
     );
   }
 
-  return (
-    <div className="app-container page-enter" style={{ background: W.bg, minHeight: '100vh', color: W.text, position: 'relative' }}>
-      
-      {/* HEADER */}
-      <div style={{ padding: '28px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div style={{ fontSize: '10px', color: W.accent, fontWeight: 800, letterSpacing: '2.5px', textTransform: 'uppercase', marginBottom: '4px' }}>WEALTH</div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: W.text, letterSpacing: '-0.5px' }}>Financial OS.</h1>
-          <div style={{ fontSize: '11px', color: W.muted, marginTop: '3px' }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </div>
-        </div>
-        <button
-          onClick={() => setActiveModal('manage')}
-          style={{
-            background: W.surface, border: `1px solid ${W.border}`,
-            borderRadius: '10px', padding: '8px 10px',
-            cursor: 'pointer', color: W.muted, display: 'flex', alignItems: 'center', gap: '6px',
-            fontSize: '11px', fontWeight: 700,
-          }}
-        >
-          <Settings2 size={14} />
-          Manage
-        </button>
-      </div>
+  // ── View: COMMITMENTS DETAIL ────────────────────────────────────────────
+  if (activeView === 'commitments') {
+    const upcomingList = bills.filter((b) => b.status !== 'receivable');
 
-      {/* MAIN FEED */}
-      <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '120px' }}>
-
-        {/* 0. SAFE TO SPEND HERO BANNER */}
-        <SafeToSpendBanner
-          safeData={safeData}
-          paceData={paceData}
-          currencySymbol={sym}
-        />
-
-        {/* 1. RUNWAY HERO */}
-        <div style={{
-          background: `linear-gradient(145deg, ${W.surface} 0%, ${W.card} 100%)`,
-          border: `1px solid ${W.border}`,
-          borderTop: `3px solid ${runwayStatus.color}`,
-          borderRadius: '24px',
-          padding: '20px',
-          textAlign: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: `0 0 40px ${runwayStatus.color}0A, 0 4px 24px rgba(0,0,0,0.35)`,
-        }}>
-          <div style={{
-            position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-            width: '240px', height: '100px',
-            background: `radial-gradient(ellipse at top, ${runwayStatus.color}0D 0%, transparent 70%)`,
-            pointerEvents: 'none',
-          }} />
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <div style={{ fontSize: '9px', color: runwayStatus.color, fontWeight: 800, letterSpacing: '1.5px', textTransform: 'uppercase' }}>
-              RUNWAY STATUS
-            </div>
-            <div style={{ fontSize: '11px', color: runwayStatus.color, fontWeight: 700 }}>
-              {runwayStatus.label}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '6px', marginBottom: '4px' }}>
-            {runwayDays >= 999 ? (
-              <span style={{ fontSize: '44px', fontWeight: 900, color: W.text, lineHeight: 1 }}>Calm</span>
-            ) : (
-              <>
-                <span style={{ fontSize: '52px', fontWeight: 900, color: W.text, lineHeight: 1 }}>
-                  {runwayDays}
-                </span>
-                <span style={{ fontSize: '16px', color: W.sub, fontWeight: 700 }}>days</span>
-              </>
-            )}
-          </div>
-
-          <div style={{ fontSize: '12px', color: W.sub, fontWeight: 500, marginBottom: '14px' }}>
-            {runwayDays < 999 ? (
-              <>Safe until <span style={{ color: runwayStatus.color, fontWeight: 700 }}>{safeUntilDate(runwayDays)}</span></>
-            ) : (
-              runwayStatus.message
-            )}
-          </div>
-
-          {/* Month budget progress bar */}
-          {budgetPct > 0 && (
-            <div style={{ borderTop: `1px solid ${W.border}`, paddingTop: '12px', paddingBottom: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '10px' }}>
-                <span style={{ color: W.muted, fontWeight: 700 }}>MONTH BUDGET</span>
-                <span style={{ color: budgetPct >= 90 ? W.danger : budgetPct >= 70 ? W.warning : W.success, fontWeight: 800 }}>
-                  {budgetPct}% used ({sym}{monthTotal.toLocaleString()} / {sym}{monthBudget.toLocaleString()})
-                </span>
-              </div>
-              <div style={{ height: '4px', background: W.dim, borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%',
-                  width: `${budgetPct}%`,
-                  background: budgetPct >= 90 ? W.danger : budgetPct >= 70 ? W.warning : W.success,
-                  borderRadius: '4px',
-                  transition: 'width 0.6s ease',
-                }} />
-              </div>
-            </div>
-          )}
-
-          {/* Next Bill */}
-          {nextBill && (
-            <div style={{
-              marginTop: '12px',
-              paddingTop: '12px',
-              borderTop: `1px solid ${W.border}`,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: '11px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-                <span style={{ color: W.warning, fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', fontSize: '9px' }}>NEXT BILL:</span>
-                <span style={{ color: W.text, fontWeight: 750, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nextBill.name}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                <span style={{ color: W.sub, fontWeight: 700 }}>{fmtCurrency(sym, nextBill.amount)} · {fmtDate(nextBill.due_date)}</span>
-                <button
-                  onClick={() => toggleBillStatus(nextBill.id, nextBill.status)}
-                  style={{
-                    background: `${W.accent}20`, border: `1px solid ${W.accent}40`,
-                    borderRadius: '6px', color: W.accent,
-                    fontSize: '10px', fontWeight: 800, padding: '2px 6px', cursor: 'pointer',
-                  }}
-                >
-                  Pay
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 2. ACTION BUTTONS */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+    return (
+      <div className="app-container min-h-screen text-[#F5F5F5] pb-24" style={{ background: W.bg }}>
+        <div style={{ padding: '24px 20px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
-            onClick={() => { setEditingTransaction(null); setActiveModal('expense'); }}
-            style={{
-              background: W.surface,
-              border: `1px solid ${W.danger}40`,
-              borderRadius: '16px',
-              padding: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-              color: W.danger,
-              fontWeight: 800,
-              fontSize: '13px',
-            }}
+            type="button"
+            onClick={() => setActiveView('home')}
+            style={{ background: 'transparent', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: '4px' }}
           >
-            <TrendingDown size={16} />
-            Log Expense
+            <ArrowLeft size={18} />
           </button>
-
-          <button
-            onClick={() => { setEditingTransaction(null); setActiveModal('income'); }}
-            style={{
-              background: W.surface,
-              border: `1px solid ${W.accent}40`,
-              borderRadius: '16px',
-              padding: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-              color: W.accent,
-              fontWeight: 800,
-              fontSize: '13px',
-            }}
-          >
-            <TrendingUp size={16} />
-            Log Income
-          </button>
-        </div>
-
-        {/* 3a. QUICK STATS ROW */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-          <div style={{ background: W.surface, border: `1px solid ${W.border}`, borderRadius: '16px', padding: '14px 12px' }}>
-            <div style={{ fontSize: '9px', color: W.muted, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Net Cash</div>
-            <div style={{ fontSize: '16px', fontWeight: 900, color: liquidCash >= 0 ? W.text : W.danger, letterSpacing: '-0.5px' }}>
-              {fmtCurrency(sym, liquidCash)}
-            </div>
-          </div>
-
-          <div style={{ background: W.surface, border: `1px solid ${W.border}`, borderRadius: '16px', padding: '14px 12px' }}>
-            <div style={{ fontSize: '9px', color: W.muted, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Today</div>
-            <div style={{ fontSize: '16px', fontWeight: 900, color: todaySpend > 0 ? W.danger : W.muted, letterSpacing: '-0.5px' }}>
-              {todaySpend > 0 ? `-${fmtCurrency(sym, todaySpend)}` : '—'}
-            </div>
-          </div>
-
-          <div style={{ background: W.surface, border: `1px solid ${W.border}`, borderRadius: '16px', padding: '14px 12px' }}>
-            <div style={{ fontSize: '9px', color: W.muted, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Daily avg</div>
-            <div style={{ fontSize: '16px', fontWeight: 900, color: W.text, letterSpacing: '-0.5px' }}>
-              {dailyBurnRate > 0 ? fmtCurrency(sym, dailyBurnRate) : '—'}
-            </div>
-          </div>
-        </div>
-
-        {/* 3b. SPENDING BREAKDOWN */}
-        <div style={{
-          background: W.surface,
-          border: `1px solid ${W.border}`,
-          borderRadius: '20px',
-          padding: '18px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '14px',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: '10px', color: W.muted, fontWeight: 800, letterSpacing: '1.5px', textTransform: 'uppercase' }}>Spending</div>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              {[{ id: 'today', label: 'Day' }, { id: 'week', label: 'Week' }, { id: 'month', label: 'Month' }, { id: 'year', label: 'Year' }].map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setBreakdownPeriod(p.id)}
-                  style={{
-                    padding: '5px 10px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: breakdownPeriod === p.id ? `${W.accent}20` : 'transparent',
-                    color: breakdownPeriod === p.id ? W.accent : W.muted,
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div>
-            <div style={{ fontSize: '24px', fontWeight: 900, color: breakdownTotal > 0 ? W.text : W.muted, letterSpacing: '-0.5px' }}>
-              {breakdownTotal > 0 ? fmtCurrency(sym, breakdownTotal) : `${sym}0`}
+            <div className="font-serif-state" style={{ fontSize: '24px', fontWeight: 400, color: '#F5F5F5' }}>
+              Commitments
             </div>
-            <div style={{ fontSize: '11px', color: W.muted, marginTop: '2px' }}>
-              {breakdownPeriod === 'today' ? 'spent today'
-                : breakdownPeriod === 'week' ? 'spent this week'
-                : breakdownPeriod === 'month' ? 'spent this month'
-                : 'spent this year'}
-            </div>
+            <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Money already promised</div>
           </div>
-
-          {categoryBreakdown.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {categoryBreakdown.slice(0, 5).map(({ cat, amt, pct }) => (
-                <div key={cat}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '14px' }}>{EXP_CATEGORIES[cat] || '📦'}</span>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: W.text }}>{cat}</span>
-                    </div>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: W.sub }}>
-                      {fmtCurrency(sym, amt)}
-                      <span style={{ fontSize: '10px', color: W.muted, fontWeight: 600, marginLeft: '4px' }}>{pct}%</span>
-                    </span>
-                  </div>
-                  <div style={{ height: '4px', background: W.dim, borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${pct}%`,
-                      background: CAT_COLORS[cat] || W.accent,
-                      borderRadius: '4px',
-                      transition: 'width 0.4s ease',
-                    }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ fontSize: '12px', color: W.muted, textAlign: 'center', padding: '8px 0' }}>
-              No expenses logged for this period.
-            </div>
-          )}
         </div>
 
-        {/* 4. RECENT ACTIVITY (WITH EDIT & DELETE ACTIONS) */}
-        {activityByDate.length > 0 && (
-          <div>
-            <SectionLabel>Recent Activity</SectionLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {groupsToShow.map(group => (
-                <div key={group.date} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px', marginTop: '4px' }}>
-                    <span style={{ fontSize: '11px', color: W.sub, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                      {formatGroupDate(group.date)}
-                    </span>
-                    <div style={{ fontSize: '11px', fontWeight: 800, display: 'flex', gap: '8px' }}>
-                      {group.earned > 0 && <span style={{ color: W.success }}>+{fmtCurrency(sym, group.earned)}</span>}
-                      {group.spent > 0 && <span style={{ color: W.danger }}>-{fmtCurrency(sym, group.spent)}</span>}
-                    </div>
-                  </div>
-
-                  {group.items.map(t => {
-                    const isInc = t._type === 'income';
-                    const icon  = isInc ? (INC_SOURCES[t.source] || '💰') : (EXP_CATEGORIES[t.category] || '📦');
-                    const catKey = isInc ? t.source : t.category;
-                    const dotColor = CAT_COLORS[catKey] || W.muted;
-                    return (
-                      <div key={t.id} style={{
-                        background: W.surface,
-                        border: `1px solid ${W.border}`,
-                        borderRadius: '14px',
-                        padding: '11px 14px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', minWidth: 0 }}>
-                          <div style={{ position: 'relative', flexShrink: 0 }}>
-                            <span style={{ fontSize: '18px' }}>{icon}</span>
-                            <div style={{
-                              position: 'absolute',
-                              bottom: '-1px',
-                              right: '-2px',
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              background: dotColor,
-                              border: `1.5px solid ${W.surface}`,
-                            }} />
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: '13px', fontWeight: 700, color: W.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {t.note || t.source || t.category}
-                            </div>
-                            <div style={{ fontSize: '10px', color: W.muted, marginTop: '2px' }}>
-                              {isInc ? t.source : t.category}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0, marginLeft: '8px' }}>
-                          <div style={{ fontSize: '14px', fontWeight: 900, color: isInc ? W.success : W.text }}>
-                            {isInc ? '+' : '-'}{fmtCurrency(sym, t.amount)}
-                          </div>
-                          <div style={{ display: 'flex', gap: '8px', marginTop: '3px' }}>
-                            <button
-                              onClick={() => setEditingTransaction({ type: isInc ? 'income' : 'expense', item: t })}
-                              style={{ fontSize: '10px', color: W.accent, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => isInc ? deleteIncome(t.id) : deleteExpense(t.id)}
-                              style={{ fontSize: '10px', color: W.muted, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-
-              {activityByDate.length > 3 && (
-                <button
-                  onClick={() => setShowAllActivity(!showAllActivity)}
-                  style={{
-                    background: 'transparent', border: `1px solid ${W.border}`,
-                    borderRadius: '12px', padding: '10px',
-                    color: W.muted, fontSize: '12px', fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                  }}
-                >
-                  {showAllActivity ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  {showAllActivity ? 'Show less days' : `Show ${activityByDate.length - 3} more days`}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {activityByDate.length === 0 && (
-          <div style={{ textAlign: 'center', color: W.muted, padding: '20px 0', fontSize: '12px' }}>
-            No financial activity yet. Log your first expense or income above!
-          </div>
-        )}
-
-      </div>
-
-      {/* ── MODALS & SHEETS ─────────────────────────────────────────────────── */}
-
-      {/* Expense Modal (Create or Edit) */}
-      {(activeModal === 'expense' || (editingTransaction && editingTransaction.type === 'expense')) && (
-        <TransactionFormModal
-          type="expense"
-          editingItem={editingTransaction ? editingTransaction.item : null}
-          currencySymbol={sym}
-          onSave={handleSaveExpense}
-          onClose={() => { setActiveModal(null); setEditingTransaction(null); }}
-        />
-      )}
-
-      {/* Income Modal (Create or Edit) */}
-      {(activeModal === 'income' || (editingTransaction && editingTransaction.type === 'income')) && (
-        <TransactionFormModal
-          type="income"
-          editingItem={editingTransaction ? editingTransaction.item : null}
-          currencySymbol={sym}
-          onSave={handleSaveIncome}
-          onClose={() => { setActiveModal(null); setEditingTransaction(null); }}
-        />
-      )}
-
-      {/* Bill Modal (Create or Edit) */}
-      {(activeModal === 'bill' || editingBillModal) && (
-        <BillFormModal
-          editingBill={editingBillModal}
-          currencySymbol={sym}
-          onSave={handleSaveBill}
-          onClose={() => { setActiveModal(null); setEditingBillModal(null); }}
-        />
-      )}
-
-      {/* Manage Sheet */}
-      {activeModal === 'manage' && (
-        <BottomSheet title="Manage Wealth OS" onClose={() => setActiveModal(null)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {/* Settings button */}
+        {/* Tabs: Upcoming / Recurring / Past */}
+        <div style={{ padding: '0 20px 16px', display: 'flex', gap: '8px' }}>
+          {[
+            { id: 'upcoming', label: 'Upcoming' },
+            { id: 'recurring', label: 'Recurring' },
+            { id: 'past', label: 'Past' },
+          ].map((tab) => (
             <button
-              onClick={() => setActiveModal('settings')}
+              key={tab.id}
+              type="button"
+              onClick={() => setCommitmentsTab(tab.id)}
               style={{
-                background: W.card, border: `1px solid ${W.border2}`, borderRadius: '14px',
-                padding: '14px', color: W.text, fontSize: '13px', fontWeight: 800,
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 600,
+                border: 'none',
+                background: commitmentsTab === tab.id ? '#2A2215' : '#15181B',
+                color: commitmentsTab === tab.id ? '#E9B44C' : '#9CA3AF',
+                cursor: 'pointer',
               }}
             >
-              <span>⚙ Settings & Monthly Budget</span>
-              <span style={{ color: W.accent }}>{sym}{monthBudget.toLocaleString()}</span>
+              {tab.label}
             </button>
+          ))}
+        </div>
 
-            {/* Recurring Bills section */}
-            <div style={{ borderTop: `1px solid ${W.border}`, paddingTop: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <SectionLabel>Recurring Bills</SectionLabel>
-                <button
-                  onClick={() => { setEditingBillModal(null); setActiveModal('bill'); }}
-                  style={{ fontSize: '11px', color: W.accent, background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 800 }}
-                >
-                  + Add Bill
-                </button>
+        <div style={{ padding: '0 20px 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {upcomingList.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#6B7280', fontSize: '13px' }}>
+              No commitments found in this tab.
+            </div>
+          ) : (
+            upcomingList.map((bill) => (
+              <div
+                key={bill.id}
+                style={{
+                  background: W.surfaceCard,
+                  border: `1px solid ${W.border}`,
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#1A1E24', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E9B44C' }}>
+                    <Calendar size={16} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#F5F5F5' }}>{bill.name}</div>
+                    <div style={{ fontSize: '11px', color: '#8E929B' }}>Due {bill.due_date || 'soon'}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#F5F5F5' }}>{fmtFull(bill.amount)}</div>
+                  <ChevronRight size={14} color="#6B7280" />
+                </div>
               </div>
+            ))
+          )}
+        </div>
+        <BottomNav activeTab="wealth" onTabChange={(t) => navigate(`/${t}`)} />
+      </div>
+    );
+  }
 
-              {bills.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {bills.map(b => (
-                    <div
-                      key={b.id}
+  // ── View: PROMISES DETAIL ───────────────────────────────────────────────
+  if (activeView === 'promises') {
+    const owedToMe = moneyState.moneyPromises || [];
+    const iOwe = bills.filter((b) => (b.name || '').toLowerCase().includes('return to') || (b.name || '').toLowerCase().includes('borrow'));
+
+    return (
+      <div className="app-container min-h-screen text-[#F5F5F5] pb-24" style={{ background: W.bg }}>
+        <div style={{ padding: '24px 20px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            type="button"
+            onClick={() => setActiveView('home')}
+            style={{ background: 'transparent', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: '4px' }}
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <div className="font-serif-state" style={{ fontSize: '24px', fontWeight: 400, color: '#F5F5F5' }}>
+              Promises
+            </div>
+            <div style={{ fontSize: '12px', color: '#9CA3AF' }}>People and money relationships</div>
+          </div>
+        </div>
+
+        {/* Tabs: Owed to me / I owe */}
+        <div style={{ padding: '0 20px 16px', display: 'flex', gap: '8px' }}>
+          {[
+            { id: 'owed_to_me', label: 'Owed to me' },
+            { id: 'i_owe', label: 'I owe' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setPromisesTab(tab.id)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 600,
+                border: 'none',
+                background: promisesTab === tab.id ? '#2A2215' : '#15181B',
+                color: promisesTab === tab.id ? '#E9B44C' : '#9CA3AF',
+                cursor: 'pointer',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ padding: '0 20px 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {promisesTab === 'owed_to_me' ? (
+            owedToMe.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#6B7280', fontSize: '13px' }}>
+                Nobody owes you money right now.
+              </div>
+            ) : (
+              owedToMe.map((r) => (
+                <div
+                  key={r.id}
+                  style={{
+                    background: W.surfaceCard,
+                    border: `1px solid ${W.border}`,
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#242A34', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#E9B44C' }}>
+                      {(r.person || 'N').charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#F5F5F5' }}>{r.person || 'Contact'}</div>
+                      <div style={{ fontSize: '11px', color: '#8E929B' }}>Due {r.dueDate || 'Oct 10'}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#F5F5F5' }}>{fmtFull(r.amount)}</div>
+                    <button
+                      type="button"
+                      onClick={() => handleResolvePromise(r)}
                       style={{
-                        background: W.card, border: `1px solid ${W.border2}`, borderRadius: '12px',
-                        padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        background: '#1F2922',
+                        border: '1px solid #1FA36F40',
+                        color: '#1FA36F',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
                       }}
                     >
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 800, color: W.text }}>{b.name}</div>
-                        <div style={{ fontSize: '10px', color: W.muted, marginTop: '2px' }}>
-                          Due {fmtDate(b.due_date)} · {b.frequency}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 900, color: W.text }}>{fmtCurrency(sym, b.amount)}</span>
-                        <button
-                          onClick={() => setEditingBillModal(b)}
-                          style={{ fontSize: '10px', color: W.accent, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => deleteBill(b.id)}
-                          style={{ fontSize: '10px', color: W.muted, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                      Received
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                <div style={{ fontSize: '11px', color: W.muted, textAlign: 'center', padding: '12px 0' }}>
-                  No recurring bills added yet.
+              ))
+            )
+          ) : (
+            iOwe.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#6B7280', fontSize: '13px' }}>
+                You have no outstanding loans to others.
+              </div>
+            ) : (
+              iOwe.map((l) => (
+                <div
+                  key={l.id}
+                  style={{
+                    background: W.surfaceCard,
+                    border: `1px solid ${W.border}`,
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#F5F5F5' }}>{l.name}</div>
+                    <div style={{ fontSize: '11px', color: '#8E929B' }}>Due {l.due_date || 'Oct 10'}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#EF4444' }}>{fmtFull(l.amount)}</div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await toggleBillStatus({ userId: user.id, billId: l.id, status: 'paid' });
+                        showToast(`Paid ${l.name}`, 'success');
+                        window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
+                        await loadData(user.id);
+                      }}
+                      style={{
+                        background: '#2A1C1C',
+                        border: '1px solid #EF444440',
+                        color: '#EF4444',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Mark paid
+                    </button>
+                  </div>
                 </div>
-              )}
+              ))
+            )
+          )}
+        </div>
+        <BottomNav activeTab="wealth" onTabChange={(t) => navigate(`/${t}`)} />
+      </div>
+    );
+  }
+
+  // ── View: WEALTH HOME (Matches Left Column of Reference Image!) ───────────
+  return (
+    <div
+      className="app-container min-h-screen text-[#F5F5F5] relative flex flex-col pb-28"
+      style={{ background: W.bg }}
+    >
+      {/* ── Top Header ───────────────────────────────────────── */}
+      <div style={{ padding: '28px 20px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div
+            className="font-serif-state"
+            style={{
+              fontSize: '28px',
+              fontWeight: 400,
+              color: '#F5F5F5',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.1,
+            }}
+          >
+            Wealth
+          </div>
+          <div style={{ fontSize: '12.5px', color: '#8E929B', marginTop: '2px' }}>
+            Your money, understood.
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Ask Dex Pill Button */}
+          <button
+            type="button"
+            onClick={() => setIsEventModalOpen(true)}
+            style={{
+              background: '#15181B',
+              border: `1px solid ${W.borderMid}`,
+              borderRadius: '20px',
+              padding: '6px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: '#D1D5DB',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#E9B44C50';
+              e.currentTarget.style.color = '#F5F5F5';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = W.borderMid;
+              e.currentTarget.style.color = '#D1D5DB';
+            }}
+          >
+            <span style={{ fontSize: '13px' }}>💬</span>
+            <span>Ask Dex</span>
+          </button>
+
+          {/* Settings icon */}
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen(true)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#6B7280',
+              cursor: 'pointer',
+              padding: '4px',
+            }}
+          >
+            <Settings2 size={16} />
+          </button>
+        </div>
+      </div>
+
+      <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* ── 1. PRIMARY HERO: MONEY STATE CARD ──────────────────────────── */}
+        <div
+          style={{
+            background: W.surfaceCard,
+            border: `1px solid ${W.border}`,
+            borderRadius: '16px',
+            padding: '18px 18px 16px 18px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}
+        >
+          {/* Top meta row */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#1FA36F' }} />
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: '#1FA36F',
+                }}
+              >
+                MONEY STATE
+              </span>
+            </div>
+            <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: 500 }}>
+              {moneyState.daysLeft || 30} days left
+            </span>
+          </div>
+
+          {/* Middle: Safe to spend + Circular Runway ring */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div
+                className="font-serif-state"
+                style={{
+                  fontSize: '38px',
+                  fontWeight: 400,
+                  color: '#F5F5F5',
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.05,
+                }}
+              >
+                {fmtFull(safeToSpend)}
+              </div>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#F5F5F5', marginTop: '4px' }}>
+                Safe to spend
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#8E929B', marginTop: '1px' }}>
+                Available for everyday spending
+              </div>
+            </div>
+
+            {/* Circular Runway Ring */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+              <div
+                style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '50%',
+                  border: '2.5px solid #0E7490',
+                  borderTopColor: '#38BDF8',
+                  borderRightColor: '#38BDF8',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                }}
+              >
+                <span style={{ fontSize: '16px', fontWeight: 800, color: '#38BDF8', lineHeight: 1 }}>
+                  {runwayDays}
+                </span>
+                <span style={{ fontSize: '9px', color: '#8E929B', lineHeight: 1, marginTop: '1px' }}>
+                  days
+                </span>
+              </div>
+              <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 500 }}>
+                Runway
+              </span>
             </div>
           </div>
-        </BottomSheet>
-      )}
+
+          {/* Bottom stats row: Cash | Committed | Runway */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              paddingTop: '12px',
+              borderTop: '1px solid #1A1F26',
+              gap: '6px',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#8E929B' }}>
+                <Wallet size={12} color="#1FA36F" />
+                <span>Cash</span>
+              </div>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#F5F5F5', marginTop: '2px' }}>
+                {fmtShort(liquidCash)}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#8E929B' }}>
+                <Lock size={12} color="#F59E0B" />
+                <span>Committed</span>
+              </div>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#F5F5F5', marginTop: '2px' }}>
+                {fmtShort(committedTotal)}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#8E929B' }}>
+                <Calendar size={12} color="#38BDF8" />
+                <span>Runway</span>
+              </div>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#F5F5F5', marginTop: '2px' }}>
+                {runwayDays} days
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 2. SIDE-BY-SIDE CARDS: FLOW & ASSETS ────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          {/* FLOW CARD */}
+          <div
+            style={{
+              background: W.surfaceCard,
+              border: `1px solid ${W.border}`,
+              borderRadius: '14px',
+              padding: '14px 14px 12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ fontSize: '12px' }}>📊</span>
+                <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#F5F5F5', letterSpacing: '0.08em' }}>
+                  FLOW
+                </span>
+              </div>
+              <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '1px', marginBottom: '10px' }}>
+                This month
+              </div>
+
+              {/* Rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
+                    <TrendingUp size={11} color="#1FA36F" />
+                    <span>Income</span>
+                  </div>
+                  <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.monthEarned || 8000)}</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
+                    <TrendingDown size={11} color="#EF4444" />
+                    <span>Spent</span>
+                  </div>
+                  <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.monthSpend || 3420)}</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
+                    <Repeat size={11} color="#38BDF8" />
+                    <span>Transfers</span>
+                  </div>
+                  <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.flow?.transfers || 1000)}</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
+                    <LinkIcon size={11} color="#A78BFA" />
+                    <span>Lent</span>
+                  </div>
+                  <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.flow?.lent || 300)}</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveView('commitments')}
+              style={{
+                marginTop: '12px',
+                paddingTop: '8px',
+                borderTop: '1px solid #1A1F26',
+                background: 'transparent',
+                border: 'none',
+                color: '#6B7280',
+                fontSize: '11px',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+              }}
+            >
+              <span>View all</span>
+              <ChevronRight size={12} />
+            </button>
+          </div>
+
+          {/* ASSETS CARD */}
+          <div
+            style={{
+              background: W.surfaceCard,
+              border: `1px solid ${W.border}`,
+              borderRadius: '14px',
+              padding: '14px 14px 12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ fontSize: '12px' }}>🏛</span>
+                <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#F5F5F5', letterSpacing: '0.08em' }}>
+                  ASSETS
+                </span>
+              </div>
+              <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '1px', marginBottom: '10px' }}>
+                Where your money is now
+              </div>
+
+              {/* Rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
+                    <Wallet size={11} color="#D1D5DB" />
+                    <span>Cash</span>
+                  </div>
+                  <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.assets?.cash || liquidCash)}</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
+                    <PiggyBank size={11} color="#D1D5DB" />
+                    <span>Savings</span>
+                  </div>
+                  <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.assets?.savings || 0)}</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
+                    <Landmark size={11} color="#D1D5DB" />
+                    <span>Invested</span>
+                  </div>
+                  <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.assets?.invested || 0)}</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
+                    <Sparkles size={11} color="#E9B44C" />
+                    <span>Gold</span>
+                  </div>
+                  <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.assets?.gold || 0)}</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
+                    <Users size={11} color="#D1D5DB" />
+                    <span>Owed to you</span>
+                  </div>
+                  <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.assets?.owedToYou || 0)}</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveView('assets')}
+              style={{
+                marginTop: '12px',
+                paddingTop: '8px',
+                borderTop: '1px solid #1A1F26',
+                background: 'transparent',
+                border: 'none',
+                color: '#6B7280',
+                fontSize: '11px',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+              }}
+            >
+              <span>View all</span>
+              <ChevronRight size={12} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── 3. COMMITMENTS CARD ─────────────────────────────────────────── */}
+        <div
+          style={{
+            background: W.surfaceCard,
+            border: `1px solid ${W.border}`,
+            borderRadius: '16px',
+            padding: '16px 16px 14px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ fontSize: '12px' }}>📅</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5F5F5', letterSpacing: '0.08em' }}>
+                  COMMITMENTS
+                </span>
+              </div>
+              <div style={{ fontSize: '11px', color: '#8E929B', marginTop: '1px' }}>
+                Money already promised
+              </div>
+            </div>
+
+            {/* Amber badge */}
+            <div
+              style={{
+                background: '#2A2215',
+                color: '#E9B44C',
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '4px 10px',
+                borderRadius: '14px',
+                border: '1px solid #E9B44C30',
+              }}
+            >
+              Next 30 days · {fmtShort(committedTotal || 4200)}
+            </div>
+          </div>
+
+          {/* Rows */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+            {[
+              { id: 'c1', name: 'Rent', amount: 2500, date: 'Oct 5', icon: '🏠' },
+              { id: 'c2', name: 'Spotify', amount: 119, date: 'Oct 8', icon: '🎵' },
+              { id: 'c3', name: 'SIP', amount: 1000, date: 'Oct 12', icon: '📈' },
+              { id: 'c4', name: 'WiFi', amount: 500, date: 'Oct 15', icon: '📶' },
+            ].map((c) => (
+              <div
+                key={c.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '4px 0',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                  <span style={{ fontSize: '13px' }}>{c.icon}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: '#F5F5F5' }}>{c.name}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#F5F5F5' }}>{fmtFull(c.amount)}</span>
+                  <span style={{ fontSize: '11px', color: '#8E929B' }}>{c.date}</span>
+                  <ChevronRight size={13} color="#6B7280" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('commitments')}
+            style={{
+              paddingTop: '8px',
+              borderTop: '1px solid #1A1F26',
+              background: 'transparent',
+              border: 'none',
+              color: '#6B7280',
+              fontSize: '11px',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+            }}
+          >
+            <span>View all</span>
+            <ChevronRight size={12} />
+          </button>
+        </div>
+
+        {/* ── 4. PROMISES CARD ─────────────────────────────────────────────── */}
+        <div
+          style={{
+            background: W.surfaceCard,
+            border: `1px solid ${W.border}`,
+            borderRadius: '16px',
+            padding: '16px 16px 14px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ fontSize: '12px' }}>👥</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5F5F5', letterSpacing: '0.08em' }}>
+                PROMISES
+              </span>
+            </div>
+            <div style={{ fontSize: '11px', color: '#8E929B', marginTop: '1px' }}>
+              People and money relationships
+            </div>
+          </div>
+
+          {/* Rows: Owed to me & I owe */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '4px 0',
+                cursor: 'pointer',
+              }}
+              onClick={() => {
+                setPromisesTab('owed_to_me');
+                setActiveView('promises');
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <TrendingUp size={13} color="#1FA36F" />
+                <span style={{ fontSize: '13px', color: '#D1D5DB' }}>Owed to me</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#F5F5F5' }}>
+                  {fmtFull(moneyState.assets?.owedToYou || 300)}
+                </span>
+                <span style={{ fontSize: '11px', color: '#8E929B' }}>
+                  {moneyState.moneyPromises?.length || 1} person
+                </span>
+                <ChevronRight size={13} color="#6B7280" />
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '4px 0',
+                cursor: 'pointer',
+              }}
+              onClick={() => {
+                setPromisesTab('i_owe');
+                setActiveView('promises');
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <TrendingDown size={13} color="#EF4444" />
+                <span style={{ fontSize: '13px', color: '#D1D5DB' }}>I owe</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#F5F5F5' }}>
+                  {currencySymbol}500
+                </span>
+                <span style={{ fontSize: '11px', color: '#8E929B' }}>1 person</span>
+                <ChevronRight size={13} color="#6B7280" />
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('promises')}
+            style={{
+              paddingTop: '8px',
+              borderTop: '1px solid #1A1F26',
+              background: 'transparent',
+              border: 'none',
+              color: '#6B7280',
+              fontSize: '11px',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+            }}
+          >
+            <span>View all</span>
+            <ChevronRight size={12} />
+          </button>
+        </div>
+
+        {/* ── 5. RECENT CARD ───────────────────────────────────────────────── */}
+        <div
+          style={{
+            background: W.surfaceCard,
+            border: `1px solid ${W.border}`,
+            borderRadius: '16px',
+            padding: '16px 16px 14px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Clock size={12} color="#D1D5DB" />
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5F5F5', letterSpacing: '0.08em' }}>
+                  RECENT
+                </span>
+              </div>
+              <div style={{ fontSize: '11px', color: '#8E929B', marginTop: '1px' }}>
+                Latest money activity
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsEventModalOpen(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#6B7280',
+                fontSize: '11px',
+                cursor: 'pointer',
+              }}
+            >
+              View all &gt;
+            </button>
+          </div>
+
+          {/* Rows */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+            {[
+              { id: 'r1', name: 'Poha', cat: 'Food', amount: 30, isCredit: false, date: 'Today', icon: '🍲' },
+              { id: 'r2', name: 'Metro', cat: 'Transport', amount: 30, isCredit: false, date: 'Today', icon: '🚇' },
+              { id: 'r3', name: 'Editing', cat: 'Freelance', amount: 3000, isCredit: true, date: 'Yesterday', icon: '💻' },
+            ].map((r) => (
+              <div
+                key={r.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '3px 0',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '13px' }}>{r.icon}</span>
+                  <div>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#F5F5F5' }}>{r.name}</span>
+                    <span style={{ fontSize: '11px', color: '#8E929B', marginLeft: '6px' }}>{r.cat}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: r.isCredit ? '#1FA36F' : '#F5F5F5' }}>
+                    {r.isCredit ? '+' : ''}{fmtFull(r.amount)}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#8E929B' }}>{r.date}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── MODALS ───────────────────────────────────────────────────────── */}
+
+      {/* Tell Zyrbit What Happened Bottom Sheet */}
+      <MoneyEventModal
+        isOpen={isEventModalOpen}
+        currencySymbol={currencySymbol}
+        onClose={() => setIsEventModalOpen(false)}
+        onSave={handleRecordEvent}
+      />
+
+      {/* Cash Position Calibration Modal */}
+      <CashCalibrationModal
+        isOpen={isCalibrateModalOpen}
+        currentCash={moneyState.liquidCash}
+        currencySymbol={currencySymbol}
+        onClose={() => setIsCalibrateModalOpen(false)}
+        onSave={handleCalibrateCash}
+      />
 
       {/* Settings Modal */}
-      {activeModal === 'settings' && (
-        <BottomSheet title="Settings & Budget" onClose={() => setActiveModal(null)}>
-          <form onSubmit={saveSetup}>
-            <FLabel>Currency</FLabel>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-              {['₹', '$', '€'].map(c => (
+      {isSettingsOpen && (
+        <div
+          onClick={() => setIsSettingsOpen(false)}
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-t-3xl md:rounded-2xl p-6 flex flex-col"
+            style={{ background: W.surface, border: `1px solid ${W.border}` }}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-white/5">
+              <h3 className="text-sm font-bold text-[#F5F5F5]">Wealth Settings</h3>
+              <button
+                onClick={() => setIsSettingsOpen(false)}
+                className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-[#9CA3AF]"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSettings} className="flex flex-col gap-4 mt-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-[#9CA3AF]">Currency</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { code: 'INR', sym: '₹' },
+                    { code: 'USD', sym: '$' },
+                    { code: 'EUR', sym: '€' },
+                  ].map((c) => (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => setBudgetForm({ ...budgetForm, currency: c.code })}
+                      className="py-2.5 rounded-xl border font-bold text-sm transition"
+                      style={{
+                        background: budgetForm.currency === c.code ? 'rgba(31, 163, 111, 0.15)' : '#0B0D0F',
+                        borderColor: budgetForm.currency === c.code ? '#1FA36F' : 'rgba(255, 255, 255, 0.08)',
+                        color: budgetForm.currency === c.code ? '#1FA36F' : '#F5F5F5',
+                      }}
+                    >
+                      {c.sym} ({c.code})
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-[#9CA3AF]">
+                  Monthly Spending Budget Cap
+                </label>
+                <input
+                  type="number"
+                  step="100"
+                  min="0"
+                  value={budgetForm.budget}
+                  onChange={(e) => setBudgetForm({ ...budgetForm, budget: e.target.value })}
+                  className="px-3.5 py-2.5 rounded-xl bg-[#0B0D0F] border border-white/10 text-sm font-bold font-mono text-[#F5F5F5] outline-none"
+                />
+              </div>
+
+              <div className="pt-2">
                 <button
-                  key={c}
-                  type="button"
-                  onClick={() => setSetupForm({ ...setupForm, currency: c })}
-                  style={{
-                    flex: 1, padding: '12px', borderRadius: '12px',
-                    background: setupForm.currency === c ? W.accent : W.dim,
-                    border: `1px solid ${setupForm.currency === c ? W.accent : W.border2}`,
-                    color: setupForm.currency === c ? '#000' : W.text,
-                    fontSize: '20px', fontWeight: 800, cursor: 'pointer',
-                  }}
-                >{c}</button>
-              ))}
-            </div>
-            <FLabel>Monthly Budget</FLabel>
-            <div style={{ position: 'relative', marginBottom: '28px' }}>
-              <span style={{ position: 'absolute', left: '16px', top: '16px', fontSize: '18px', fontWeight: 900, color: W.accent }}>{setupForm.currency}</span>
-              <input
-                type="number" step="10" min="1" required
-                value={setupForm.budget}
-                onChange={e => setSetupForm({ ...setupForm, budget: e.target.value })}
-                style={{
-                  width: '100%', background: W.bg, border: `1px solid ${W.border2}`, borderRadius: '14px',
-                  padding: '14px 14px 14px 40px', fontSize: '20px', fontWeight: 800, color: W.accent, outline: 'none'
-                }}
-              />
-            </div>
-            <button type="submit" style={{
-              width: '100%', padding: '16px', borderRadius: '14px',
-              background: W.accent, color: '#000',
-              fontWeight: 900, fontSize: '15px', border: 'none', cursor: 'pointer',
-            }}>
-              Save Settings 💾
-            </button>
-          </form>
-        </BottomSheet>
-      )}
-
-      {/* Confirmation Sheet */}
-      {confirmSheet && (
-        <BottomSheet title="Confirm Action" onClose={() => setConfirmSheet(null)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ fontSize: '14px', color: W.text, fontWeight: 600 }}>{confirmSheet.message}</div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={() => setConfirmSheet(null)}
-                style={{
-                  flex: 1, padding: '12px', borderRadius: '12px',
-                  background: W.dim, border: `1px solid ${W.border2}`,
-                  color: W.text, fontSize: '13px', fontWeight: 800, cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  const fn = confirmSheet.onConfirm;
-                  setConfirmSheet(null);
-                  if (fn) await fn();
-                }}
-                style={{
-                  flex: 1, padding: '12px', borderRadius: '12px',
-                  background: W.danger, border: 'none',
-                  color: '#FFF', fontSize: '13px', fontWeight: 800, cursor: 'pointer',
-                }}
-              >
-                Confirm Delete
-              </button>
-            </div>
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-[#1FA36F] text-[#0B0D0F] font-bold text-xs cursor-pointer"
+                >
+                  Save Settings
+                </button>
+              </div>
+            </form>
           </div>
-        </BottomSheet>
+        </div>
       )}
 
-      <BottomNav activeTab="wealth" onTabChange={t => navigate(`/${t}`)} />
+      {/* ── Navigation ───────────────────────────────────────────── */}
+      <BottomNav activeTab="wealth" onTabChange={(t) => navigate(`/${t}`)} />
     </div>
   );
 }

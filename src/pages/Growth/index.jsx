@@ -8,7 +8,6 @@ import { Plus, Timer, Bolt, Zap, CheckCircle2 } from 'lucide-react';
 // Primitives and subcomponents imports
 import {
   C,
-  fmtHours,
   todayStr,
   daysUntil,
   Card,
@@ -405,7 +404,10 @@ export default function Growth() {
       notes: focusNotes || null,
     });
 
-    if (res.success) loadData(user.id);
+    if (res.success) {
+      loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth' } }));
+    }
   }, [user, focusProject, focusNotes, sessions, loadData]);
 
   // ─── Focus Timer ───────────────────────────────────────────────────────────
@@ -433,7 +435,10 @@ export default function Growth() {
     setFocusProject(null);
     setFocusDoneMin(0);
     setFocusNotes('');
-    if (user) loadData(user.id);
+    if (user) {
+      loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth' } }));
+    }
   };
 
   // ─── DB-First CRUD Functions ───────────────────────────────────────────────
@@ -503,6 +508,7 @@ export default function Growth() {
 
     setTasks(prev => [res.data, ...prev]);
     showToast('✅ Task added!', 'success');
+    window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth' } }));
     setIsSubmitting(false);
   };
 
@@ -520,6 +526,7 @@ export default function Growth() {
     setTasks(prev => prev.filter(t => t.id !== task.id));
     setDependencies(prev => prev.filter(d => d.task_id !== task.id && d.depends_on_task_id !== task.id));
     showToast('🗑 Task deleted', 'success');
+    window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth' } }));
     setIsSubmitting(false);
   };
 
@@ -538,6 +545,7 @@ export default function Growth() {
     setTasks(prev => prev.map(t => t.id === task.id ? res.data : t));
     setTodayTasksDone(p => p + 1);
     showToast('✔ Task complete!', 'success');
+    window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth' } }));
     setIsSubmitting(false);
   };
 
@@ -885,53 +893,61 @@ export default function Growth() {
     }}>
 
       {/* ── HEADER ──────────────────────────────────────────────────── */}
-      <div style={{ padding: '28px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div style={{ fontSize: '10px', color: C.growth, fontWeight: 800, letterSpacing: '2px', marginBottom: '4px' }}>GROWTH</div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: C.text, letterSpacing: '-0.5px' }}>Build Yourself.</h1>
+      <div style={{ padding: '36px 20px 0' }}>
+        <div style={{
+          fontSize: '11px',
+          fontWeight: 700,
+          color: '#6B7280',
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          marginBottom: '6px'
+        }}>
+          GROWTH
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-          {streak.current_streak > 0 && (
-            <div style={{ background: `${C.warn}15`, border: `1px solid ${C.warn}40`, borderRadius: '12px', padding: '6px 10px', textAlign: 'center' }}>
-              <div style={{ fontSize: '14px', fontWeight: 900, color: C.warn }}>🔥 {streak.current_streak}</div>
-              <div style={{ fontSize: '8px', color: C.muted, fontWeight: 700 }}>STREAK</div>
-            </div>
-          )}
-          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '6px 10px', textAlign: 'center' }}>
-            <div style={{ fontSize: '14px', fontWeight: 900, color: C.focus }}>{fmtHours(todayFocusMin)}</div>
-            <div style={{ fontSize: '8px', color: C.muted, fontWeight: 700 }}>FOCUS</div>
-          </div>
-          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '6px 10px', textAlign: 'center' }}>
-            <div style={{ fontSize: '14px', fontWeight: 900, color: C.goal }}>{todayTasksDone}</div>
-            <div style={{ fontSize: '8px', color: C.muted, fontWeight: 700 }}>DONE</div>
-          </div>
+        <div style={{
+          fontSize: '26px',
+          fontWeight: 800,
+          color: '#F5F5F5',
+          letterSpacing: '-0.03em',
+          lineHeight: 1.2
+        }}>
+          Momentum.
         </div>
       </div>
 
       {/* ── TAB BAR ─────────────────────────────────────────────────── */}
-      <div style={{ padding: '14px 20px 0', display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+      <div style={{
+        padding: '16px 20px 0',
+        display: 'flex',
+        gap: '24px',
+        borderBottom: '1px solid #1C1D21'
+      }}>
         {[
-          { id: 'today',  label: 'Today',  col: C.growth },
-          { id: 'plan',   label: 'Plan',   col: '#5EE6F5' },
-          { id: 'habits', label: 'Habits', col: '#1FA36F' },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            style={{
-              background: tab === t.id ? `${t.col}20` : C.surface,
-              border: `1px solid ${tab === t.id ? t.col : C.border}`,
-              borderRadius: '12px',
-              padding: '7px 16px',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontSize: '12px',
-              fontWeight: 800,
-              color: tab === t.id ? t.col : C.muted,
-              transition: 'all 0.2s',
-              flexShrink: 0
-            }}>
-            {t.label}
-          </button>
-        ))}
+          { id: 'today',  label: 'Today' },
+          { id: 'plan',   label: 'Plan' },
+          { id: 'habits', label: 'Habits' },
+        ].map(t => {
+          const isActive = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                borderBottom: `2px solid ${isActive ? '#1FA36F' : 'transparent'}`,
+                padding: '8px 0 10px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: isActive ? 700 : 500,
+                color: isActive ? '#F5F5F5' : '#6B7280',
+                transition: 'all 0.15s',
+              }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* ── CONTENT ─────────────────────────────────────────────────── */}
@@ -939,6 +955,7 @@ export default function Growth() {
         {tab === 'today' && (
           <TodayTab
             todayFocusMin={todayFocusMin}
+            todayTasksDone={todayTasksDone}
             todayView={todayView}
             dexosInsight={dexosInsight}
             setTab={setTab}

@@ -523,7 +523,68 @@ export async function saveWealthSettings({ userId, currency = 'INR', monthlyBudg
   }
 }
 
+/**
+ * Fetches all raw wealth data for a user in one round-trip.
+ * The Wealth page uses this instead of querying Supabase directly.
+ *
+ * @param {string} userId - Authenticated user UUID
+ * @returns {Promise<{success: boolean, data?: {settings, expenses, incomes, bills}, error?: string}>}
+ */
+export async function getWealthSnapshot(userId) {
+  if (!userId) {
+    return { success: false, error: 'User ID is required.' };
+  }
 
+  try {
+    const [sRes, eRes, iRes, bRes] = await Promise.all([
+      supabase
+        .from('wealth_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      supabase
+        .from('money_expenses')
+        .select('*')
+        .eq('user_id', userId)
+        .order('expense_date', { ascending: false }),
+      supabase
+        .from('wealth_income')
+        .select('*')
+        .eq('user_id', userId)
+        .order('income_date', { ascending: false }),
+      supabase
+        .from('wealth_bills')
+        .select('*')
+        .eq('user_id', userId)
+        .order('due_date', { ascending: true }),
+    ]);
+
+    if (eRes.error) console.warn('[wealthService] expenses fetch:', eRes.error.message);
+    if (iRes.error) console.warn('[wealthService] income fetch:', iRes.error.message);
+    if (bRes.error) console.warn('[wealthService] bills fetch:', bRes.error.message);
+
+    return {
+      success: true,
+      data: {
+        settings: sRes.data || null,
+        expenses: eRes.data || [],
+        incomes:  iRes.data || [],
+        bills:    bRes.data || [],
+      },
+    };
+  } catch (err) {
+    return { success: false, error: err.message || 'Failed to fetch wealth snapshot.' };
+  }
+}
+
+/**
+ * Minimal wealth telemetry for Dex context (current month only).
+ * @param {string} userId
+ * @param {string} [date]
+ */
+export async function getWealthTelemetry(userId, date = todayStr()) {
+  return getWealthSummary(userId, date);
+}
 /**
  * Fetches a compact wealth summary (spending today, monthly totals, upcoming bills).
  * Reuses deterministic wealth calculation engines.
@@ -610,3 +671,254 @@ export async function getWealthSummary(userId, date = todayStr()) {
   }
 }
 
+/**
+ * ─── Money State V1 Canonical Event Dispatcher ────────────────────────────────
+ * Canonical domain abstraction over existing normalized tables.
+ * Dispatches to money_expenses, wealth_income, or wealth_bills.
+ *
+ * Supported semantic types:
+ * - SPEND: Food, Transport, Shopping, Education, etc.
+ * - INCOME: Salary, Freelance, Editing, etc.
+ * - LEND: Lending to someone (creates expense + receivable promise)
+ * - BORROW: Taking money (creates income as liability + commitment to return)
+ * - COMMITMENT: Recurring bills, rent, subscriptions, SIPs
+ * - INVESTMENT: Stocks, mutual funds, gold, crypto
+ * - TRANSFER: Moving between savings & cash
+ * - REFUND / REIMBURSEMENT: Money returned
+ *
+ * @param {Object} params
+ * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+ */
+export async function recordMoneyEvent({
+  userId,
+  type = 'SPEND',
+  amount,
+  title = '',
+  category = 'General',
+  source = 'Other',
+  note = '',
+  date = todayStr(),
+  dueDate = null,
+  frequency = 'one_off',
+  person = '',
+}) {
+  if (!userId) {
+    return { success: false, error: 'User ID is required.' };
+  }
+  const numericAmount = Number(amount);
+  if (!isFinite(numericAmount) || isNaN(numericAmount) || numericAmount <= 0) {
+    return { success: false, error: 'Amount must be a positive number.' };
+  }
+
+  const cleanNote = (note || title || '').trim();
+  const eventDate = date || todayStr();
+
+  switch (type.toUpperCase()) {
+    case 'SPEND': {
+      return await addExpense({
+        userId,
+        amount: numericAmount,
+        category: category || 'Other',
+        note: cleanNote,
+        date: eventDate,
+      });
+    }
+
+    case 'INCOME': {
+      return await addIncome({
+        userId,
+        amount: numericAmount,
+        source: source || 'Other',
+        note: cleanNote,
+        date: eventDate,
+      });
+    }
+
+    case 'LEND': {
+      // 1. Log outgoing cash movement
+      const expRes = await addExpense({
+        userId,
+        amount: numericAmount,
+        category: 'Lend',
+        note: cleanNote || (person ? `Lent to ${person}` : 'Loan'),
+        date: eventDate,
+      });
+      if (!expRes.success) return expRes;
+
+      // 2. Create receivable promise in wealth_bills
+      const promiseName = person ? `${person} owes you` : (cleanNote || 'Money owed to you');
+      const billDue = dueDate || eventDate;
+      await addBill({
+        userId,
+        name: promiseName,
+        amount: numericAmount,
+        dueDate: billDue,
+        frequency: 'one_off',
+        status: 'receivable',
+      });
+
+      return { success: true, data: expRes.data };
+    }
+
+    case 'BORROW': {
+      // 1. Log incoming cash (liability)
+      const incRes = await addIncome({
+        userId,
+        amount: numericAmount,
+        source: 'Borrow',
+        note: cleanNote || (person ? `Borrowed from ${person}` : 'Liability'),
+        date: eventDate,
+      });
+      if (!incRes.success) return incRes;
+
+      // 2. Create commitment to return it
+      const commitmentName = person ? `Return to ${person}` : (cleanNote || 'Repay debt');
+      const billDue = dueDate || eventDate;
+      await addBill({
+        userId,
+        name: commitmentName,
+        amount: numericAmount,
+        dueDate: billDue,
+        frequency: 'one_off',
+        status: 'unpaid',
+      });
+
+      return { success: true, data: incRes.data };
+    }
+
+    case 'COMMITMENT': {
+      return await addBill({
+        userId,
+        name: cleanNote || 'Scheduled payment',
+        amount: numericAmount,
+        dueDate: dueDate || eventDate,
+        frequency: frequency || 'monthly',
+        status: 'unpaid',
+      });
+    }
+
+    case 'INVESTMENT': {
+      return await addExpense({
+        userId,
+        amount: numericAmount,
+        category: 'Investment',
+        note: cleanNote || 'Investment',
+        date: eventDate,
+      });
+    }
+
+    case 'TRANSFER': {
+      return await addExpense({
+        userId,
+        amount: numericAmount,
+        category: 'Transfer',
+        note: cleanNote || 'Transfer',
+        date: eventDate,
+      });
+    }
+
+    case 'REFUND':
+    case 'REIMBURSEMENT': {
+      return await addIncome({
+        userId,
+        amount: numericAmount,
+        source: 'Refund',
+        note: cleanNote || 'Refund/reimbursement',
+        date: eventDate,
+      });
+    }
+
+    default: {
+      return await addExpense({
+        userId,
+        amount: numericAmount,
+        category: category || 'Other',
+        note: cleanNote,
+        date: eventDate,
+      });
+    }
+  }
+}
+
+/**
+ * Calibrates the user's cash balance honestly.
+ * If user has no income records or needs calibration adjustment,
+ * records a baseline income transaction.
+ *
+ * @param {Object} params
+ * @param {string} params.userId
+ * @param {number} params.targetCash
+ * @returns {Promise<{success: boolean, error?: string, data?: Object}>}
+ */
+export async function calibrateCashBalance({ userId, targetCash }) {
+  if (!userId) return { success: false, error: 'User ID is required.' };
+  const target = Number(targetCash);
+  if (!isFinite(target) || isNaN(target) || target < 0) {
+    return { success: false, error: 'Target cash must be a non-negative number.' };
+  }
+
+  try {
+    const snap = await getWealthSnapshot(userId);
+    if (!snap.success) return snap;
+
+    const currentTotalInc = (snap.data.incomes || []).reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const currentTotalExp = (snap.data.expenses || []).reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const currentLiquid = currentTotalInc - currentTotalExp;
+    const diff = target - currentLiquid;
+
+    if (diff > 0) {
+      return await addIncome({
+        userId,
+        amount: diff,
+        source: 'Starting Balance',
+        note: 'Calibrated cash balance',
+        date: todayStr(),
+      });
+    } else if (diff < 0) {
+      return await addExpense({
+        userId,
+        amount: Math.abs(diff),
+        category: 'Adjustment',
+        note: 'Cash balance calibration adjustment',
+        date: todayStr(),
+      });
+    }
+
+    return { success: true, message: 'Cash already matches target.' };
+  } catch (err) {
+    return { success: false, error: err.message || 'Failed to calibrate cash.' };
+  }
+}
+
+/**
+ * Resolves a money promise when repayment is received.
+ * @param {Object} params
+ * @param {string} params.userId
+ * @param {string} params.billId
+ * @param {number} params.amount
+ * @param {string} params.person
+ */
+export async function resolveMoneyPromise({ userId, billId, amount, person = '' }) {
+  if (!userId || !billId) return { success: false, error: 'IDs are required.' };
+
+  try {
+    // 1. Mark bill as paid
+    const toggleRes = await toggleBillStatus({ userId, billId, status: 'paid' });
+    if (!toggleRes.success) return toggleRes;
+
+    // 2. Add income as repayment/reimbursement
+    if (amount > 0) {
+      await addIncome({
+        userId,
+        amount: Number(amount),
+        source: 'Reimbursement',
+        note: person ? `Repaid by ${person}` : 'Loan repayment received',
+        date: todayStr(),
+      });
+    }
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message || 'Failed to resolve promise.' };
+  }
+}

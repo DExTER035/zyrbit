@@ -33,7 +33,9 @@ export function useVoiceInput({
   const [selectedLang, setSelectedLang] = useState(language);
 
   const recognizerRef = useRef(null);
-  const latestTranscriptRef = useRef('');
+  const latestFinalRef = useRef('');
+  const hasSubmittedRef = useRef(false);
+  const hasErrorRef = useRef(false);
   const onFinalCallbackRef = useRef(onFinalTranscript);
   const onErrorCallbackRef = useRef(onError);
 
@@ -45,7 +47,12 @@ export function useVoiceInput({
     onErrorCallbackRef.current = onError;
   }, [onError]);
 
+  useEffect(() => {
+    setSelectedLang(language);
+  }, [language]);
+
   const reset = useCallback(() => {
+    hasSubmittedRef.current = true;
     if (recognizerRef.current) {
       recognizerRef.current.abort();
       recognizerRef.current = null;
@@ -54,10 +61,12 @@ export function useVoiceInput({
     setInterimTranscript('');
     setError(null);
     setStatus(isSupported ? VOICE_STATUS.IDLE : VOICE_STATUS.UNSUPPORTED);
-    latestTranscriptRef.current = '';
+    latestFinalRef.current = '';
+    hasErrorRef.current = false;
   }, [isSupported]);
 
   const cancel = useCallback(() => {
+    hasSubmittedRef.current = true;
     if (recognizerRef.current) {
       recognizerRef.current.abort();
       recognizerRef.current = null;
@@ -66,17 +75,16 @@ export function useVoiceInput({
     setInterimTranscript('');
     setError(null);
     setStatus(isSupported ? VOICE_STATUS.IDLE : VOICE_STATUS.UNSUPPORTED);
-    latestTranscriptRef.current = '';
+    latestFinalRef.current = '';
+    hasErrorRef.current = false;
   }, [isSupported]);
 
   const stop = useCallback(() => {
     if (recognizerRef.current) {
       recognizerRef.current.stop();
     }
-    if (status === VOICE_STATUS.LISTENING) {
-      setStatus(VOICE_STATUS.PROCESSING);
-    }
-  }, [status]);
+    setStatus((prev) => (prev === VOICE_STATUS.LISTENING ? VOICE_STATUS.PROCESSING : prev));
+  }, []);
 
   const start = useCallback(() => {
     if (!isSupported) {
@@ -88,45 +96,61 @@ export function useVoiceInput({
       return;
     }
 
-    // Reset previous capture
+    // Abort any active recognizer before starting a new one
+    if (recognizerRef.current) {
+      recognizerRef.current.abort();
+      recognizerRef.current = null;
+    }
+
+    // Reset capture state for fresh voice session
     setTranscript('');
     setInterimTranscript('');
     setError(null);
-    latestTranscriptRef.current = '';
+    latestFinalRef.current = '';
+    hasSubmittedRef.current = false;
+    hasErrorRef.current = false;
+    setStatus(VOICE_STATUS.LISTENING);
 
     const recognizer = createSpeechRecognizer({
       lang: selectedLang,
       onStart: () => {
         setStatus(VOICE_STATUS.LISTENING);
       },
-      onTranscript: ({ transcript: text, interimTranscript: interim, isFinal }) => {
-        setTranscript(text);
-        setInterimTranscript(interim);
-        latestTranscriptRef.current = text;
-
-        if (isFinal && text.trim()) {
-          setStatus(VOICE_STATUS.PROCESSING);
-          if (onFinalCallbackRef.current) {
-            onFinalCallbackRef.current(text.trim());
-          }
+      onTranscript: ({ transcript: liveText, interimTranscript: interimText, finalTranscript: finalText }) => {
+        setTranscript(liveText);
+        setInterimTranscript(interimText);
+        if (finalText) {
+          latestFinalRef.current = finalText;
         }
       },
       onError: (err) => {
+        hasErrorRef.current = true;
         setError(err);
         setStatus(VOICE_STATUS.ERROR);
         if (onErrorCallbackRef.current) {
           onErrorCallbackRef.current(err);
         }
       },
-      onEnd: ({ hasReceivedFinal }) => {
-        const captured = latestTranscriptRef.current.trim();
-        if (captured && !hasReceivedFinal) {
-          // If stopped without an explicit isFinal flag, still forward final buffer
-          setStatus(VOICE_STATUS.PROCESSING);
-          if (onFinalCallbackRef.current) {
-            onFinalCallbackRef.current(captured);
+      onEnd: ({ finalTranscript: endedFinal }) => {
+        // 1. Error path: start -> error -> end (error already set by onError)
+        if (hasErrorRef.current) {
+          return;
+        }
+
+        const capturedFinal = (endedFinal || latestFinalRef.current).trim();
+
+        // 2. Result path: start -> result -> end
+        if (capturedFinal) {
+          if (!hasSubmittedRef.current) {
+            hasSubmittedRef.current = true;
+            setStatus(VOICE_STATUS.PROCESSING);
+            if (import.meta.env?.DEV) console.log('[VOICE] sending to Dex:', capturedFinal);
+            if (onFinalCallbackRef.current) {
+              onFinalCallbackRef.current(capturedFinal);
+            }
           }
-        } else if (!captured) {
+        } else {
+          // 3. No result path: start -> no result -> end
           setStatus(VOICE_STATUS.IDLE);
         }
       },
@@ -139,6 +163,7 @@ export function useVoiceInput({
   // Clean up recognition session on unmount
   useEffect(() => {
     return () => {
+      hasSubmittedRef.current = true;
       if (recognizerRef.current) {
         recognizerRef.current.abort();
         recognizerRef.current = null;

@@ -21,7 +21,12 @@ export function isConversationalQuery(userMessage) {
   const patterns = [
     /^(how am i doing|how's my day|how is my day|daily status|daily summary|how did i do today|what happened today|life summary|what needs my attention)\b/i,
     /^(how much (did i spend|have i spent|spent today)|what did i spend)\b/i,
-    /^(how much can i (safely )?spend|what can i spend|safe to spend|can i spend)\b/i,
+    /^(how much can i (safely )?spend|what can i spend|safe to spend|can i spend|can i afford)\b/i,
+    /^(who owes me money|who owes me|who do i owe|who i owe)\b/i,
+    /^(what am i committed to this week|commitments this week|committed this week)\b/i,
+    /^(where did my money go|spending breakdown)\b/i,
+    /^(what subscriptions are coming|upcoming subscriptions|show subscriptions)\b/i,
+    /^(how much money is actually available|how much is available|available cash|available money)\b/i,
     /^(what bills (are coming up|do i have|are due)|upcoming bills|show bills|bills coming up)\b/i,
     /^(how much water (should i drink|have i had|logged)|water status|am i drinking enough)\b/i,
     /^(am i eating enough protein|protein status|how much protein|nutrition status)\b/i,
@@ -75,36 +80,126 @@ export function resolveConversationalQuery({ userMessage, context }) {
     };
   }
 
-  // 1b. Safe-to-Spend / Spending Capacity Query: "How much can I safely spend today?" / "Can I spend 3000 today?"
-  if (/how much can i (safely )?spend|what can i spend|safe to spend|can i spend/i.test(str)) {
-    const targetMatch = str.match(/can i spend\s*(?:₹|rs\.?|inr)?\s*(\d+(?:,\d+)?)/i);
-    const spentToday = Number(context?.wealth?.spentToday || 0);
-    const totalIncome = Number(context?.wealth?.totalIncomeMonth || 0);
-    const totalExpenses = Number(context?.wealth?.totalExpensesMonth || 0);
-    const monthlyBudget = totalIncome > 0 ? totalIncome : 15000;
-    const remainingMonth = Math.max(0, monthlyBudget - totalExpenses);
+  // 1b. Can I afford / Safe-to-Spend Query: "Can I afford ₹2,000?" / "How much can I safely spend?"
+  if (/can i afford|how much can i (safely )?spend|what can i spend|safe to spend|can i spend/i.test(str)) {
+    const targetMatch = str.match(/(?:can i afford|can i spend)\s*(?:₹|rs\.?|inr)?\s*(\d+(?:,\d+)?)/i);
+    const unencumbered = Number(context?.wealth?.unencumberedCash || context?.wealth?.liquidCash || 0);
 
     if (targetMatch) {
       const askAmt = parseInt(targetMatch[1].replace(/,/g, ''), 10);
-      if (askAmt > remainingMonth && remainingMonth > 0) {
+      if (askAmt <= unencumbered && unencumbered > 0) {
         return {
           isHandled: true,
-          displayMessage: `Spending ₹${askAmt.toLocaleString('en-IN')} would exceed your remaining monthly cushion (₹${remainingMonth.toLocaleString('en-IN')}). Consider deferring or reducing.`,
+          displayMessage: `Yes. You have ₹${unencumbered.toLocaleString('en-IN')} unencumbered cash available after setting aside upcoming commitments.`,
         };
       }
+      const shortfall = Math.max(0, askAmt - unencumbered);
       return {
         isHandled: true,
-        displayMessage: `You have spent ₹${spentToday.toLocaleString('en-IN')} today. Spending ₹${askAmt.toLocaleString('en-IN')} fits within your monthly cushion of ₹${remainingMonth.toLocaleString('en-IN')}.`,
+        displayMessage: `Tight: you have ₹${unencumbered.toLocaleString('en-IN')} available. Spending ₹${askAmt.toLocaleString('en-IN')} leaves a ₹${shortfall.toLocaleString('en-IN')} deficit against upcoming commitments.`,
       };
     }
 
     return {
       isHandled: true,
-      displayMessage: `You've spent ₹${spentToday.toLocaleString('en-IN')} today. Your remaining monthly cushion is ₹${remainingMonth.toLocaleString('en-IN')}.`,
+      displayMessage: `You have ₹${unencumbered.toLocaleString('en-IN')} unencumbered cash available today.`,
     };
   }
 
-  // 1c. Upcoming Bills Query: "What bills are coming up?" / "Upcoming bills"
+  // 1c. "Who owes me money?" / "Who owes me?"
+  if (/who owes me/i.test(str)) {
+    const promises = context?.wealth?.moneyPromises || [];
+    if (promises.length === 0) {
+      return {
+        isHandled: true,
+        displayMessage: 'No one owes you money right now.',
+      };
+    }
+    const list = promises.map(p => `${p.person} (₹${Number(p.amount).toLocaleString('en-IN')})`).join(', ');
+    return {
+      isHandled: true,
+      displayMessage: `Money owed to you: ${list}.`,
+    };
+  }
+
+  // 1d. "Who do I owe?" / "Who i owe?"
+  if (/who do i owe|who i owe/i.test(str)) {
+    const liabilities = context?.wealth?.liabilities || [];
+    if (liabilities.length === 0) {
+      return {
+        isHandled: true,
+        displayMessage: 'You have no personal debts or borrowed money outstanding.',
+      };
+    }
+    const list = liabilities.map(l => `${l.person} (₹${Number(l.amount).toLocaleString('en-IN')})`).join(', ');
+    return {
+      isHandled: true,
+      displayMessage: `You owe: ${list}.`,
+    };
+  }
+
+  // 1e. "What am I committed to this week?"
+  if (/committed to this week|commitments this week/i.test(str)) {
+    const comms = context?.wealth?.commitmentsThisWeek || [];
+    if (comms.length === 0) {
+      return {
+        isHandled: true,
+        displayMessage: 'You have no bill commitments due this week.',
+      };
+    }
+    const total = comms.reduce((s, c) => s + c.amount, 0);
+    const list = comms.map(c => `${c.name} (₹${c.amount.toLocaleString('en-IN')})`).join(', ');
+    return {
+      isHandled: true,
+      displayMessage: `Committed this week: ₹${total.toLocaleString('en-IN')} across ${list}.`,
+    };
+  }
+
+  // 1f. "Where did my money go this month?"
+  if (/where did my money go|spending breakdown/i.test(str)) {
+    const totalExp = Number(context?.wealth?.totalExpensesMonth || 0);
+    const breakdown = context?.wealth?.zoneBreakdown || [];
+    if (totalExp === 0) {
+      return {
+        isHandled: true,
+        displayMessage: 'No expenses recorded for this month yet.',
+      };
+    }
+    const parts = breakdown.filter(b => b.amount > 0).map(b => `${b.label}: ₹${b.amount.toLocaleString('en-IN')} (${b.pct}%)`).join(', ');
+    return {
+      isHandled: true,
+      displayMessage: `This month you spent ₹${totalExp.toLocaleString('en-IN')}: ${parts || 'routine expenses'}.`,
+    };
+  }
+
+  // 1g. "What subscriptions are coming?"
+  if (/subscriptions/i.test(str)) {
+    const subs = context?.wealth?.subscriptions || [];
+    if (subs.length === 0) {
+      return {
+        isHandled: true,
+        displayMessage: 'No active recurring subscriptions scheduled.',
+      };
+    }
+    const list = subs.map(s => `${s.name} (₹${s.amount.toLocaleString('en-IN')}/${s.frequency})`).join(', ');
+    return {
+      isHandled: true,
+      displayMessage: `Upcoming subscriptions: ${list}.`,
+    };
+  }
+
+  // 1h. "How much money is actually available?"
+  if (/how much money is actually available|how much is available|available cash|available money/i.test(str)) {
+    const unencumbered = Number(context?.wealth?.unencumberedCash || 0);
+    const liquid = Number(context?.wealth?.liquidCash || 0);
+    const billsTotal = Number(context?.wealth?.upcomingBillTotal || 0);
+    return {
+      isHandled: true,
+      displayMessage: `You have ₹${unencumbered.toLocaleString('en-IN')} available (₹${liquid.toLocaleString('en-IN')} in cash minus ₹${billsTotal.toLocaleString('en-IN')} promised for bills).`,
+    };
+  }
+
+  // 1i. Upcoming Bills Query: "What bills are coming up?" / "Upcoming bills"
   if (/what bills|upcoming bills|bills coming up|bills due/i.test(str)) {
     const bills = context?.wealth?.upcomingBills || [];
     if (!bills || bills.length === 0) {
