@@ -529,3 +529,38 @@ describe('Dex Money Intelligence & Decision Queries', () => {
   });
 });
 
+describe('Money State V1 — Master Reconciliation Verification Scenario', () => {
+  it('balances starting 5000, food 30, groceries 450, income 2000, lend 500, friend returns 200, transfer 1000, transport 300, refund 100, borrow 500, repay 200', () => {
+    const TODAY = '2026-10-04';
+    const incomes = [
+      { id: 'i1', amount: 5000, source: 'Starting Balance', income_date: TODAY },
+      { id: 'i2', amount: 2000, source: 'Income', income_date: TODAY },
+      { id: 'i3', amount: 200, source: 'Friend return', note: 'returned', income_date: TODAY },
+      { id: 'i4', amount: 100, source: 'Refund', note: 'refund', income_date: TODAY },
+      { id: 'i5', amount: 500, source: 'Borrow', note: 'borrowed', income_date: TODAY },
+    ];
+    const expenses = [
+      { id: 'e1', amount: 30, category: 'Food', expense_date: TODAY },
+      { id: 'e2', amount: 450, category: 'Food', note: 'Groceries', expense_date: TODAY },
+      { id: 'e3', amount: 500, category: 'Lend', note: 'loan to friend', expense_date: TODAY },
+      { id: 'e4', amount: 1000, category: 'Transfer', note: 'to savings', expense_date: TODAY },
+      { id: 'e5', amount: 300, category: 'Transport', expense_date: TODAY },
+      { id: 'e6', amount: 200, category: 'Debt', note: 'repay debt', expense_date: TODAY },
+    ];
+    const bills = [
+      { id: 'b1', name: 'Friend owes you', amount: 300, status: 'receivable', due_date: TODAY },
+      { id: 'b2', name: 'Debt to repay', amount: 300, status: 'unpaid', due_date: TODAY },
+    ];
+
+    const res = computeMoneyState({ incomes, expenses, bills, today: TODAY });
+
+    expect(res.liquidCash).toBe(5320);
+    expect(res.assets.savings).toBe(1000);
+    expect(res.assets.owedToYou).toBe(300);
+    expect(res.liabilities.iOweTotal).toBe(300);
+    expect(res.assets.netAssets).toBe(6320);
+    expect(res.flow.grossLifestyleSpend).toBe(780);
+    expect(res.flow.netSpending).toBe(680);
+  });
+});
+

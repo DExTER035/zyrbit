@@ -34,6 +34,7 @@ export default function DexLauncher({ onClick, onVoiceClick }) {
 
   return (
     <div
+      className="dex-floating-launcher"
       style={{
         position: 'fixed',
         bottom: '84px',

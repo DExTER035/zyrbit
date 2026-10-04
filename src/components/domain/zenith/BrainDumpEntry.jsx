@@ -150,7 +150,7 @@ export default function BrainDumpEntry({ userId, onStateChange }) {
 
     // Trigger refresh across all domain pages
     window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: null } }));
-    if (onStateChange) onStateChange();
+    onStateChange?.();
 
     setPhase('done');
 

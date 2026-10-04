@@ -11,7 +11,7 @@ const W = {
   muted: '#6B7280',
   accent: '#E9B44C',
   emerald: '#1FA36F',
-  danger: '#EF4444',
+  danger: '#f42727ff',
 };
 
 const getLocalYMD = (d = new Date()) => {

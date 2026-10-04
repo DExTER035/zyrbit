@@ -9,42 +9,48 @@ import { supabase } from '../supabase/index.js';
  * @param {Array<{role: 'user'|'model', text: string}>} messages
  * @param {string?} systemPrompt  – if provided, prepended as user→model exchange
  */
-export const askZyra = async (messages, systemPrompt = null) => {
+export const askZyra = async (messages, systemPrompt = null, timeoutMs = 12000) => {
   try {
-    const { data, error } = await supabase.functions.invoke('zyra', {
+    const invokePromise = supabase.functions.invoke('zyra', {
       body: { messages, systemPrompt }
-    })
+    });
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Dex AI timed out. Direct commands work offline.')), timeoutMs)
+    );
+
+    const { data, error } = await Promise.race([invokePromise, timeoutPromise]);
 
     if (error) {
-      console.warn('Edge Function proxy notice:', error.message)
-      const status = error.status || error.context?.status
+      console.warn('Edge Function proxy notice:', error.message);
+      const status = error.status || error.context?.status;
       if (status === 429) {
-        throw new Error('Rate limit exceeded. Dex needs a breather! 🧊 Please try again in a minute.')
+        throw new Error('Rate limit exceeded. Dex needs a breather! 🧊 Please try again in a minute.');
       }
       if (status === 401) {
-        throw new Error('Authentication required. Please sign in to speak with Dex.')
+        throw new Error('Authentication required. Please sign in to speak with Dex.');
       }
-      throw new Error('Dex AI is temporarily unavailable. Direct commands work offline.')
+      throw new Error('Dex AI is temporarily unavailable. Direct commands work offline.');
     }
 
     if (data?.error) {
-      throw new Error(data.error)
+      throw new Error(data.error);
     }
 
     if (!data?.text) {
-      throw new Error('AI service returned empty response.')
+      throw new Error('AI service returned empty response.');
     }
 
-    return data.text
+    return data.text;
 
   } catch (err) {
-    console.error('askZyra error:', err.message)
+    console.error('askZyra error:', err.message);
     if (err.message && (err.message.includes('non-2xx') || err.message.includes('Edge Function'))) {
-      throw new Error('Dex AI is temporarily unavailable. Direct commands work offline.')
+      throw new Error('Dex AI is temporarily unavailable. Direct commands work offline.');
     }
-    throw err
+    throw err;
   }
-}
+};
 
 /**
  * Shorthand: single-prompt text generation.

@@ -16,6 +16,7 @@ const W = {
   danger: '#EF4444',
 };
 
+
 /**
  * MoneyStateHero
  * Large calm hero answering: "Safe to Spend" and overall Money State.

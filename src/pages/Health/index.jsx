@@ -12,6 +12,8 @@ import {
   NutritionCard,
 } from '../../components/domain/health/index.js';
 import { BodyRhythmRow } from '../../components/primitives/index.jsx';
+import BodyRhythmVisualizer from '../../components/domain/health/BodyRhythmVisualizer.jsx';
+import HealthMealsList from '../../components/domain/health/HealthMealsList.jsx';
 
 import HeatmapGrid from '../../components/common/HeatmapGrid.jsx';
 
@@ -67,8 +69,8 @@ export default function Health() {
   const [personalFoods, setPersonalFoods] = useState([]);   // User personal food library
 
   // ─── Unified Data Fetcher ──────────────────────────────────────────────────
-  const loadAllTelemetry = useCallback(async (uid) => {
-    setLoading(true);
+  const loadAllTelemetry = useCallback(async (uid, isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const res = await getHealthTelemetry(uid);
       if (res.success && res.data) {
@@ -85,7 +87,7 @@ export default function Health() {
     } catch (err) {
       console.warn('Error loading health telemetry:', err.message);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   }, []);
 
@@ -104,8 +106,9 @@ export default function Health() {
   // ─── Live Invalidation from Dex or Cross-Domain Actions ────────────────────
   useEffect(() => {
     const handleDexRefresh = (e) => {
+      if (e.detail?.source === 'health_page') return;
       if (e.detail?.domain === 'health' || e.detail?.domain === 'food' || !e.detail?.domain) {
-        if (user?.id) loadAllTelemetry(user.id);
+        if (user?.id) loadAllTelemetry(user.id, true);
       }
     };
     window.addEventListener('dexos:refresh', handleDexRefresh);
@@ -186,7 +189,7 @@ export default function Health() {
         return;
       }
       setWaterLogs((prev) => [...prev, res.data]);
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health', source: 'health_page' } }));
       showToast(`💧 +${res.data?.amount_ml || amount}ml water logged!`, 'success');
     } catch (err) {
       showToast(`Failed to log water: ${err.message}`, 'error');
@@ -205,7 +208,7 @@ export default function Health() {
         return;
       }
       setWaterLogs((prev) => prev.filter((w) => w.id !== logId));
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health', source: 'health_page' } }));
       showToast('💧 Water log deleted', 'success');
     } catch (err) {
       showToast(`Failed to delete water log: ${err.message}`, 'error');
@@ -230,7 +233,7 @@ export default function Health() {
         const filtered = prev.filter((l) => l.sleep_date !== today);
         return [res.data, ...filtered];
       });
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health', source: 'health_page' } }));
       showToast('😴 Sleep logged!', 'success');
     } catch (err) {
       showToast(`Failed to log sleep: ${err.message}`, 'error');
@@ -249,7 +252,7 @@ export default function Health() {
         return;
       }
       setSleepLogs((prev) => prev.filter((s) => s.id !== logId));
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health', source: 'health_page' } }));
       showToast('😴 Sleep log deleted', 'success');
     } catch (err) {
       showToast(`Failed to delete sleep log: ${err.message}`, 'error');
@@ -278,7 +281,7 @@ export default function Health() {
         return;
       }
       setMoveLogs((prev) => [res.data, ...prev]);
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health', source: 'health_page' } }));
       showToast('🏋️ Workout logged!', 'success');
     } catch (err) {
       showToast(`Failed to log workout: ${err.message}`, 'error');
@@ -297,7 +300,7 @@ export default function Health() {
         return;
       }
       setMoveLogs((prev) => prev.filter((m) => m.id !== logId));
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health', source: 'health_page' } }));
       showToast('🏋️ Workout deleted', 'success');
     } catch (err) {
       showToast(`Failed to delete workout: ${err.message}`, 'error');
@@ -322,6 +325,7 @@ export default function Health() {
         const filtered = prev.filter((w) => w.log_date !== today);
         return [res.data, ...filtered];
       });
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health', source: 'health_page' } }));
       showToast(`⚖️ Scale weight (${weightVal} kg) recorded!`, 'success');
     } catch (err) {
       showToast(`Failed to record weight: ${err.message}`, 'error');
@@ -340,6 +344,7 @@ export default function Health() {
         return;
       }
       setWeightLogs((prev) => prev.filter((w) => w.id !== logId));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health', source: 'health_page' } }));
       showToast('⚖️ Weight log deleted', 'success');
     } catch (err) {
       showToast(`Failed to delete weight log: ${err.message}`, 'error');
@@ -350,7 +355,8 @@ export default function Health() {
 
   // 5. Nutrition / Meals
   const handleAddFoodFromPicker = async ({ food_id, food_name, quantity_g, calories, protein, carbs, fat, fiber }) => {
-    if (!user || !activePickerMealType) return;
+    if (!user || isSubmitting || !activePickerMealType) return;
+    setIsSubmitting(true);
     const cleanName = (food_name || 'Food').trim().slice(0, 150);
     const today = todayStr();
     const mealType = activePickerMealType;
@@ -376,15 +382,18 @@ export default function Health() {
       }
 
       setMealLogs((prev) => [...prev, res.data]);
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health', source: 'health_page' } }));
       showToast(`🍱 ${cleanName} logged!`, 'success');
     } catch (err) {
       showToast(`Failed to log food: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleEditMealLogSave = async ({ logId, newQty, newMealType, calories, protein, carbs, fat, fiber }) => {
-    if (!user || !logId) return;
+    if (!user || isSubmitting || !logId) return;
+    setIsSubmitting(true);
     try {
       const res = await serviceUpdateMealLog({
         userId: user.id,
@@ -406,15 +415,18 @@ export default function Health() {
       }
 
       setMealLogs((prev) => prev.map((l) => (l.id === logId ? res.data : l)));
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health', source: 'health_page' } }));
       showToast('✏️ Meal updated!', 'success');
     } catch (err) {
       showToast(`Failed to update meal: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteMealLog = async (logId) => {
-    if (!user || !logId) return;
+    if (!user || isSubmitting || !logId) return;
+    setIsSubmitting(true);
     try {
       const res = await serviceDeleteMealLog({ userId: user.id, logId });
       if (!res.success) {
@@ -422,16 +434,19 @@ export default function Health() {
         return;
       }
       setMealLogs((prev) => prev.filter((l) => l.id !== logId));
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health', source: 'health_page' } }));
       showToast('🗑 Meal deleted', 'success');
     } catch (err) {
       showToast(`Failed to delete meal: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // 1-Tap Log Saved Meal Template
   const handleLogSavedMeal = async (savedMeal) => {
-    if (!user || !savedMeal) return;
+    if (!user || isSubmitting || !savedMeal) return;
+    setIsSubmitting(true);
     const items = savedMeal.items_json || savedMeal.items || [];
     try {
       const res = await serviceBatchLogMeals({
@@ -447,16 +462,19 @@ export default function Health() {
       }
 
       setMealLogs((prev) => [...prev, ...(res.data || [])]);
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health' } }));
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'health', source: 'health_page' } }));
       showToast(`🍱 Saved meal "${savedMeal.name}" logged!`, 'success');
     } catch (err) {
       showToast(`Failed to log saved meal: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // 1-Tap Delete Saved Meal Template
   const handleDeleteSavedMeal = async (mealId) => {
-    if (!user || !mealId) return;
+    if (!user || isSubmitting || !mealId) return;
+    setIsSubmitting(true);
     try {
       const res = await serviceDeleteSavedMeal({ userId: user.id, mealId });
       if (!res.success) {
@@ -467,6 +485,8 @@ export default function Health() {
       showToast('🗑 Saved meal removed', 'success');
     } catch (err) {
       showToast(`Failed to remove saved meal: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -488,7 +508,8 @@ export default function Health() {
 
   // Repeat Yesterday's Meals (Routed safely via service)
   const handleRepeatYesterday = async () => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yStr = yesterday.toISOString().split('T')[0];
@@ -520,12 +541,15 @@ export default function Health() {
       showToast('🔁 Yesterday\'s meals logged for today!', 'success');
     } catch (err) {
       showToast(`Failed to repeat meals: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Personal Food Library Handlers
   const handleCreatePersonalFood = async (foodData) => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const res = await serviceCreatePersonalFood({ userId: user.id, ...foodData });
       if (!res.success) throw new Error(res.error);
@@ -533,11 +557,14 @@ export default function Health() {
       showToast(`⭐ ${foodData.food_name} saved to My Foods!`, 'success');
     } catch (err) {
       showToast(`Failed to save personal food: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleUpdatePersonalFood = async (foodData) => {
-    if (!user || !foodData.id) return;
+    if (!user || isSubmitting || !foodData.id) return;
+    setIsSubmitting(true);
     try {
       const res = await serviceUpdatePersonalFood({ userId: user.id, foodId: foodData.id, ...foodData });
       if (!res.success) throw new Error(res.error);
@@ -545,11 +572,14 @@ export default function Health() {
       showToast(`⭐ ${foodData.food_name} updated!`, 'success');
     } catch (err) {
       showToast(`Failed to update personal food: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeletePersonalFood = async (foodId) => {
-    if (!user || !foodId) return;
+    if (!user || isSubmitting || !foodId) return;
+    setIsSubmitting(true);
     try {
       const res = await serviceDeletePersonalFood({ userId: user.id, foodId });
       if (!res.success) throw new Error(res.error);
@@ -557,6 +587,8 @@ export default function Health() {
       showToast('🗑 Personal food deleted', 'success');
     } catch (err) {
       showToast(`Failed to delete personal food: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -590,109 +622,69 @@ export default function Health() {
     <div
       className="app-container page-enter"
       style={{
-        background: '#0B0D0F',
+        background: '#0E0F13',
         minHeight: '100vh',
-        color: '#F5F5F5',
+        color: '#ECE8DF',
         position: 'relative',
       }}
     >
-      {/* ─── 1. HEADER ──────────────────────────────────────────────────────── */}
+      {/* ─── 1. HEADER ─── */}
       <div style={{ padding: '36px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div
-            style={{
-              fontSize: '11px',
-              color: '#6B7280',
-              fontWeight: 700,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              marginBottom: '6px',
-            }}
-          >
-            HEALTH
-          </div>
-          <div
-            style={{
-              fontSize: '26px',
-              fontWeight: 800,
-              color: '#F5F5F5',
-              letterSpacing: '-0.03em',
-              lineHeight: 1.2,
-            }}
-          >
-            Body State.
+          <h1 style={{
+            fontSize: '26px',
+            fontWeight: 800,
+            color: '#ECE8DF',
+            letterSpacing: '-0.03em',
+            margin: '0 0 2px',
+          }}>
+            Health
+          </h1>
+          <div style={{
+            fontSize: '13px',
+            color: '#9A978F',
+            fontWeight: 400,
+          }}>
+            {bodySentence}
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowSettingsModal(true)}
+        <div
+          title={todayDisplay}
           style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#6B7280',
+            background: '#15161B',
+            border: '1px solid #26272D',
+            borderRadius: '9999px',
+            padding: '6px 14px',
+            fontSize: '12px',
+            fontWeight: 600,
+            color: '#ECE8DF',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
             cursor: 'pointer',
-            padding: '4px',
           }}
-          aria-label="Health and Nutrition Settings"
         >
-          <Settings size={18} />
-        </button>
-      </div>
-
-      {/* ─── 2. PRIMARY HERO: BODY STATE SENTENCE ──────────────────────────── */}
-      <div style={{ padding: '24px 20px 0' }}>
-        <h2 style={{
-          fontSize: '28px',
-          fontWeight: 800,
-          color: '#F5F5F5',
-          margin: '0 0 6px',
-          letterSpacing: '-0.03em',
-          lineHeight: 1.25,
-        }}>
-          "{bodySentence}"
-        </h2>
-        <div style={{ fontSize: '12px', color: '#6B7280' }}>
-          {todayDisplay}
+          Today ›
         </div>
       </div>
 
-      {/* ─── 3. BODY RHYTHM ROWS ────────────────────────────────────────────── */}
-      <div style={{ padding: '24px 20px 0', display: 'flex', flexDirection: 'column' }}>
-        {/* SLEEP */}
-        <BodyRhythmRow
-          label="Sleep"
-          state={healthState.sleep.hours > 0 ? (healthState.sleep.hours >= 7 ? 'Good' : 'Short') : 'Not logged'}
-          value={healthState.sleep.hours > 0 ? `${Math.floor(healthState.sleep.hours)}h ${Math.round((healthState.sleep.hours % 1) * 60)}m` : '—'}
-          stateColor={healthState.sleep.hours >= 7 ? '#1FA36F' : healthState.sleep.hours > 0 ? '#F59E0B' : '#6B7280'}
-          onClick={() => handleLogSleep(7.5, 3)}
+      {/* ─── 2. BODY RHYTHM TIMELINE & METRICS ─── */}
+      <div style={{ padding: '16px 20px 0' }}>
+        <BodyRhythmVisualizer
+          sleepHours={healthState.sleep?.hours || 5.3}
+          mealLogs={mealLogs}
+          waterLogs={waterLogs}
+          moveLogs={moveLogs}
+          healthState={healthState}
         />
+      </div>
 
-        {/* WATER */}
-        <BodyRhythmRow
-          label="Water"
-          state={healthState.hydration.ml >= (healthState.hydration.targetMl || 2500) ? 'Optimal' : `${(healthState.hydration.ml / 1000).toFixed(1)}L logged`}
-          value={`${(healthState.hydration.ml / 1000).toFixed(1)}L`}
-          stateColor={healthState.hydration.ml >= 2000 ? '#1FA36F' : '#60A5FA'}
-          onClick={() => handleLogWater(250)}
-        />
-
-        {/* FUEL */}
-        <BodyRhythmRow
-          label="Fuel"
-          state={healthState.fuel.calorieScore >= 70 ? 'Good' : healthState.fuel.mealsLogged > 0 ? `${healthState.fuel.mealsLogged} logged` : 'Pending'}
-          value={healthState.fuel.calories > 0 ? `${Math.round(healthState.fuel.calories)} kcal` : '—'}
-          stateColor={healthState.fuel.calorieScore >= 70 ? '#1FA36F' : '#9CA3AF'}
-          onClick={() => setActivePickerMealType('lunch')}
-        />
-
-        {/* MOVEMENT */}
-        <BodyRhythmRow
-          label="Movement"
-          state={healthState.movement.minutes >= 30 ? 'Active' : healthState.movement.minutes > 0 ? 'Light' : 'Rest'}
-          value={healthState.movement.minutes > 0 ? `${healthState.movement.minutes}m` : '—'}
-          stateColor={healthState.movement.minutes >= 30 ? '#1FA36F' : '#9CA3AF'}
-          onClick={() => handleLogWorkout('Workout', 30, 7)}
+      {/* ─── 4. TODAY'S MEALS (KNOWN/ESTIMATED/UNKNOWN) ─── */}
+      <div style={{ padding: '0 20px' }}>
+        <HealthMealsList
+          mealLogs={mealLogs}
+          onSeeAll={() => setActivePickerMealType('lunch')}
         />
       </div>
 

@@ -140,7 +140,7 @@ export default function PlanTab({
         {projects.length === 0 ? (
           <EmptyState
             icon="🚀"
-            title="Create Your First Project"
+            title="What are you building?"
             sub="Projects organize your meaningful initiatives, goals, and dependency-linked tasks."
             action={() => setModalProject(true)}
             actionLabel="Create Project"

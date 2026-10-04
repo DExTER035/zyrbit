@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { X, Send, Sparkles, AlertCircle, CheckCircle2, RotateCcw, CornerDownLeft, Mic, MicOff } from 'lucide-react';
 import { processUserInput, DEX_RESULT_TYPE } from '../../dex/index.js';
 import { isVoiceSupported } from '../../voice/index.js';
+import DexCommandRippleView from '../domain/dex/DexCommandRippleView.jsx';
 
 // Domain mapping helper for live UI invalidation
 function getActionDomain(action) {
@@ -45,6 +46,7 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
   const [pendingConfirmation, setPendingConfirmation] = useState(null);
   const [pendingClarification, setPendingClarification] = useState(null);
   const [pendingPlan, setPendingPlan] = useState(null);
+  const [lastExecuted, setLastExecuted] = useState(null);
 
   // Persist recent conversation window (last 5 messages) in sessionStorage
   useEffect(() => {
@@ -219,6 +221,7 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
         setPendingClarification(null);
         setPendingConfirmation(null);
         setPendingPlan(null);
+        setLastExecuted(result);
         setMessages((prev) => [
           ...prev,
           {
@@ -613,14 +616,14 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
       <div
         style={{
           width: '100%',
-          maxWidth: '580px',
-          background: '#15181B',
-          border: '1px solid #262B31',
-          borderRadius: '16px',
-          boxShadow: '0 20px 48px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.04)',
+          maxWidth: '520px',
+          background: '#0E0F13',
+          border: '1px solid #26272D',
+          borderRadius: '24px',
+          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05)',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '85vh',
+          maxHeight: '90vh',
           height: '620px',
           overflow: 'hidden',
         }}
@@ -628,58 +631,30 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
         {/* Header */}
         <div
           style={{
-            padding: '14px 18px',
-            borderBottom: '1px solid #262B31',
+            padding: '12px 18px',
+            borderBottom: '1px solid #26272D',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: '#111316',
+            background: '#111216',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '8px',
-                background: 'rgba(31, 163, 111, 0.15)',
-                border: '1px solid rgba(31, 163, 111, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#1FA36F',
-              }}
-            >
-              <Sparkles size={16} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    letterSpacing: '0.08em',
-                    color: '#F5F5F5',
-                    fontFamily: 'monospace',
-                  }}
-                >
-                  DEX OPERATOR
-                </span>
-                <span
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    color: '#1FA36F',
-                    background: 'rgba(31, 163, 111, 0.12)',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    border: '1px solid rgba(31, 163, 111, 0.25)',
-                  }}
-                >
-                  LIVE
-                </span>
-              </div>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 800, color: '#ECE8DF', letterSpacing: '-0.01em' }}>
+              Dex
+            </span>
+            <span style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              color: '#38BDF8',
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              borderRadius: '9999px',
+              padding: '1px 7px',
+              letterSpacing: '0.04em',
+            }}>
+              COMMAND
+            </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -687,20 +662,17 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
               <button
                 type="button"
                 onClick={handleClearSession}
-                title="Clear current session history"
+                title="Reset session"
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#9CA3AF',
+                  color: '#9A978F',
                   cursor: 'pointer',
                   padding: '6px',
                   borderRadius: '6px',
                   display: 'flex',
                   alignItems: 'center',
-                  transition: 'color 0.15s',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#F5F5F5')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#9CA3AF')}
               >
                 <RotateCcw size={15} />
               </button>
@@ -712,16 +684,13 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#9CA3AF',
+                color: '#9A978F',
                 cursor: 'pointer',
                 padding: '6px',
                 borderRadius: '6px',
                 display: 'flex',
                 alignItems: 'center',
-                transition: 'color 0.15s',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#F5F5F5')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#9CA3AF')}
             >
               <X size={18} />
             </button>
@@ -740,93 +709,29 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
           }}
         >
           {messages.length === 0 && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                textAlign: 'center',
-                padding: '24px 12px',
-                gap: '14px',
+            <DexCommandRippleView
+              onCommandSubmit={(cmd) => handleSend(cmd)}
+              loading={loading}
+              suggestions={suggestions}
+              pendingPlan={pendingPlan}
+              onConfirmPlan={() => handleStartPlan(pendingPlan)}
+              onCancelPlan={handleDismissPlan}
+              lastExecuted={lastExecuted}
+              onUndo={() => {
+                setLastExecuted(null);
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    id: crypto.randomUUID(),
+                    role: 'dex',
+                    type: 'neutral',
+                    content: 'Action undone.',
+                    timestamp: Date.now(),
+                  },
+                ]);
               }}
-            >
-              <div
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color: '#9CA3AF',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                OPERATING SYSTEM READY
-              </div>
-              <p
-                style={{
-                  fontSize: '14px',
-                  color: '#D1D5DB',
-                  maxWidth: '380px',
-                  lineHeight: '1.5',
-                  margin: 0,
-                }}
-              >
-                Tell Dex what you did or ask for guidance. Your command directly operates habits, tasks, recovery, food, and finances.
-              </p>
-
-              {/* Suggestions */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px',
-                  width: '100%',
-                  maxWidth: '360px',
-                  marginTop: '8px',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: '11px',
-                    color: '#6B7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    textAlign: 'left',
-                    fontWeight: 600,
-                  }}
-                >
-                  Suggested for this screen:
-                </span>
-                {suggestions.map((sug) => (
-                  <button
-                    key={sug}
-                    type="button"
-                    onClick={() => handleSend(sug)}
-                    style={{
-                      background: '#1A1E23',
-                      border: '1px solid #2B313A',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      color: '#E5E7EB',
-                      fontSize: '13px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      transition: 'border-color 0.15s, background 0.15s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#1FA36F';
-                      e.currentTarget.style.background = '#22272E';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#2B313A';
-                      e.currentTarget.style.background = '#1A1E23';
-                    }}
-                  >
-                    → {sug}
-                  </button>
-                ))}
-              </div>
-            </div>
+              onClose={onClose}
+            />
           )}
 
           {messages.map((msg) => {
@@ -1146,112 +1051,114 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Bar */}
-        <div
-          style={{
-            padding: '12px 16px',
-            borderTop: '1px solid #262B31',
-            background: '#111316',
-          }}
-        >
+        {/* Input Bar (rendered when viewing conversation history) */}
+        {messages.length > 0 && (
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: '#181C21',
-              border: '1px solid #2A3039',
-              borderRadius: '10px',
-              padding: '4px 8px 4px 12px',
-              gap: '8px',
+              padding: '12px 16px',
+              borderTop: '1px solid #26272D',
+              background: '#111216',
             }}
           >
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={loading}
-              placeholder="Ask Dex anything or log an action..."
-              aria-label="Dex command input"
+            <div
               style={{
-                flex: 1,
-                background: 'transparent',
-                border: 'none',
-                color: '#F5F5F5',
-                fontSize: '14px',
-                outline: 'none',
-                padding: '6px 0',
+                display: 'flex',
+                alignItems: 'center',
+                background: '#181C21',
+                border: '1px solid #2A3039',
+                borderRadius: '10px',
+                padding: '4px 8px 4px 12px',
+                gap: '8px',
               }}
-            />
-            {/* Authoritative Global Voice Command Button */}
-            {isVoiceSupported() && (
+            >
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={loading}
+                placeholder="Ask Dex anything or log an action..."
+                aria-label="Dex command input"
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#F5F5F5',
+                  fontSize: '14px',
+                  outline: 'none',
+                  padding: '6px 0',
+                }}
+              />
+              {/* Authoritative Global Voice Command Button */}
+              {isVoiceSupported() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('dexos:voice-open'));
+                  }}
+                  disabled={loading}
+                  aria-label="Voice Command (Ctrl+M)"
+                  title="Voice Command (Ctrl+M)"
+                  style={{
+                    background: 'transparent',
+                    color: '#38BDF8',
+                    border: 'none',
+                    borderRadius: '8px',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Mic size={15} />
+                </button>
+              )}
+
               <button
                 type="button"
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('dexos:voice-open'));
-                }}
-                disabled={loading}
-                aria-label="Voice Command (Ctrl+M)"
-                title="Voice Command (Ctrl+M)"
+                onClick={() => handleSend()}
+                disabled={loading || !inputText.trim()}
+                aria-label="Submit command"
                 style={{
-                  background: 'transparent',
-                  color: '#1FA36F',
-                  border: 'none',
-                  borderRadius: '8px',
                   width: '32px',
                   height: '32px',
+                  borderRadius: '8px',
+                  background: inputText.trim() && !loading ? '#38BDF8' : 'transparent',
+                  color: inputText.trim() && !loading ? '#0E0F13' : '#4B5563',
+                  border: 'none',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
+                  cursor: inputText.trim() && !loading ? 'pointer' : 'default',
+                  transition: 'background 0.15s, color 0.15s',
                 }}
               >
-                <Mic size={15} />
+                <Send size={15} />
               </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => handleSend()}
-              disabled={loading || !inputText.trim()}
-              aria-label="Submit command"
+            </div>
+            <div
               style={{
-                background: inputText.trim() && !loading ? '#1FA36F' : 'transparent',
-                color: inputText.trim() && !loading ? '#FFFFFF' : '#4B5563',
-                border: 'none',
-                borderRadius: '8px',
-                width: '32px',
-                height: '32px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                cursor: inputText.trim() && !loading ? 'pointer' : 'default',
-                transition: 'background 0.15s, color 0.15s',
+                justifyContent: 'space-between',
+                marginTop: '6px',
+                padding: '0 4px',
+                fontSize: '11px',
+                color: '#6B7280',
               }}
             >
-              <Send size={15} />
-            </button>
+              <span>Enter sends • Shift+Enter newline</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <CornerDownLeft size={10} />
+                Quick dispatch
+              </span>
+            </div>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginTop: '6px',
-              padding: '0 4px',
-              fontSize: '11px',
-              color: '#6B7280',
-            }}
-          >
-            <span>Enter sends • Shift+Enter newline</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <CornerDownLeft size={10} />
-              Quick dispatch
-            </span>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

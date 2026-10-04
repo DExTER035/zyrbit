@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, ArrowRight, Play, Check } from 'lucide-react';
+import { Plus, ArrowRight, Play } from 'lucide-react';
 import { todayStr } from './shared.jsx';
 import { getAvailableTasks, getBlockedTasks } from '../../../engines/growth/index.js';
+import GrowthPathHero from './GrowthPathHero.jsx';
 
 export default function TodayTab({
   todayFocusMin = 0,
@@ -40,7 +41,7 @@ export default function TodayTab({
 
   // Primary objective = first available task or celebration
   const primaryTask = availableTasks[0] || null;
-  const primaryObjective = primaryTask ? primaryTask.name : (completedTodayTasks.length > 0 ? 'All milestones complete today.' : 'Nothing needs your attention yet.');
+  const _primaryObjective = primaryTask ? primaryTask.name : (completedTodayTasks.length > 0 ? 'All milestones complete today.' : 'Nothing needs your attention yet.');
 
   // Completed habits count
   const completedHabitsCount = useMemo(() => {
@@ -56,52 +57,15 @@ export default function TodayTab({
     setShowAddForm(false);
   };
 
-  // Combine completed today + remaining available tasks for the MomentumPath
-  const momentumNodes = useMemo(() => {
-    const nodes = [];
-    completedTodayTasks.slice(-3).forEach(t => {
-      nodes.push({
-        ...t,
-        status: 'done',
-        projectName: projectMap[t.project_id]?.name,
-      });
-    });
-    availableTasks.slice(0, 6).forEach(t => {
-      nodes.push({
-        ...t,
-        status: 'todo',
-        projectName: projectMap[t.project_id]?.name,
-      });
-    });
-    return nodes;
-  }, [completedTodayTasks, availableTasks, projectMap]);
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', fontFamily: 'Inter, sans-serif' }}>
-
-      {/* ── TODAY PRIMARY HERO ── */}
-      <div>
-        <div style={{
-          fontSize: '11px',
-          fontWeight: 700,
-          color: '#6B7280',
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
-          marginBottom: '8px',
-        }}>
-          TODAY
-        </div>
-        <h2 style={{
-          fontSize: '28px',
-          fontWeight: 800,
-          color: '#F5F5F5',
-          margin: 0,
-          letterSpacing: '-0.03em',
-          lineHeight: 1.25,
-        }}>
-          "{primaryObjective}"
-        </h2>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', fontFamily: 'Inter, sans-serif' }}>
+      {/* ── THE VISUAL PATH HERO ── */}
+      <GrowthPathHero
+        tasks={tasks}
+        projects={projects}
+        onCompleteTask={completeTask}
+        onStartFocus={onInstantFocus}
+      />
 
       {/* ── CURRENT FOCUS ── */}
       <div style={{
@@ -164,46 +128,38 @@ export default function TodayTab({
         </button>
       </div>
 
-      {/* ── MOMENTUM PATH ── */}
+      {/* ── QUICK ACTION ── */}
       <div>
         <div style={{
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           alignItems: 'center',
-          marginBottom: '16px',
+          marginBottom: showAddForm ? '12px' : '0',
         }}>
-          <div style={{
-            fontSize: '10px',
-            fontWeight: 700,
-            color: '#6B7280',
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-          }}>
-            MOMENTUM PATH
-          </div>
           <button
             type="button"
             onClick={() => setShowAddForm(p => !p)}
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#1FA36F',
+              color: '#E9B44C',
               fontSize: '12px',
               fontWeight: 600,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
+              padding: '4px 0',
             }}
           >
             <Plus size={14} />
-            <span>Add Action</span>
+            <span>{showAddForm ? 'Cancel' : 'Add Action'}</span>
           </button>
         </div>
 
         {/* Quick inline add form */}
         {showAddForm && (
-          <form onSubmit={handleAddTaskSubmit} style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+          <form onSubmit={handleAddTaskSubmit} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
             <input
               type="text"
               autoFocus
@@ -215,7 +171,7 @@ export default function TodayTab({
                 background: '#15181B',
                 border: '1px solid #1C1D21',
                 borderRadius: '8px',
-                color: '#F5F5F5',
+                color: '#ECE8DF',
                 padding: '9px 12px',
                 fontSize: '13px',
                 outline: 'none',
@@ -248,7 +204,7 @@ export default function TodayTab({
               style={{
                 padding: '9px 14px',
                 borderRadius: '8px',
-                background: taskName.trim() ? '#1FA36F' : '#23272E',
+                background: taskName.trim() ? '#E9B44C' : '#23272E',
                 border: 'none',
                 color: taskName.trim() ? '#0B0D0F' : '#6B7280',
                 cursor: taskName.trim() ? 'pointer' : 'default',
@@ -259,138 +215,6 @@ export default function TodayTab({
               Add
             </button>
           </form>
-        )}
-
-        {/* The Vertical Path */}
-        {momentumNodes.length === 0 ? (
-          <div style={{
-            padding: '24px 0',
-            textAlign: 'center',
-            color: '#6B7280',
-            fontSize: '13px',
-          }}>
-            Nothing needs your attention yet.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {/* Start marker */}
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '8px' }}>
-              <div style={{
-                width: '12px',
-                display: 'flex',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <div style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  background: '#6B7280',
-                }} />
-              </div>
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#4B5563', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                START
-              </span>
-            </div>
-
-            {momentumNodes.map((item, idx) => {
-              const isDone = item.status === 'done';
-              const isFirstPending = !isDone && (idx === 0 || momentumNodes[idx - 1]?.status === 'done');
-              const isLast = idx === momentumNodes.length - 1;
-
-              return (
-                <div key={item.id} style={{ display: 'flex', gap: '16px', position: 'relative' }}>
-                  {/* Vertical spine & node */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-                    {/* Node circle */}
-                    <button
-                      type="button"
-                      onClick={() => !isDone && completeTask(item)}
-                      title={isDone ? 'Completed' : 'Click to complete'}
-                      style={{
-                        width: '14px',
-                        height: '14px',
-                        borderRadius: '50%',
-                        background: isDone ? '#1FA36F' : 'transparent',
-                        border: `2px solid ${isDone ? '#1FA36F' : isFirstPending ? '#F5F5F5' : '#4B5563'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: isDone ? 'default' : 'pointer',
-                        padding: 0,
-                        outline: 'none',
-                        zIndex: 1,
-                        transition: 'all 0.2s',
-                        boxShadow: isFirstPending ? '0 0 10px rgba(245,245,245,0.2)' : 'none',
-                      }}
-                    >
-                      {isDone && <Check size={9} color="#0B0D0F" strokeWidth={3} />}
-                    </button>
-
-                    {/* Spine line connecting to next */}
-                    {!isLast && (
-                      <div style={{
-                        width: '1px',
-                        flex: 1,
-                        background: isDone ? '#1FA36F40' : '#1C1D21',
-                        minHeight: '36px',
-                      }} />
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div style={{
-                    flex: 1,
-                    paddingBottom: isLast ? '12px' : '26px',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: isFirstPending ? '16px' : '14px',
-                        fontWeight: isFirstPending ? 700 : 500,
-                        color: isDone ? '#6B7280' : isFirstPending ? '#F5F5F5' : '#9CA3AF',
-                        lineHeight: 1.35,
-                        textDecoration: isDone ? 'line-through' : 'none',
-                        transition: 'all 0.2s',
-                      }}>
-                        {item.name}
-                      </div>
-
-                      {item.projectName && (
-                        <div style={{ fontSize: '11px', color: '#4B5563', marginTop: '3px' }}>
-                          {item.projectName}
-                        </div>
-                      )}
-                    </div>
-
-                    {!isDone && (
-                      <button
-                        type="button"
-                        onClick={() => completeTask(item)}
-                        style={{
-                          background: isFirstPending ? 'rgba(31,163,111,0.12)' : 'transparent',
-                          border: `1px solid ${isFirstPending ? '#1FA36F' : '#23272E'}`,
-                          borderRadius: '6px',
-                          padding: '4px 10px',
-                          color: isFirstPending ? '#1FA36F' : '#9CA3AF',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          flexShrink: 0,
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        Done
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         )}
       </div>
 

@@ -1,17 +1,16 @@
 /**
- * BottomNav — Zyrbit unified navigation
- * Follows the canonical 5-slot architecture:
- * Zenith | Growth | [Dex Orbital Mark] | Health | Wealth
- * Domain colors: Amber for Growth/action, Rose/Green for Health, Cool Blue for Wealth.
+ * BottomNav — Zyrbit Unified Mobile Shell Navigation
+ * 5-Anchor Architecture: Zenith | Growth | [DEX Orb] | Health | Wealth
+ * Visual Style: Master Obsidian (#0E0F13), Zyrbit Amber (#E9B44C), Muted (#9A978F)
  */
 import React from 'react';
-import { Layers, TrendingUp, Activity, Wallet, Orbit } from 'lucide-react';
+import { Compass, TrendingUp, Activity, Wallet } from 'lucide-react';
 
 const TAB_CONFIG = {
-  zenith: { label: 'Zenith', Icon: Layers, color: '#F5F5F5' },
-  growth: { label: 'Growth', Icon: TrendingUp, color: '#F59E0B' },
-  health: { label: 'Health', Icon: Activity, color: '#1FA36F' },
-  wealth: { label: 'Wealth', Icon: Wallet, color: '#38BDF8' },
+  zenith: { label: 'Zenith', Icon: Compass },
+  growth: { label: 'Growth', Icon: TrendingUp },
+  health: { label: 'Health', Icon: Activity },
+  wealth: { label: 'Wealth', Icon: Wallet },
 };
 
 export default function BottomNav({ activeTab, onTabChange }) {
@@ -20,9 +19,10 @@ export default function BottomNav({ activeTab, onTabChange }) {
   };
 
   const renderTab = (id) => {
-    const { label, Icon, color } = TAB_CONFIG[id];
+    const { label, Icon } = TAB_CONFIG[id];
     const isActive = activeTab === id;
-    const activeColor = color || '#F5F5F5';
+    const activeColor = '#E9B44C';
+    const inactiveColor = '#9A978F';
 
     return (
       <button
@@ -36,40 +36,43 @@ export default function BottomNav({ activeTab, onTabChange }) {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '4px',
+          gap: '3px',
           background: 'transparent',
           border: 'none',
           cursor: 'pointer',
           position: 'relative',
-          padding: '4px 0',
-          transition: 'opacity 0.15s',
+          padding: '6px 0',
+          transition: 'all 0.15s ease',
         }}
       >
-        {/* Active top hairline */}
+        {/* Subtle active indicator dot */}
         <div style={{
           position: 'absolute',
           top: '-8px',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: isActive ? '24px' : '0px',
+          width: isActive ? '16px' : '0px',
           height: '2px',
           background: activeColor,
-          borderRadius: '0 0 2px 2px',
+          borderRadius: '2px',
+          boxShadow: isActive ? '0 0 8px rgba(233, 180, 76, 0.6)' : 'none',
           transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }} />
 
         <Icon
           size={19}
-          strokeWidth={isActive ? 2.2 : 1.5}
-          color={isActive ? activeColor : '#6B7280'}
-          style={{ transition: 'all 0.2s' }}
+          strokeWidth={isActive ? 2.2 : 1.6}
+          color={isActive ? activeColor : inactiveColor}
+          style={{
+            transition: 'all 0.2s',
+            filter: isActive ? 'drop-shadow(0 0 6px rgba(233,180,76,0.3))' : 'none',
+          }}
         />
         <span style={{
-          fontSize: '9px',
+          fontSize: '10px',
           fontWeight: isActive ? 700 : 500,
-          color: isActive ? activeColor : '#6B7280',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
+          color: isActive ? activeColor : inactiveColor,
+          letterSpacing: '0.04em',
           transition: 'color 0.2s',
         }}>
           {label}
@@ -86,11 +89,12 @@ export default function BottomNav({ activeTab, onTabChange }) {
         bottom: 0,
         left: 0,
         right: 0,
-        background: 'rgba(11, 13, 15, 0.94)',
-        borderTop: '1px solid #1C1D21',
+        maxWidth: '100vw',
+        background: 'rgba(14, 15, 19, 0.96)',
+        borderTop: '1px solid #26272D',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        padding: '8px 0 20px',
+        padding: '8px 12px 18px',
         display: 'flex',
         alignItems: 'center',
         zIndex: 50,
@@ -99,12 +103,12 @@ export default function BottomNav({ activeTab, onTabChange }) {
       {renderTab('zenith')}
       {renderTab('growth')}
 
-      {/* Center Dex Orbital Mark */}
+      {/* Center Dex Luminous Command Orb */}
       <button
         type="button"
         id="nav-tab-dex"
         onClick={handleOpenDex}
-        aria-label="Open Dex Operator"
+        aria-label="Open Dex Command Operator"
         style={{
           flex: 1,
           display: 'flex',
@@ -115,37 +119,45 @@ export default function BottomNav({ activeTab, onTabChange }) {
           border: 'none',
           cursor: 'pointer',
           padding: '2px 0',
+          position: 'relative',
         }}
       >
-        <div style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '50%',
-          border: '1.5px solid rgba(245, 158, 11, 0.4)',
-          background: 'radial-gradient(circle, rgba(245,158,11,0.15) 0%, rgba(11,13,15,0.6) 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 0 12px rgba(245, 158, 11, 0.2)',
-          transition: 'all 0.2s ease',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = '#F59E0B';
-          e.currentTarget.style.boxShadow = '0 0 16px rgba(245, 158, 11, 0.35)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.4)';
-          e.currentTarget.style.boxShadow = '0 0 12px rgba(245, 158, 11, 0.2)';
-        }}
+        <div
+          style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle at 35% 35%, #38BDF8 0%, #0284C7 45%, #0B1E33 100%)',
+            border: '1.5px solid rgba(56, 189, 248, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 0 16px rgba(56, 189, 248, 0.4), inset 0 0 8px rgba(255,255,255,0.4)',
+            transition: 'all 0.25s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.08)';
+            e.currentTarget.style.boxShadow = '0 0 22px rgba(56, 189, 248, 0.6), inset 0 0 10px rgba(255,255,255,0.6)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = '0 0 16px rgba(56, 189, 248, 0.4), inset 0 0 8px rgba(255,255,255,0.4)';
+          }}
         >
-          <Orbit size={16} color="#F59E0B" strokeWidth={1.8} />
+          {/* Subtle inner core ripple ring */}
+          <div style={{
+            width: '14px',
+            height: '14px',
+            borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.6)',
+            background: 'rgba(255,255,255,0.2)',
+          }} />
         </div>
         <span style={{
-          fontSize: '9px',
-          fontWeight: 600,
-          color: '#F59E0B',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
+          fontSize: '10px',
+          fontWeight: 700,
+          color: '#38BDF8',
+          letterSpacing: '0.04em',
           marginTop: '3px',
         }}>
           Dex

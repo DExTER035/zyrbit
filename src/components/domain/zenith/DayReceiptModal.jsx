@@ -416,133 +416,201 @@ export default function DayReceiptModal({
           ref={receiptCardRef}
           style={{
             width: '100%',
-            background: '#F3EFE6',
+            background: '#F4EFE6',
             color: '#141517',
-            borderRadius: '4px',
-            padding: '28px 24px 32px 24px',
-            boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 1px 1px rgba(255, 255, 255, 0.05)',
+            borderRadius: '2px',
+            boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '18px',
             position: 'relative',
             userSelect: 'none',
+            overflow: 'hidden',
           }}
         >
-          {loading ? (
-            <div style={{ padding: '40px 0', textAlign: 'center', color: '#6B7280', fontSize: '13px' }}>
-              Synthesizing day...
-            </div>
-          ) : !displayReceipt ? null : (
-            <>
-              {/* Header */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <div style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111215' }}>
-                  Zyrbit
-                </div>
-                <div
-                  style={{
-                    fontSize: '10.5px',
-                    fontWeight: 700,
-                    letterSpacing: '0.09em',
-                    textTransform: 'uppercase',
-                    color: '#65676F',
-                  }}
-                >
-                  {displayReceipt.dateFormatted}
-                </div>
+          {/* Top Jagged Torn Paper Edge */}
+          <div style={{
+            width: '100%',
+            height: '10px',
+            background: 'radial-gradient(circle at 10px -5px, transparent 12px, #F4EFE6 13px)',
+            backgroundSize: '20px 20px',
+            transform: 'rotate(180deg)',
+          }} />
+
+          <div style={{
+            padding: '20px 24px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}>
+            {loading ? (
+              <div style={{ padding: '40px 0', textAlign: 'center', color: '#6B7280', fontSize: '13px' }}>
+                Synthesizing day receipt...
               </div>
-
-              {/* Dotted hairline separator */}
-              <div
-                style={{
-                  borderBottom: '1px dashed #D2CBC0',
-                  margin: '2px 0',
-                }}
-              />
-
-              {/* Metrics table */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-                {displayReceipt.metrics.length === 0 ? (
-                  <div style={{ padding: '16px 0', color: '#888B94', fontSize: '13px', textAlign: 'center' }}>
-                    Nothing recorded yet today.
+            ) : !displayReceipt ? null : (
+              <>
+                {/* Centered Editorial Header */}
+                <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <div style={{
+                    fontSize: '18px',
+                    fontWeight: 800,
+                    letterSpacing: '-0.02em',
+                    color: '#111215',
+                  }}>
+                    Zyrbit
                   </div>
-                ) : (
-                  displayReceipt.metrics.map((m) => (
-                    <div
-                      key={m.id || m.label}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: '13.5px',
-                      }}
-                    >
-                      <span style={{ color: '#2B2D33', fontWeight: 500 }}>
-                        {m.label}
-                      </span>
-                      <span
-                        style={{
-                          color: '#111215',
-                          fontWeight: 600,
-                          fontFamily: '"SF Mono", "Roboto Mono", Menlo, monospace',
-                          letterSpacing: '-0.02em',
-                        }}
-                      >
-                        {m.value}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Dotted hairline separator */}
-              <div
-                style={{
-                  borderBottom: '1px dashed #D2CBC0',
-                  margin: '4px 0',
-                }}
-              />
-
-              {/* Natural language day interpretation in serif display */}
-              <div
-                style={{
-                  textAlign: 'center',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                  padding: '8px 4px 4px 4px',
-                }}
-              >
-                <div
-                  style={{
+                  <div style={{
+                    fontSize: '15px',
                     fontFamily: '"Newsreader", "Georgia", serif',
-                    fontSize: '24px',
-                    lineHeight: 1.25,
-                    fontWeight: 400,
                     fontStyle: 'italic',
-                    color: '#15161A',
-                    whiteSpace: 'pre-line',
-                  }}
-                >
-                  {displayReceipt.interpretation}
-                </div>
-
-                {displayReceipt.tomorrow && (
+                    color: '#3A3C42',
+                  }}>
+                    Day Receipt
+                  </div>
                   <div
                     style={{
-                      fontSize: '12.5px',
-                      color: '#65676F',
-                      fontWeight: 400,
-                      letterSpacing: '-0.01em',
-                      marginTop: '4px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      letterSpacing: '0.04em',
+                      color: '#71737D',
+                      marginTop: '2px',
                     }}
                   >
-                    {displayReceipt.tomorrow}
+                    {displayReceipt.dateFormatted?.replace('DAY RECEIPT · ', '') || displayReceipt.date}
                   </div>
-                )}
-              </div>
-            </>
-          )}
+                </div>
+
+                {/* Dotted hairline separator */}
+                <div style={{ borderBottom: '1px dashed #D2CBC0', margin: '2px 0' }} />
+
+                {/* ── SECTION 1: WHAT HAPPENED ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: '#71737D',
+                  }}>
+                    What Happened
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {displayReceipt.metrics.length === 0 ? (
+                      <div style={{ padding: '8px 0', color: '#888B94', fontSize: '12.5px' }}>
+                        Nothing recorded yet today.
+                      </div>
+                    ) : (
+                      displayReceipt.metrics.map((m) => {
+                        let dotColor = '#8B5CF6';
+                        if (m.id === 'sleep') dotColor = '#8B5CF6';
+                        else if (m.id === 'water') dotColor = '#06B6D4';
+                        else if (m.id === 'food') dotColor = '#F59E0B';
+                        else if (m.id === 'movement') dotColor = '#10B981';
+                        else if (m.domain === 'growth') dotColor = '#3B82F6';
+                        else if (m.domain === 'wealth') dotColor = '#10B981';
+
+                        return (
+                          <div
+                            key={m.id || m.label}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              fontSize: '13px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                background: dotColor,
+                                display: 'inline-block',
+                              }} />
+                              <span style={{ color: '#2B2D33', fontWeight: 600 }}>
+                                {m.label}
+                              </span>
+                            </div>
+                            <span
+                              style={{
+                                color: '#111215',
+                                fontWeight: 700,
+                                fontFamily: '"SF Mono", "Roboto Mono", Menlo, monospace',
+                                fontSize: '12.5px',
+                              }}
+                            >
+                              {m.value}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Dotted hairline separator */}
+                <div style={{ borderBottom: '1px dashed #D2CBC0', margin: '2px 0' }} />
+
+                {/* ── SECTION 2: WHAT IT MEANS ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: '#71737D',
+                  }}>
+                    What It Means
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: '"Newsreader", "Georgia", serif',
+                      fontSize: '14.5px',
+                      lineHeight: '1.45',
+                      fontStyle: 'italic',
+                      color: '#15161A',
+                    }}
+                  >
+                    {displayReceipt.interpretation || 'Rhythm held steady. Energy balanced.'}
+                  </div>
+                </div>
+
+                {/* Dotted hairline separator */}
+                <div style={{ borderBottom: '1px dashed #D2CBC0', margin: '2px 0' }} />
+
+                {/* ── SECTION 3: TOMORROW ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: '#71737D',
+                  }}>
+                    Tomorrow
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#2B2D33' }}>
+                      <span style={{ color: '#E9B44C' }}>•</span>
+                      <span>{displayReceipt.tomorrow || 'Protect your morning focus block'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#65676F' }}>
+                      <span style={{ color: '#8B5CF6' }}>•</span>
+                      <span>Protect 22:30 sleep window</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Bottom Jagged Torn Paper Edge */}
+          <div style={{
+            width: '100%',
+            height: '10px',
+            background: 'radial-gradient(circle at 10px 15px, transparent 12px, #F4EFE6 13px)',
+            backgroundSize: '20px 20px',
+          }} />
         </div>
 
         {/* ── ACTION BUTTONS: [ Share to story ]  [ Save ] ──────────────────── */}

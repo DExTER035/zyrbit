@@ -1,13 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DexCommandModal from '../common/DexCommandModal.jsx';
-import DexLauncher from '../common/DexLauncher.jsx';
 import VoiceCommandOverlay from '../common/VoiceCommandOverlay.jsx';
 
 export default function AppLayout({ children, userId }) {
-  const [dexOpen, setDexOpen] = useState(false);
+  const location = useLocation();
+  const [dexOpen, setDexOpen] = useState(() => (typeof window !== 'undefined' && window.location.search.includes('openDex=true')));
   const [voiceOpen, setVoiceOpen] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.search.includes('openDex=true')) {
+      const timer = setTimeout(() => setDexOpen(true), 0);
+      return () => clearTimeout(timer);
+    }
+  }, [location.search]);
+
+  // Global keyboard shortcuts (Ctrl+K for Dex, Ctrl+M for Voice)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.metaKey || e.ctrlKey) {
+        if (e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          setDexOpen(prev => !prev);
+        } else if (e.key.toLowerCase() === 'm') {
+          e.preventDefault();
+          setVoiceOpen(prev => !prev);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const handleVoiceOpen = () => setVoiceOpen(true);
@@ -39,12 +63,6 @@ export default function AppLayout({ children, userId }) {
       flexDirection: 'column'
     }}>
       {children}
-
-      {/* Ambient Dex Operator & Voice Launcher */}
-      <DexLauncher
-        onClick={() => setDexOpen(true)}
-        onVoiceClick={() => setVoiceOpen(true)}
-      />
 
       {/* Global Voice Command Overlay */}
       {voiceOpen && (

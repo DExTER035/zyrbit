@@ -1,11 +1,13 @@
-/* src/design/theme.css — Zyrbit Brand Tokens v2 */
-/* Direction: Linear · Arc Browser · Raycast · Apple · Notion */
+/* src/styles/theme.css — Zyrbit Brand Tokens v1.1 */
+/* The Personal Operating System Visual Foundation */
 
 :root {
   /* ── Spacing Tokens ── */
   --space-4:  4px;
   --space-8:  8px;
+  --space-12: 12px;
   --space-16: 16px;
+  --space-20: 20px;
   --space-24: 24px;
   --space-32: 32px;
 
@@ -14,6 +16,7 @@
   --radius-inner:  12px;
   --radius-button: 12px;
   --radius-input:  12px;
+  --radius-pill:   9999px;
   --radius-badge:  100px;
 
   /* ── Typography Sizes ── */
@@ -25,38 +28,48 @@
   --fs-xl:   24px;
   --fs-xxl:  32px;
 
-  /* ── Core Backgrounds ── */
-  --bg-root:     #0B0D0F;
-  --bg-page:     #0B0D0F;
-  --bg-card:     #15181B;
-  --bg-elevated: #1C1D21;
-  --bg-input:    #1E1F24;
-  --bg-nav:      rgba(11, 13, 15, 0.88);
+  /* ── Core Backgrounds (Master Specification) ── */
+  --bg-root:     #0E0F13;
+  --bg-page:     #0E0F13;
+  --bg-card:     #15161B;
+  --bg-surface:  #15161B;
+  --bg-elevated: #1D1E24;
+  --bg-input:    #1A1B22;
+  --bg-nav:      rgba(14, 15, 19, 0.94);
 
-  /* ── Borders ── */
-  --border-primary:   #1C1D21;
-  --border-secondary: #26272C;
+  /* ── Borders & Hairlines ── */
+  --border-primary:   #26272D;
+  --border-secondary: #1F2026;
+  --border-hairline:  #3A3B40;
+  --hairline:         #3A3B40;
 
   /* ── Typography Colors ── */
-  --text-primary:   #F5F5F5;
-  --text-secondary: #9CA3AF;
-  --text-muted:     #71717A;
-  --text-dim:       #52525B;
-  --text-hint:      #3F3F46;
+  --text-primary:   #ECE8DF;
+  --text-secondary: #9A978F;
+  --text-muted:     #9A978F;
+  --text-dim:       #6B7280;
+  --text-hint:      #4B5563;
 
   /* ── Letter-Spacing Tokens ── */
   --ls-tight: -0.02em;
   --ls-body:   0em;
   --ls-caps:   0.08em;
 
-  /* ── Accent Colors ── */
-  --color-accent:      #1FA36F;  /* Emerald */
-  --color-accent-dim:  rgba(31, 163, 111, 0.15);
-  --color-accent-glow: rgba(31, 163, 111, 0.08);
+  /* ── Primary Zyrbit Amber & Domain Accents ── */
+  --zyrbit-amber:      #E9B44C;
+  --color-accent:      #E9B44C;
+  --color-accent-dim:  rgba(233, 180, 76, 0.15);
+  --color-accent-glow: rgba(233, 180, 76, 0.25);
 
-  --color-accent-cyan:      #1FA36F;  /* Unified Emerald */
-  --color-accent-cyan-dim:  rgba(31, 163, 111, 0.15);
-  --color-accent-cyan-glow: rgba(31, 163, 111, 0.08);
+  --accent-zenith: #E9B44C;
+  --accent-growth: #E9B44C;
+  --accent-health: #10B981;
+  --accent-wealth: #10B981;
+  --accent-dex:    #06B6D4;
+
+  --color-accent-cyan:      #06B6D4;
+  --color-accent-cyan-dim:  rgba(6, 182, 212, 0.15);
+  --color-accent-cyan-glow: rgba(6, 182, 212, 0.25);
 
   /* ── Semantic Colors ── */
   --color-success:      #10B981;
@@ -67,20 +80,21 @@
   --color-error-dim:    rgba(239, 68, 68, 0.15);
 
   /* ── Logo System ── */
-  --logo-primary:   #F5F5F5;
-  --logo-accent:    #1FA36F;
+  --logo-primary:   #ECE8DF;
+  --logo-accent:    #E9B44C;
 
-  /* ── Zone Colors (Restrained Zyrbit System) ── */
-  --zone-mind:   #1FA36F;
+  /* ── Zone Colors ── */
+  --zone-mind:   #E9B44C;
   --zone-body:   #10B981;
-  --zone-growth: #22C55E;
-  --zone-soul:   #34D399;
+  --zone-growth: #E9B44C;
+  --zone-soul:   #8B5CF6;
 }
 
 /* ── Glassmorphism utility ── */
 .glass {
   backdrop-filter: blur(16px);
-  background: rgba(21, 24, 27, 0.85);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(21, 22, 27, 0.85);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-card);
 }
@@ -92,4 +106,13 @@
 .ambient-glow-accent {
   box-shadow: 0 0 40px var(--color-accent-glow);
 }
+.ambient-glow-amber {
+  box-shadow: 0 0 30px rgba(233, 180, 76, 0.2);
+}
 
+/* Hide floating Dex trigger on mobile to prevent collision with BottomNav */
+@media (max-width: 768px) {
+  .dex-floating-launcher {
+    display: none !important;
+  }
+}

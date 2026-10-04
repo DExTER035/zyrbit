@@ -219,6 +219,7 @@ export function computeMoneyState({
   let flowTransfers = 0;
   let flowInvested = 0;
   let flowRefunds = 0;
+  let flowDebtRepaid = 0;
 
   monthExpenses.forEach(e => {
     const cat = (e.category || '').toLowerCase();
@@ -231,6 +232,8 @@ export function computeMoneyState({
       flowInvested += amt;
     } else if (cat.includes('lend') || cat.includes('loan') || note.includes('lent') || note.includes('loan to')) {
       flowLent += amt;
+    } else if (cat.includes('debt') || cat.includes('repay') || note.includes('repay') || note.includes('debt')) {
+      flowDebtRepaid += amt;
     } else {
       flowSpent += amt;
     }
@@ -258,6 +261,9 @@ export function computeMoneyState({
     transfers: flowTransfers,
     invested: flowInvested,
     refunds: flowRefunds,
+    debtRepaid: flowDebtRepaid,
+    grossLifestyleSpend: flowSpent,
+    netSpending: flowSpent - flowRefunds,
   };
 
   // ── Money State V1: Commitments (Next 30 Days) ─────────────────────────────
@@ -326,15 +332,6 @@ export function computeMoneyState({
 
   const calculatedSavings = Math.max(0, allTimeTransfers - allTimeSavingsWithdraw);
 
-  const assets = {
-    cash: Math.max(0, liquidCash),
-    savings: calculatedSavings > 0 ? calculatedSavings : (liquidCash > 50000 ? Math.round(liquidCash * 0.4) : 0),
-    invested: allTimeInvested,
-    gold: allTimeGold,
-    owedToYou: totalReceivables,
-    total: Math.max(0, liquidCash) + allTimeInvested + allTimeGold + totalReceivables,
-  };
-
   // ── Money State V1: Liabilities (I owe others) ───────────────────────────
   const iOweBills = bills.filter(b => 
     b.status !== 'paid' && 
@@ -359,6 +356,17 @@ export function computeMoneyState({
   const liabilities = {
     iOwe: iOweBills,
     iOweTotal,
+  };
+
+  const currentSavings = calculatedSavings > 0 ? calculatedSavings : (liquidCash > 50000 ? Math.round(liquidCash * 0.4) : 0);
+  const assets = {
+    cash: Math.max(0, liquidCash),
+    savings: currentSavings,
+    invested: allTimeInvested,
+    gold: allTimeGold,
+    owedToYou: totalReceivables,
+    total: Math.max(0, liquidCash) + currentSavings + allTimeInvested + allTimeGold + totalReceivables,
+    netAssets: (Math.max(0, liquidCash) + currentSavings + allTimeInvested + allTimeGold + totalReceivables) - iOweTotal,
   };
 
   // ── Money State V1: Calibration Status ────────────────────────────────────

@@ -24,6 +24,7 @@ import { hasCycle } from '../../engines/growth/index.js';
 
 import TodayTab from '../../components/domain/growth/TodayTab.jsx';
 import PlanTab from '../../components/domain/growth/PlanTab.jsx';
+import GoalsTab from '../../components/domain/growth/GoalsTab.jsx';
 import HabitsTab from '../../components/domain/growth/HabitsTab.jsx';
 import FocusSessionView from '../../components/domain/growth/FocusSessionView.jsx';
 import ProjectDetailView from '../../components/domain/growth/ProjectDetailView.jsx';
@@ -98,9 +99,11 @@ export default function Growth() {
 
   // ── Modals ─────────────────────────────────────────────────────────────────
   const [modalProject,   setModalProject]   = useState(false);
+  const [modalGoal,      setModalGoal]      = useState(false);
 
   // ── Forms ──────────────────────────────────────────────────────────────────
   const [formProject, setFormProject] = useState({ name: '', icon: '📁', deadline: '' });
+  const [formGoal,    setFormGoal]    = useState({ name: '', project_id: '', target_value: 100, unit: '%', deadline: '' });
 
   // ── Habits State ────────────────────────────────────────────────────────────
   const [habits,             setHabits]             = useState([]);
@@ -120,8 +123,10 @@ export default function Growth() {
     reminder_time: ''
   });
 
-  const loadData = useCallback(async (uid) => {
-    setLoading(true);
+  const loadData = useCallback(async (uid, isBackground = false) => {
+    if (!isBackground) {
+      setLoading(true);
+    }
     setError(null);
     const today = todayStr();
     const lsKey = (kind) => `dexos_growth_${kind}_${uid}`;
@@ -357,8 +362,9 @@ export default function Growth() {
     };
 
     const handleDexRefresh = (e) => {
+      if (e.detail?.source === 'growth_page') return;
       if (e.detail?.domain === 'growth' || !e.detail?.domain) {
-        if (user?.id) loadData(user.id);
+        if (user?.id) loadData(user.id, true);
       }
     };
 
@@ -405,8 +411,8 @@ export default function Growth() {
     });
 
     if (res.success) {
-      loadData(user.id);
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth' } }));
+      loadData(user.id, true);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth', source: 'growth_page' } }));
     }
   }, [user, focusProject, focusNotes, sessions, loadData]);
 
@@ -436,8 +442,7 @@ export default function Growth() {
     setFocusDoneMin(0);
     setFocusNotes('');
     if (user) {
-      loadData(user.id);
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth' } }));
+      loadData(user.id, true);
     }
   };
 
@@ -446,107 +451,126 @@ export default function Growth() {
     if (!formProject.name.trim() || !user || isSubmitting) return;
     setIsSubmitting(true);
 
-    const res = await serviceCreateProject({
-      userId: user.id,
-      name: formProject.name,
-      icon: formProject.icon,
-      deadline: formProject.deadline,
-    });
+    try {
+      const res = await serviceCreateProject({
+        userId: user.id,
+        name: formProject.name,
+        icon: formProject.icon,
+        deadline: formProject.deadline,
+      });
 
-    if (!res.success) {
-      showToast(`Failed to create project: ${res.error}`, 'error');
+      if (!res.success) {
+        showToast(`Failed to create project: ${res.error}`, 'error');
+        return;
+      }
+
+      setProjects(prev => [res.data, ...prev]);
+      showToast('📁 Project created!', 'success');
+      setModalProject(false);
+      setFormProject({ name: '', icon: '📁', deadline: '' });
+    } catch (err) {
+      showToast(`Failed to create project: ${err.message}`, 'error');
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    setProjects(prev => [res.data, ...prev]);
-    showToast('📁 Project created!', 'success');
-    setModalProject(false);
-    setFormProject({ name: '', icon: '📁', deadline: '' });
-    setIsSubmitting(false);
   };
 
   const createTask = async (projectId, taskForm) => {
     if (!taskForm.name.trim() || !projectId || !user || isSubmitting) return;
     setIsSubmitting(true);
 
-    const res = await serviceCreateTask({
-      userId: user.id,
-      name: taskForm.name,
-      priority: taskForm.priority,
-      dueDate: taskForm.due_date,
-      projectId,
-    });
+    try {
+      const res = await serviceCreateTask({
+        userId: user.id,
+        name: taskForm.name,
+        priority: taskForm.priority,
+        dueDate: taskForm.due_date,
+        projectId,
+      });
 
-    if (!res.success) {
-      showToast(`Failed to create task: ${res.error}`, 'error');
+      if (!res.success) {
+        showToast(`Failed to create task: ${res.error}`, 'error');
+        return;
+      }
+
+      setTasks(prev => [res.data, ...prev]);
+      showToast('✅ Task added!', 'success');
+    } catch (err) {
+      showToast(`Failed to create task: ${err.message}`, 'error');
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    setTasks(prev => [res.data, ...prev]);
-    showToast('✅ Task added!', 'success');
-    setIsSubmitting(false);
   };
 
   const addTask = async (name, projectId = null) => {
     if (!name.trim() || !user || isSubmitting) return;
     setIsSubmitting(true);
 
-    const res = await serviceCreateTask({
-      userId: user.id,
-      name,
-      priority: 3,
-      projectId,
-    });
+    try {
+      const res = await serviceCreateTask({
+        userId: user.id,
+        name,
+        priority: 3,
+        projectId,
+      });
 
-    if (!res.success) {
-      showToast(`Failed to add task: ${res.error}`, 'error');
+      if (!res.success) {
+        showToast(`Failed to add task: ${res.error}`, 'error');
+        return;
+      }
+
+      setTasks(prev => [res.data, ...prev]);
+      showToast('✅ Task added!', 'success');
+    } catch (err) {
+      showToast(`Failed to add task: ${err.message}`, 'error');
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    setTasks(prev => [res.data, ...prev]);
-    showToast('✅ Task added!', 'success');
-    window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth' } }));
-    setIsSubmitting(false);
   };
 
   const deleteTask = async (task) => {
     if (!user || !task || isSubmitting) return;
     setIsSubmitting(true);
 
-    const res = await serviceDeleteTask({ userId: user.id, taskId: task.id });
-    if (!res.success) {
-      showToast(`Failed to delete task: ${res.error}`, 'error');
-      setIsSubmitting(false);
-      return;
-    }
+    try {
+      const res = await serviceDeleteTask({ userId: user.id, taskId: task.id });
+      if (!res.success) {
+        showToast(`Failed to delete task: ${res.error}`, 'error');
+        return;
+      }
 
-    setTasks(prev => prev.filter(t => t.id !== task.id));
-    setDependencies(prev => prev.filter(d => d.task_id !== task.id && d.depends_on_task_id !== task.id));
-    showToast('🗑 Task deleted', 'success');
-    window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth' } }));
-    setIsSubmitting(false);
+      setTasks(prev => prev.filter(t => t.id !== task.id));
+      setDependencies(prev => prev.filter(d => d.task_id !== task.id && d.depends_on_task_id !== task.id));
+      showToast('🗑 Task deleted', 'success');
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth', source: 'growth_page' } }));
+    } catch (err) {
+      showToast(`Failed to delete task: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const completeTask = async (task) => {
     if (!user || !task || task.status === 'done' || isSubmitting) return;
     setIsSubmitting(true);
 
-    const res = await serviceCompleteTask({ userId: user.id, taskId: task.id, status: 'done' });
+    try {
+      const res = await serviceCompleteTask({ userId: user.id, taskId: task.id, status: 'done' });
 
-    if (!res.success) {
-      showToast(`Failed to complete task: ${res.error}`, 'error');
+      if (!res.success) {
+        showToast(`Failed to complete task: ${res.error}`, 'error');
+        return;
+      }
+
+      setTasks(prev => prev.map(t => t.id === task.id ? res.data : t));
+      setTodayTasksDone(p => p + 1);
+      showToast('✔ Task complete!', 'success');
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth', source: 'growth_page' } }));
+    } catch (err) {
+      showToast(`Failed to complete task: ${err.message}`, 'error');
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    setTasks(prev => prev.map(t => t.id === task.id ? res.data : t));
-    setTodayTasksDone(p => p + 1);
-    showToast('✔ Task complete!', 'success');
-    window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth' } }));
-    setIsSubmitting(false);
   };
 
   const addDependency = async (taskId, dependsOnTaskId) => {
@@ -564,68 +588,81 @@ export default function Growth() {
 
     setIsSubmitting(true);
 
-    const { data, error: dbErr } = await supabase
-      .from('growth_task_dependencies')
-      .insert([{
-        user_id: user.id,
-        task_id: taskId,
-        depends_on_task_id: dependsOnTaskId,
-      }])
-      .select()
-      .single();
+    try {
+      const { data, error: dbErr } = await supabase
+        .from('growth_task_dependencies')
+        .insert([{
+          user_id: user.id,
+          task_id: taskId,
+          depends_on_task_id: dependsOnTaskId,
+        }])
+        .select()
+        .single();
 
-    if (dbErr) {
-      showToast(`Failed to add dependency: ${dbErr.message}`, 'error');
+      if (dbErr) {
+        showToast(`Failed to add dependency: ${dbErr.message}`, 'error');
+        return;
+      }
+
+      setDependencies(prev => [...prev, data]);
+      showToast('🔗 Dependency added!', 'success');
+    } catch (err) {
+      showToast(`Failed to add dependency: ${err.message}`, 'error');
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    setDependencies(prev => [...prev, data]);
-    showToast('🔗 Dependency added!', 'success');
-    setIsSubmitting(false);
   };
 
   const removeDependency = async (depId) => {
     if (!user || !depId || isSubmitting) return;
     setIsSubmitting(true);
 
-    const { error: dbErr } = await supabase
-      .from('growth_task_dependencies')
-      .delete()
-      .eq('id', depId)
-      .eq('user_id', user.id);
+    try {
+      const { error: dbErr } = await supabase
+        .from('growth_task_dependencies')
+        .delete()
+        .eq('id', depId)
+        .eq('user_id', user.id);
 
-    if (dbErr) {
-      showToast(`Failed to remove dependency: ${dbErr.message}`, 'error');
+      if (dbErr) {
+        showToast(`Failed to remove dependency: ${dbErr.message}`, 'error');
+        return;
+      }
+
+      setDependencies(prev => prev.filter(d => d.id !== depId));
+      showToast('🗑 Dependency removed', 'success');
+    } catch (err) {
+      showToast(`Failed to remove dependency: ${err.message}`, 'error');
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    setDependencies(prev => prev.filter(d => d.id !== depId));
-    showToast('🗑 Dependency removed', 'success');
-    setIsSubmitting(false);
   };
 
   const createGoal = async (goalForm) => {
     if (!goalForm.name?.trim() || !user || isSubmitting) return;
     setIsSubmitting(true);
 
-    const res = await serviceCreateGoal({
-      userId: user.id,
-      name: goalForm.name,
-      projectId: goalForm.project_id || null,
-      targetValue: goalForm.target_value,
-      unit: goalForm.unit,
-      deadline: goalForm.deadline || null,
-    });
+    try {
+      const res = await serviceCreateGoal({
+        userId: user.id,
+        name: goalForm.name,
+        projectId: goalForm.project_id || null,
+        targetValue: goalForm.target_value,
+        unit: goalForm.unit,
+        deadline: goalForm.deadline || null,
+      });
 
-    if (res.success) {
-      setGoals(prev => [res.data, ...prev]);
-      showToast('🎯 Goal added!', 'success');
-    } else {
-      showToast(`Failed to create goal: ${res.error}`, 'error');
+      if (res.success) {
+        setGoals(prev => [res.data, ...prev]);
+        showToast('🎯 Goal added!', 'success');
+      } else {
+        showToast(`Failed to create goal: ${res.error}`, 'error');
+      }
+    } catch (err) {
+      showToast(`Failed to create goal: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const updateGoalProgress = async (goal, val) => {
@@ -808,7 +845,7 @@ export default function Growth() {
     );
   }
 
-  if (loading) {
+  if (loading && projects.length === 0 && tasks.length === 0) {
     return (
       <div className="app-container" style={{ background: C.bg, minHeight: '100vh', padding: '28px 20px 120px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -880,68 +917,81 @@ export default function Growth() {
   // ─── RENDER — Main Growth Screen ───────────────────────────────────────────
   return (
     <div className="app-container page-enter" style={{
-      background: 'var(--bg-root)',
+      background: '#0E0F13',
       minHeight: '100vh',
-      color: 'var(--text-primary)',
+      color: '#ECE8DF',
       position: 'relative',
-      '--color-accent': '#1FA36F',
-      '--color-accent-dim': 'rgba(31, 163, 111, 0.15)',
-      '--color-accent-glow': 'rgba(31, 163, 111, 0.08)',
-      '--color-accent-cyan': '#1FA36F',
-      '--color-accent-cyan-dim': 'rgba(31, 163, 111, 0.15)',
-      '--color-accent-cyan-glow': 'rgba(31, 163, 111, 0.08)',
     }}>
 
-      {/* ── HEADER ──────────────────────────────────────────────────── */}
-      <div style={{ padding: '36px 20px 0' }}>
-        <div style={{
-          fontSize: '11px',
-          fontWeight: 700,
-          color: '#6B7280',
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
-          marginBottom: '6px'
-        }}>
-          GROWTH
+      {/* ── HEADER ── */}
+      <div style={{ padding: '36px 20px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <h1 style={{
+            fontSize: '26px',
+            fontWeight: 800,
+            color: '#ECE8DF',
+            letterSpacing: '-0.03em',
+            margin: '0 0 2px',
+          }}>
+            Growth
+          </h1>
+          <div style={{
+            fontSize: '13px',
+            color: '#9A978F',
+            fontWeight: 400,
+          }}>
+            Build what matters.
+          </div>
         </div>
-        <div style={{
-          fontSize: '26px',
-          fontWeight: 800,
-          color: '#F5F5F5',
-          letterSpacing: '-0.03em',
-          lineHeight: 1.2
-        }}>
-          Momentum.
-        </div>
+
+        <button
+          onClick={() => setTab('habits')}
+          aria-label="View Momentum History"
+          style={{
+            background: '#15161B',
+            border: '1px solid #26272D',
+            borderRadius: '50%',
+            width: '36px',
+            height: '36px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#9A978F',
+            cursor: 'pointer',
+          }}
+        >
+          <Timer size={16} />
+        </button>
       </div>
 
-      {/* ── TAB BAR ─────────────────────────────────────────────────── */}
+      {/* ── PILL TAB BAR ── */}
       <div style={{
         padding: '16px 20px 0',
         display: 'flex',
-        gap: '24px',
-        borderBottom: '1px solid #1C1D21'
+        gap: '8px',
+        overflowX: 'auto',
       }}>
         {[
-          { id: 'today',  label: 'Today' },
-          { id: 'plan',   label: 'Plan' },
-          { id: 'habits', label: 'Habits' },
+          { id: 'today',    label: 'Today' },
+          { id: 'projects', label: 'Projects' },
+          { id: 'goals',    label: 'Goals' },
+          { id: 'habits',   label: 'Habits' },
         ].map(t => {
-          const isActive = tab === t.id;
+          const isActive = tab === t.id || (t.id === 'projects' && tab === 'plan');
           return (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => setTab(t.id === 'projects' ? 'plan' : t.id)}
               style={{
-                background: 'transparent',
-                border: 'none',
-                borderBottom: `2px solid ${isActive ? '#1FA36F' : 'transparent'}`,
-                padding: '8px 0 10px',
+                background: isActive ? '#15161B' : 'transparent',
+                border: `1px solid ${isActive ? '#3A3B40' : 'transparent'}`,
+                borderRadius: '9999px',
+                padding: '6px 14px',
                 cursor: 'pointer',
-                fontSize: '13px',
+                fontSize: '12px',
                 fontWeight: isActive ? 700 : 500,
-                color: isActive ? '#F5F5F5' : '#6B7280',
-                transition: 'all 0.15s',
+                color: isActive ? '#ECE8DF' : '#9A978F',
+                transition: 'all 0.15s ease',
               }}
             >
               {t.label}
@@ -1024,13 +1074,27 @@ export default function Growth() {
             yearlyCompletionsMap={yearlyCompletionsMap}
           />
         )}
+        {tab === 'goals' && (
+          <GoalsTab
+            goals={goals}
+            projects={projects}
+            tasks={tasks}
+            projectMap={projectMap}
+            onAddGoal={() => setModalGoal(true)}
+            onUpdateGoalProgress={updateGoalProgress}
+            onOpenProject={(p) => openProjectDetail(p)}
+          />
+        )}
       </div>
 
       {/* ── MODALS ──────────────────────────────────────────────────── */}
 
       {/* New Project */}
       {modalProject && (
-        <Modal title="New Project" onClose={() => setModalProject(false)}>
+        <Modal title="New Project" onClose={() => {
+          setModalProject(false);
+          setFormProject({ name: '', icon: '📁', deadline: '' });
+        }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <FInput placeholder="Project name..." value={formProject.name} onChange={e => setFormProject(p => ({ ...p, name: e.target.value }))} />
             <FInput placeholder="Icon (emoji)" value={formProject.icon} onChange={e => setFormProject(p => ({ ...p, icon: e.target.value }))} />
@@ -1043,9 +1107,90 @@ export default function Growth() {
         </Modal>
       )}
 
+      {/* New Goal */}
+      {modalGoal && (
+        <Modal title="New Goal" onClose={() => {
+          setModalGoal(false);
+          setFormGoal({ name: '', project_id: '', target_value: 100, unit: '%', deadline: '' });
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <FInput
+              placeholder="Goal name (e.g. Crack DSA Exam)..."
+              value={formGoal.name}
+              onChange={e => setFormGoal(p => ({ ...p, name: e.target.value }))}
+              autoFocus
+            />
+            {projects.length > 0 && (
+              <div>
+                <FLabel>CONNECTED PROJECT (OPTIONAL)</FLabel>
+                <FSelect
+                  value={formGoal.project_id}
+                  onChange={e => setFormGoal(p => ({ ...p, project_id: e.target.value }))}
+                >
+                  <option value="">No Project</option>
+                  {projects.map(pr => (
+                    <option key={pr.id} value={pr.id}>{pr.icon} {pr.name}</option>
+                  ))}
+                </FSelect>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ flex: 1 }}>
+                <FLabel>TARGET VALUE</FLabel>
+                <FInput
+                  type="number"
+                  placeholder="100"
+                  value={formGoal.target_value}
+                  onChange={e => setFormGoal(p => ({ ...p, target_value: e.target.value }))}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <FLabel>UNIT</FLabel>
+                <FInput
+                  placeholder="%, problems, pages..."
+                  value={formGoal.unit}
+                  onChange={e => setFormGoal(p => ({ ...p, unit: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div>
+              <FLabel>DEADLINE (OPTIONAL)</FLabel>
+              <FInput
+                type="date"
+                value={formGoal.deadline}
+                onChange={e => setFormGoal(p => ({ ...p, deadline: e.target.value }))}
+              />
+            </div>
+            <BtnPrimary
+              label="Create Goal"
+              onClick={async () => {
+                await createGoal(formGoal);
+                setModalGoal(false);
+                setFormGoal({ name: '', project_id: '', target_value: 100, unit: '%', deadline: '' });
+              }}
+              disabled={!formGoal.name.trim()}
+            />
+          </div>
+        </Modal>
+      )}
+
       {/* Habit Create / Edit Modal */}
       {modalHabit && (
-        <Modal title={editHabit ? 'Edit Habit' : 'New Habit'} onClose={() => setModalHabit(false)}>
+        <Modal
+          title={editHabit ? 'Edit Habit' : 'New Habit'}
+          onClose={() => {
+            setModalHabit(false);
+            setEditHabit(null);
+            setFormHabit({
+              name: '',
+              zone: 'mind',
+              icon: '🌱',
+              frequency: 'daily',
+              reminder_enabled: false,
+              reminder_time: '',
+            });
+          }}
+        >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
               <FLabel>HABIT NAME</FLabel>

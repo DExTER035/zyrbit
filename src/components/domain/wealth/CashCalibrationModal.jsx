@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Wallet, Check } from 'lucide-react';
 
 const W = {
@@ -20,10 +20,18 @@ export default function CashCalibrationModal({
   const [cashAmount, setCashAmount] = useState(() => (currentCash > 0 ? String(currentCash) : ''));
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      setCashAmount(currentCash > 0 ? String(currentCash) : '');
+      setSaving(false);
+    }
+  }, [isOpen, currentCash]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
     const val = Number(cashAmount);
     if (isNaN(val) || val < 0) return;
 

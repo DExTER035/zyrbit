@@ -54,6 +54,8 @@ import {
   deleteIncome,
 } from '../../services/wealthService.js';
 import { computeMoneyState } from '../../engines/wealth/moneyState.js';
+import WealthFlowHero from '../../components/domain/wealth/WealthFlowHero.jsx';
+import WealthRecentEvents from '../../components/domain/wealth/WealthRecentEvents.jsx';
 
 const W = {
   bg: '#0B0D0F',
@@ -83,6 +85,7 @@ export default function Wealth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Raw domain collections
   const [settings, setSettings] = useState(null);
@@ -113,8 +116,10 @@ export default function Wealth() {
   const [budgetForm, setBudgetForm] = useState({ budget: 15000, currency: 'INR' });
 
   // ── Data Fetcher ──────────────────────────────────────────────────────────
-  const loadData = useCallback(async (uid) => {
-    setLoading(true);
+  const loadData = useCallback(async (uid, isBackground = false) => {
+    if (!isBackground) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const res = await getWealthSnapshot(uid);
@@ -156,7 +161,9 @@ export default function Wealth() {
   useEffect(() => {
     const handler = (e) => {
       if ((e.detail?.domain === 'wealth' || !e.detail?.domain) && user?.id) {
-        loadData(user.id);
+        if (e.detail?.source !== 'wealth_page') {
+          loadData(user.id, true);
+        }
       }
     };
     window.addEventListener('dexos:refresh', handler);
@@ -189,7 +196,8 @@ export default function Wealth() {
 
   // Action: Record Money Event
   const handleRecordEvent = async (eventParams) => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const res = await recordMoneyEvent({
         userId: user.id,
@@ -202,16 +210,19 @@ export default function Wealth() {
       }
 
       showToast(`Recorded: ${eventParams.title || eventParams.type}`, 'success');
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-      await loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+      await loadData(user.id, true);
     } catch (err) {
       showToast(err.message || 'Failed to record event.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Action: Calibrate Cash
   const handleCalibrateCash = async (targetCash) => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const res = await calibrateCashBalance({
         userId: user.id,
@@ -224,16 +235,19 @@ export default function Wealth() {
       }
 
       showToast('Cash balance updated.', 'success');
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-      await loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+      await loadData(user.id, true);
     } catch (err) {
       showToast(err.message || 'Calibration failed.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Action: Resolve Promise
   const handleResolvePromise = async (promiseItem) => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const res = await resolveMoneyPromise({
         userId: user.id,
@@ -243,16 +257,19 @@ export default function Wealth() {
       });
       if (!res.success) throw new Error(res.error);
       showToast(`Settled with ${promiseItem.person || 'contact'}`, 'success');
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-      await loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+      await loadData(user.id, true);
     } catch (err) {
       showToast(err.message || 'Failed to resolve promise.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Action: Save Bill (Create / Update)
   const handleSaveBill = async (billData) => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       let res;
       if (billData.id) {
@@ -278,30 +295,36 @@ export default function Wealth() {
 
       if (!res.success) throw new Error(res.error);
       showToast(billData.id ? 'Commitment updated.' : 'Commitment added.', 'success');
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-      await loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+      await loadData(user.id, true);
     } catch (err) {
       showToast(err.message || 'Failed to save commitment.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Action: Delete Bill
   const handleDeleteBill = async (billId) => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const res = await deleteBill({ userId: user.id, id: billId });
       if (!res.success) throw new Error(res.error);
       showToast('Commitment deleted.', 'success');
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-      await loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+      await loadData(user.id, true);
     } catch (err) {
       showToast(err.message || 'Failed to delete commitment.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Action: Save Promise (Create / Update)
   const handleSavePromise = async (promiseData) => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       if (promiseData.id) {
         const res = await updateBill({
@@ -327,30 +350,36 @@ export default function Wealth() {
         if (!res.success) throw new Error(res.error);
         showToast('Promise recorded.', 'success');
       }
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-      await loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+      await loadData(user.id, true);
     } catch (err) {
       showToast(err.message || 'Failed to save promise.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Action: Delete Promise
   const handleDeletePromise = async (promiseId) => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const res = await deleteBill({ userId: user.id, id: promiseId });
       if (!res.success) throw new Error(res.error);
       showToast('Promise removed.', 'success');
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-      await loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+      await loadData(user.id, true);
     } catch (err) {
       showToast(err.message || 'Failed to delete promise.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Action: Save Asset Allocation / Holding
   const handleSaveAsset = async (assetData) => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const res = await recordMoneyEvent({
         userId: user.id,
@@ -358,16 +387,19 @@ export default function Wealth() {
       });
       if (!res.success) throw new Error(res.error);
       showToast('Asset updated.', 'success');
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-      await loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+      await loadData(user.id, true);
     } catch (err) {
       showToast(err.message || 'Failed to update asset.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Action: Save Transaction (Create / Update)
   const handleSaveTransaction = async (txData) => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       let res;
       if (txData.id) {
@@ -412,16 +444,19 @@ export default function Wealth() {
 
       if (!res.success) throw new Error(res.error);
       showToast(txData.id ? 'Transaction updated.' : 'Transaction recorded.', 'success');
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-      await loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+      await loadData(user.id, true);
     } catch (err) {
       showToast(err.message || 'Failed to save transaction.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Action: Delete Transaction
   const handleDeleteTransaction = async (txId) => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       let res;
       if (transactionModalType === 'expense') {
@@ -431,16 +466,19 @@ export default function Wealth() {
       }
       if (!res.success) throw new Error(res.error);
       showToast('Transaction deleted.', 'success');
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-      await loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+      await loadData(user.id, true);
     } catch (err) {
       showToast(err.message || 'Failed to delete transaction.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSaveSettings = async (e) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const res = await saveWealthSettings({
         userId: user.id,
@@ -450,10 +488,12 @@ export default function Wealth() {
       if (!res.success) throw new Error(res.error);
       showToast('Wealth settings saved.', 'success');
       setIsSettingsOpen(false);
-      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-      await loadData(user.id);
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+      await loadData(user.id, true);
     } catch (err) {
       showToast(err.message || 'Failed to save settings.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -477,10 +517,10 @@ export default function Wealth() {
   }
 
   // ── Calculate Hero Figures ──────────────────────────────────────────────
-  const liquidCash = Math.max(0, Number(moneyState.liquidCash || 0));
-  const committedTotal = Number(moneyState.upcomingBillTotal || moneyState.committedNext30Total || 0);
-  const safeToSpend = Math.max(0, Number(moneyState.safeToSpendDaily || moneyState.unencumberedCash || (liquidCash - committedTotal)));
-  const runwayDays = moneyState.runwayDays > 0 ? moneyState.runwayDays : 31;
+  const liquidCash = Math.max(0, Number(moneyState?.liquidCash || 0));
+  const committedTotal = Number(moneyState?.upcomingBillTotal || moneyState?.committedNext30Total || 0);
+  const safeToSpend = Math.max(0, Number(moneyState?.safeToSpendDaily || moneyState?.unencumberedCash || (liquidCash - committedTotal)));
+  const _runwayDays = (moneyState?.runwayDays > 0) ? moneyState.runwayDays : 31;
 
   // ── Sub-view Renderers ──────────────────────────────────────────────────
 
@@ -744,8 +784,8 @@ export default function Wealth() {
                       const nextStatus = bill.status === 'paid' ? 'unpaid' : 'paid';
                       await toggleBillStatus({ userId: user.id, billId: bill.id, status: nextStatus });
                       showToast(nextStatus === 'paid' ? `Marked ${bill.name} as paid` : `Marked ${bill.name} as unpaid`, 'success');
-                      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-                      await loadData(user.id);
+                      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+                      await loadData(user.id, true);
                     }}
                     style={{
                       background: bill.status === 'paid' ? '#1F2922' : '#2A2215',
@@ -953,8 +993,8 @@ export default function Wealth() {
                         e.stopPropagation();
                         await toggleBillStatus({ userId: user.id, billId: l.id, status: 'paid' });
                         showToast(`Paid loan ${l.name}`, 'success');
-                        window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth' } }));
-                        await loadData(user.id);
+                        window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+                        await loadData(user.id, true);
                       }}
                       style={{
                         background: '#2A1F22',
@@ -1235,777 +1275,211 @@ export default function Wealth() {
   // 6. HOME VIEW (Matches Left Column of Reference Image!)
   const renderHomeView = () => {
     const activeCommitments = bills.filter((b) => b.status !== 'paid');
-    const recentActivity = moneyState.unifiedRecent || [];
 
     return (
       <div className="flex flex-col">
-        {/* Top Header */}
-        <div style={{ padding: '28px 20px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* ── Top Header Row ── */}
+        <div style={{ padding: '36px 20px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div
-              className="font-serif-state"
-              style={{
-                fontSize: '28px',
-                fontWeight: 400,
-                color: '#F5F5F5',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.1,
-              }}
-            >
+            <h1 style={{
+              fontSize: '26px',
+              fontWeight: 800,
+              color: '#ECE8DF',
+              margin: '0 0 2px',
+              letterSpacing: '-0.03em',
+            }}>
               Wealth
-            </div>
-            <div style={{ fontSize: '12.5px', color: '#8E929B', marginTop: '2px' }}>
-              Your money, understood.
+            </h1>
+            <div style={{ fontSize: '13px', color: '#9A978F', fontWeight: 400 }}>
+              You're on track.
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* Connect Money Statement Import */}
+            <div style={{
+              background: '#15161B',
+              border: '1px solid #26272D',
+              borderRadius: '9999px',
+              padding: '6px 14px',
+              fontSize: '12px',
+              fontWeight: 600,
+              color: '#ECE8DF',
+              cursor: 'pointer',
+            }}>
+              This month ›
+            </div>
+
             <button
               type="button"
               onClick={() => setIsConnectMoneyOpen(true)}
               style={{
-                background: 'rgba(31, 163, 111, 0.1)',
-                border: '1px solid rgba(31, 163, 111, 0.3)',
-                borderRadius: '20px',
-                padding: '6px 12px',
+                background: '#15161B',
+                border: '1px solid #26272D',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '5px',
-                color: '#1FA36F',
-                fontSize: '12px',
-                fontWeight: 600,
+                justifyContent: 'center',
+                color: '#10B981',
                 cursor: 'pointer',
-                transition: 'all 0.15s',
               }}
+              title="Connect Money"
             >
-              <LinkIcon size={12} />
-              <span>Connect</span>
-            </button>
-
-            {/* Manage Action */}
-            <button
-              type="button"
-              onClick={() => setIsSettingsOpen(true)}
-              style={{
-                background: '#15181B',
-                border: `1px solid ${W.borderMid}`,
-                borderRadius: '20px',
-                padding: '6px 13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                color: '#9CA3AF',
-                fontSize: '12px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#F5F5F5';
-                e.currentTarget.style.borderColor = '#9CA3AF50';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#9CA3AF';
-                e.currentTarget.style.borderColor = W.borderMid;
-              }}
-            >
-              <Settings2 size={13} />
-              <span>Manage</span>
+              <LinkIcon size={14} />
             </button>
           </div>
         </div>
 
         <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* ── 1. PRIMARY HERO: MONEY STATE CARD ──────────────────────────── */}
-          <div
-            style={{
-              background: W.surfaceCard,
-              border: `1px solid ${W.border}`,
-              borderRadius: '16px',
-              padding: '18px 18px 16px 18px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
+          {/* ── 1. THE WEALTH FLOW HERO (SAFE-TO-SPEND + WATERFALL) ── */}
+          <WealthFlowHero
+            liquidCash={liquidCash}
+            upcomingBillTotal={committedTotal}
+            unencumberedCash={safeToSpend}
+            safeToSpendDaily={moneyState.safeToSpendDaily || 280}
+            daysLeft={moneyState.daysLeft || 24}
+            onOpenIncome={() => {
+              setEditingTransaction(null);
+              setTransactionModalType('income');
+              setIsTransactionModalOpen(true);
             }}
-          >
-            {/* Top meta row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#1FA36F' }} />
-                <span
-                  style={{
-                    fontSize: '10.5px',
-                    fontWeight: 700,
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    color: '#1FA36F',
-                  }}
-                >
-                  MONEY STATE
-                </span>
-              </div>
-              <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: 500 }}>
-                {moneyState.daysLeft || 30} days left
-              </span>
-            </div>
+            onOpenExpense={() => {
+              setEditingTransaction(null);
+              setTransactionModalType('expense');
+              setIsTransactionModalOpen(true);
+            }}
+            onOpenBills={() => {
+              setEditingBill(null);
+              setIsBillModalOpen(true);
+            }}
+            onOpenPromises={() => {
+              setEditingPromise(null);
+              setIsPromiseModalOpen(true);
+            }}
+          />
 
-            {/* Middle: Safe to spend + Circular Runway ring */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div
-                  className="font-serif-state"
-                  style={{
-                    fontSize: '38px',
-                    fontWeight: 400,
-                    color: '#F5F5F5',
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1.05,
-                  }}
-                >
-                  {fmtFull(safeToSpend)}
-                </div>
-                <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#F5F5F5', marginTop: '4px' }}>
-                  Safe to spend
-                </div>
-                <div style={{ fontSize: '11.5px', color: '#8E929B', marginTop: '1px' }}>
-                  Available for everyday spending
-                </div>
-              </div>
+          {/* ── 2. RECENT EVENTS & PROMISES ── */}
+          <WealthRecentEvents
+            expenses={expenses}
+            incomes={incomes}
+            promises={bills}
+            onSeeAll={() => setActiveView('recent')}
+            onTransactionClick={(tx) => {
+              setEditingTransaction(tx);
+              setTransactionModalType('expense');
+              setIsTransactionModalOpen(true);
+            }}
+          />
 
-              {/* Circular Runway Ring */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                <div
-                  style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '50%',
-                    border: '2.5px solid #0E7490',
-                    borderTopColor: '#38BDF8',
-                    borderRightColor: '#38BDF8',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                  }}
-                >
-                  <span style={{ fontSize: '16px', fontWeight: 800, color: '#38BDF8', lineHeight: 1 }}>
-                    {runwayDays}
-                  </span>
-                  <span style={{ fontSize: '9px', color: '#8E929B', lineHeight: 1, marginTop: '1px' }}>
-                    days
-                  </span>
-                </div>
-                <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 500 }}>
-                  Runway
-                </span>
-              </div>
-            </div>
-
-            {/* Bottom stats row: Cash | Committed | Runway */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
-                paddingTop: '12px',
-                borderTop: '1px solid #1A1F26',
-                gap: '6px',
-              }}
-            >
-              <div
-                onClick={() => setIsCalibrateModalOpen(true)}
-                style={{ cursor: 'pointer' }}
-                title="Tap to calibrate your cash balance"
-              >
-                <div style={{ fontSize: '11px', color: '#8E929B' }}>Cash</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#F5F5F5', marginTop: '2px' }}>
-                  {fmtShort(liquidCash)}
-                </div>
-              </div>
-
-              <div
-                onClick={() => setActiveView('commitments')}
-                style={{ cursor: 'pointer' }}
-                title="Tap to view commitments"
-              >
-                <div style={{ fontSize: '11px', color: '#8E929B' }}>Committed</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#F5F5F5', marginTop: '2px' }}>
-                  {fmtShort(committedTotal)}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '11px', color: '#8E929B' }}>Runway</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#38BDF8', marginTop: '2px' }}>
-                  {runwayDays} days
-                </div>
-              </div>
-            </div>
-
-            {/* Uncalibrated Cash prompt */}
-            {!moneyState.isCalibrated && (
-              <button
-                type="button"
-                onClick={() => setIsCalibrateModalOpen(true)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  background: '#1A1813',
-                  border: '1px dashed #E9B44C50',
-                  borderRadius: '8px',
-                  color: '#E9B44C',
-                  fontSize: '11.5px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s',
-                }}
-              >
-                <span>Set your current cash balance →</span>
-              </button>
-            )}
-          </div>
-
-          {/* ── 2. SIDE-BY-SIDE CARDS: FLOW & ASSETS ────────────────────────── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            {/* FLOW CARD */}
-            <div
+          {/* ── SECONDARY DOMAIN DRILL-DOWN & CONNECT MONEY ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '12px' }}>
+            <button
+              type="button"
+              onClick={() => setActiveView('flow')}
               style={{
                 background: W.surfaceCard,
                 border: `1px solid ${W.border}`,
                 borderRadius: '14px',
-                padding: '14px 14px 12px 14px',
+                padding: '14px 16px',
                 display: 'flex',
-                flexDirection: 'column',
+                alignItems: 'center',
                 justifyContent: 'space-between',
+                cursor: 'pointer',
+                textAlign: 'left',
               }}
             >
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{ fontSize: '12px' }}>📊</span>
-                  <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#F5F5F5', letterSpacing: '0.08em' }}>
-                    FLOW
-                  </span>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#ECE8DF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>📊</span> Flow & Assets
                 </div>
-                <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '1px', marginBottom: '10px' }}>
-                  This month
-                </div>
-
-                {/* Rows */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
-                      <TrendingUp size={11} color="#1FA36F" />
-                      <span>Income</span>
-                    </div>
-                    <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.monthEarned || 0)}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
-                      <TrendingDown size={11} color="#EF4444" />
-                      <span>Spent</span>
-                    </div>
-                    <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.monthSpend || 0)}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
-                      <Repeat size={11} color="#38BDF8" />
-                      <span>Transfers</span>
-                    </div>
-                    <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.flow?.transfers || 0)}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
-                      <LinkIcon size={11} color="#A78BFA" />
-                      <span>Lent</span>
-                    </div>
-                    <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.flow?.lent || 0)}</span>
-                  </div>
+                <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
+                  {fmtShort(moneyState.monthSpend || 0)} spent · {fmtShort(liquidCash)} balance
                 </div>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveView('flow')}
-                style={{
-                  marginTop: '12px',
-                  paddingTop: '8px',
-                  borderTop: '1px solid #1A1F26',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#6B7280',
-                  fontSize: '11px',
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                }}
-              >
-                <span>View all</span>
-                <ChevronRight size={12} />
-              </button>
-            </div>
-
-            {/* ASSETS CARD */}
-            <div
-              style={{
-                background: W.surfaceCard,
-                border: `1px solid ${W.border}`,
-                borderRadius: '14px',
-                padding: '14px 14px 12px 14px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{ fontSize: '12px' }}>🏛</span>
-                  <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#F5F5F5', letterSpacing: '0.08em' }}>
-                    ASSETS
-                  </span>
-                </div>
-                <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '1px', marginBottom: '10px' }}>
-                  Where your money is now
-                </div>
-
-                {/* Rows */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
-                      <Wallet size={11} color="#D1D5DB" />
-                      <span>Cash</span>
-                    </div>
-                    <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.assets?.cash || liquidCash)}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
-                      <PiggyBank size={11} color="#D1D5DB" />
-                      <span>Savings</span>
-                    </div>
-                    <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.assets?.savings || 0)}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
-                      <Landmark size={11} color="#D1D5DB" />
-                      <span>Invested</span>
-                    </div>
-                    <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.assets?.invested || 0)}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
-                      <Sparkles size={11} color="#E9B44C" />
-                      <span>Gold</span>
-                    </div>
-                    <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.assets?.gold || 0)}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8E929B' }}>
-                      <Users size={11} color="#D1D5DB" />
-                      <span>Owed to you</span>
-                    </div>
-                    <span style={{ fontWeight: 600, color: '#F5F5F5' }}>{fmtShort(moneyState.assets?.owedToYou || 0)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveView('assets')}
-                style={{
-                  marginTop: '12px',
-                  paddingTop: '8px',
-                  borderTop: '1px solid #1A1F26',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#6B7280',
-                  fontSize: '11px',
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                }}
-              >
-                <span>View all</span>
-                <ChevronRight size={12} />
-              </button>
-            </div>
-          </div>
-
-          {/* ── 3. COMMITMENTS CARD ─────────────────────────────────────────── */}
-          <div
-            style={{
-              background: W.surfaceCard,
-              border: `1px solid ${W.border}`,
-              borderRadius: '16px',
-              padding: '16px 16px 14px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-            }}
-          >
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{ fontSize: '12px' }}>📅</span>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5F5F5', letterSpacing: '0.08em' }}>
-                    COMMITMENTS
-                  </span>
-                </div>
-                <div style={{ fontSize: '11px', color: '#8E929B', marginTop: '1px' }}>
-                  Money already promised
-                </div>
-              </div>
-
-              {/* Amber badge */}
-              <div
-                style={{
-                  background: '#2A2215',
-                  color: '#E9B44C',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  padding: '4px 10px',
-                  borderRadius: '14px',
-                  border: '1px solid #E9B44C30',
-                }}
-              >
-                Next 30 days · {fmtShort(committedTotal)}
-              </div>
-            </div>
-
-            {/* Rows */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-              {activeCommitments.length === 0 ? (
-                <div style={{ padding: '8px 0', color: '#6B7280', fontSize: '12px' }}>
-                  No pending commitments this month.
-                </div>
-              ) : (
-                activeCommitments.slice(0, 4).map((c) => (
-                  <div
-                    key={c.id}
-                    onClick={() => {
-                      setEditingBill(c);
-                      setIsBillModalOpen(true);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '4px 0',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-                      <span style={{ fontSize: '13px' }}>📅</span>
-                      <span style={{ fontSize: '13px', fontWeight: 500, color: '#F5F5F5' }}>{c.name}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#F5F5F5' }}>{fmtFull(c.amount)}</span>
-                      <span style={{ fontSize: '11px', color: '#8E929B' }}>{c.due_date || 'Soon'}</span>
-                      <ChevronRight size={13} color="#6B7280" />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+              <ChevronRight size={14} color="#6B7280" />
+            </button>
 
             <button
               type="button"
               onClick={() => setActiveView('commitments')}
               style={{
-                paddingTop: '8px',
-                borderTop: '1px solid #1A1F26',
-                background: 'transparent',
-                border: 'none',
-                color: '#6B7280',
-                fontSize: '11px',
-                fontWeight: 500,
+                background: W.surfaceCard,
+                border: `1px solid ${W.border}`,
+                borderRadius: '14px',
+                padding: '14px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
+                textAlign: 'left',
               }}
             >
-              <span>View all</span>
-              <ChevronRight size={12} />
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#ECE8DF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>📅</span> Commitments
+                </div>
+                <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
+                  {activeCommitments.length} upcoming ({fmtShort(committedTotal)})
+                </div>
+              </div>
+              <ChevronRight size={14} color="#6B7280" />
             </button>
-          </div>
-
-          {/* ── 4. PROMISES CARD ─────────────────────────────────────────────── */}
-          <div
-            style={{
-              background: W.surfaceCard,
-              border: `1px solid ${W.border}`,
-              borderRadius: '16px',
-              padding: '16px 16px 14px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ fontSize: '12px' }}>👥</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5F5F5', letterSpacing: '0.08em' }}>
-                  PROMISES
-                </span>
-              </div>
-              <div style={{ fontSize: '11px', color: '#8E929B', marginTop: '1px' }}>
-                People and money relationships
-              </div>
-            </div>
-
-            {/* Rows: Owed to me & I owe */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '4px 0',
-                  cursor: 'pointer',
-                }}
-                onClick={() => {
-                  setPromisesTab('owed_to_me');
-                  setActiveView('promises');
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <TrendingUp size={13} color="#1FA36F" />
-                  <span style={{ fontSize: '13px', color: '#D1D5DB' }}>Owed to me</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#F5F5F5' }}>
-                    {fmtFull(moneyState.assets?.owedToYou || 0)}
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#8E929B' }}>
-                    {moneyState.moneyPromises?.length || 0} {moneyState.moneyPromises?.length === 1 ? 'person' : 'people'}
-                  </span>
-                  <ChevronRight size={13} color="#6B7280" />
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '4px 0',
-                  cursor: 'pointer',
-                }}
-                onClick={() => {
-                  setPromisesTab('i_owe');
-                  setActiveView('promises');
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <TrendingDown size={13} color="#EF4444" />
-                  <span style={{ fontSize: '13px', color: '#D1D5DB' }}>I owe</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#F5F5F5' }}>
-                    {fmtFull(moneyState.liabilities?.iOweTotal || 0)}
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#8E929B' }}>
-                    {moneyState.liabilities?.iOwe?.length || 0} {moneyState.liabilities?.iOwe?.length === 1 ? 'person' : 'people'}
-                  </span>
-                  <ChevronRight size={13} color="#6B7280" />
-                </div>
-              </div>
-            </div>
 
             <button
               type="button"
-              onClick={() => setActiveView('promises')}
+              onClick={() => {
+                setPromisesTab('owed_to_me');
+                setActiveView('promises');
+              }}
               style={{
-                paddingTop: '8px',
-                borderTop: '1px solid #1A1F26',
-                background: 'transparent',
-                border: 'none',
-                color: '#6B7280',
-                fontSize: '11px',
-                fontWeight: 500,
+                background: W.surfaceCard,
+                border: `1px solid ${W.border}`,
+                borderRadius: '14px',
+                padding: '14px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
+                textAlign: 'left',
               }}
             >
-              <span>View all</span>
-              <ChevronRight size={12} />
-            </button>
-          </div>
-
-          {/* ── CONNECT MONEY CARD ────────────────────────────────────────── */}
-          <div
-            style={{
-              background: W.surfaceCard,
-              border: `1px solid ${W.border}`,
-              borderRadius: '16px',
-              padding: '16px 16px 14px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <LinkIcon size={12} color="#1FA36F" />
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5F5F5', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                    Connect Money
-                  </span>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#ECE8DF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>👥</span> Promises
                 </div>
-                <div style={{ fontSize: '11px', color: '#8E929B', marginTop: '1px' }}>
-                  Keep your financial picture current
+                <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
+                  {fmtShort(moneyState.assets?.owedToYou || 0)} owed to you
                 </div>
               </div>
+              <ChevronRight size={14} color="#6B7280" />
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setIsConnectMoneyOpen(true)}
-                style={{
-                  background: 'rgba(31, 163, 111, 0.12)',
-                  border: '1px solid rgba(31, 163, 111, 0.3)',
-                  color: '#1FA36F',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  padding: '5px 11px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <span>Import</span>
-                <ChevronRight size={11} />
-              </button>
-            </div>
-
-            <div
+            <button
+              type="button"
               onClick={() => setIsConnectMoneyOpen(true)}
               style={{
-                background: '#0B0D0F',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-                borderRadius: '12px',
-                padding: '12px 14px',
+                background: W.surfaceCard,
+                border: `1px solid ${W.border}`,
+                borderRadius: '14px',
+                padding: '14px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
-                transition: 'all 0.15s',
+                textAlign: 'left',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(31, 163, 111, 0.3)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)'; }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(31, 163, 111, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1FA36F' }}>
-                  <Repeat size={14} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#F5F5F5' }}>Paytm Statement</div>
-                  <div style={{ fontSize: '11px', color: '#8E929B' }}>Import UPI Excel / CSV passbook</div>
-                </div>
-              </div>
-              <span style={{ fontSize: '11px', color: '#1FA36F', fontWeight: 600 }}>Choose file →</span>
-            </div>
-          </div>
-
-          {/* ── 5. RECENT CARD ───────────────────────────────────────────────── */}
-          <div
-            style={{
-              background: W.surfaceCard,
-              border: `1px solid ${W.border}`,
-              borderRadius: '16px',
-              padding: '16px 16px 14px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Clock size={12} color="#D1D5DB" />
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5F5F5', letterSpacing: '0.08em' }}>
-                    RECENT
-                  </span>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#ECE8DF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🔗</span> Connect Money
                 </div>
-                <div style={{ fontSize: '11px', color: '#8E929B', marginTop: '1px' }}>
-                  Latest money activity
+                <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
+                  Import statement & reconciliation
                 </div>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveView('recent')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#6B7280',
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                }}
-              >
-                View all &gt;
-              </button>
-            </div>
-
-            {/* Rows */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-              {recentActivity.length === 0 ? (
-                <div style={{ padding: '8px 0', color: '#6B7280', fontSize: '12px' }}>
-                  No recent activity recorded.
-                </div>
-              ) : (
-                recentActivity.slice(0, 4).map((r) => (
-                  <div
-                    key={r.id}
-                    onClick={() => {
-                      setEditingTransaction(r);
-                      setTransactionModalType(r.isCredit ? 'income' : 'expense');
-                      setIsTransactionModalOpen(true);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '3px 0',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '13px' }}>{r.icon || (r.isCredit ? '💰' : '💸')}</span>
-                      <div>
-                        <span style={{ fontSize: '13px', fontWeight: 500, color: '#F5F5F5' }}>{r.name || r.title}</span>
-                        <span style={{ fontSize: '11px', color: '#8E929B', marginLeft: '6px' }}>{r.cat || r.category || r.source}</span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: r.isCredit ? '#1FA36F' : '#F5F5F5' }}>
-                        {r.isCredit ? '+' : ''}{fmtFull(r.amount)}
-                      </span>
-                      <span style={{ fontSize: '11px', color: '#8E929B' }}>{r.date || 'Today'}</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+              <ChevronRight size={14} color="#6B7280" />
+            </button>
           </div>
         </div>
       </div>

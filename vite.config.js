@@ -45,5 +45,8 @@ export default defineConfig({
       ],
       manifest: false
     })
-  ]
+  ],
+  build: {
+    emptyOutDir: false
+  }
 })

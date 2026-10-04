@@ -73,3 +73,10 @@ CREATE INDEX IF NOT EXISTS idx_imported_tx_user_fingerprint
 CREATE INDEX IF NOT EXISTS idx_imported_tx_user_source_id 
   ON public.imported_transactions (user_id, source_transaction_id) 
   WHERE source_transaction_id IS NOT NULL;
+
+-- 5. GRANTS & SCHEMA CACHE RELOAD
+GRANT ALL ON TABLE public.statement_import_batches TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.imported_transactions TO anon, authenticated, service_role;
+
+NOTIFY pgrst, 'reload schema';
+

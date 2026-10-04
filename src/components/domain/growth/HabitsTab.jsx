@@ -171,16 +171,16 @@ export default function HabitsTab({
         }}>
           <div style={{ fontSize: '32px' }}>🌱</div>
           <div style={{ fontSize: '15px', fontWeight: 700, color: C.text }}>
-            {selectedZone === 'all' ? 'No habits created yet' : `No habits in ${selectedZone} zone`}
+            {selectedZone === 'all' ? 'What do you want to make automatic?' : `No habits in ${selectedZone} zone`}
           </div>
-          <div style={{ fontSize: '12px', color: C.muted, maxWidth: '280px' }}>
-            Habits compound over time. Add daily routines that move you forward.
+          <div style={{ fontSize: '12px', color: C.muted, maxWidth: '320px' }}>
+            Optional examples: 20m Deep Reading, Morning Hydration, 100 Pushups, Daily LeetCode.
           </div>
           <button
             type="button"
             onClick={onAddHabit}
             style={{
-              background: '#1FA36F',
+              background: '#E9B44C',
               color: '#0B0D0F',
               border: 'none',
               borderRadius: '8px',
@@ -191,7 +191,7 @@ export default function HabitsTab({
               marginTop: '6px',
             }}
           >
-            + Create First Habit
+            Create Habit
           </button>
         </div>
       ) : (

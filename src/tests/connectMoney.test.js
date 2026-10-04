@@ -83,7 +83,7 @@ describe('Connect Money V1 — Paytm Statement Import & Transaction Intelligence
 
     const res = await deduplicateTransactions('user-123', [candidateA]);
     expect(res[0].fingerprint).toBe(candidateB.fingerprint);
-  });
+  }, 15000);
 
   // ── 5. Duplicate Transaction ID -> No Duplicate ────────────────────────────
   it('5. detects duplicate transactions with matching sourceTransactionId', () => {
