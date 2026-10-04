@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, CheckCircle2 } from 'lucide-react';
+import { X, Calendar, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 
 const W = {
-  bg: '#0B0D0F',
-  surface: '#15181B',
-  border: '#1F242C',
-  borderMid: '#262C36',
-  text: '#F5F5F5',
-  sub: '#9CA3AF',
+  bg: '#0E0F13',
+  surface: '#15161B',
+  border: '#26272D',
+  borderFocus: '#3A3B40',
+  text: '#ECE8DF',
+  sub: '#9A978F',
   muted: '#6B7280',
+  dim: '#1F2026',
   accent: '#E9B44C',
   emerald: '#1FA36F',
-  danger: '#f42727ff',
+  danger: '#EF4444',
+  purple: '#A78BFA',
 };
 
 const getLocalYMD = (d = new Date()) => {
@@ -39,6 +41,7 @@ export default function PromiseFormModal({
   const [amount, setAmount] = useState('');
   const [dueDate, setDueDate] = useState(getLocalYMD());
   const [note, setNote] = useState('');
+  const [showNote, setShowNote] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -48,17 +51,24 @@ export default function PromiseFormModal({
       setPerson(activePromise.person || activePromise.name?.replace(/^return to\s+/i, '').replace(/\s+owes you$/i, '') || '');
       setAmount(activePromise.amount !== undefined ? String(activePromise.amount) : '');
       setDueDate(activePromise.due_date || activePromise.dueDate || getLocalYMD());
-      setNote(activePromise.note || '');
+      const existingNote = activePromise.note || '';
+      setNote(existingNote);
+      setShowNote(!!existingNote.trim());
     } else {
       setType(activeInitialType);
       setPerson('');
       setAmount('');
       setDueDate(getLocalYMD());
       setNote('');
+      setShowNote(false);
     }
   }, [activePromise, activeInitialType, isOpen]);
 
   if (!isOpen) return null;
+
+  const isOwedToMe = type === 'owed_to_me';
+  const todayYMD = getLocalYMD();
+  const isToday = dueDate === todayYMD;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,10 +79,10 @@ export default function PromiseFormModal({
     try {
       await onSave({
         id: activePromise?.id || null,
-        type: type === 'owed_to_me' ? 'LEND' : 'BORROW',
+        type: isOwedToMe ? 'LEND' : 'BORROW',
         person: person.trim(),
-        amount: numAmount,
-        dueDate: dueDate || getLocalYMD(),
+        amount: Math.round(numAmount * 100) / 100,
+        dueDate: dueDate || todayYMD,
         note: note.trim(),
       });
       onClose();
@@ -103,146 +113,388 @@ export default function PromiseFormModal({
     }
   };
 
+  // Natural contextual phrasing
+  const relationshipSummary = isOwedToMe
+    ? (person.trim() ? `${person.trim()} owes me` : 'Someone owes me')
+    : (person.trim() ? `I owe ${person.trim()}` : 'I owe someone');
+
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.82)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        zIndex: 200,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+      }}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-t-3xl md:rounded-2xl p-6 flex flex-col"
-        style={{ background: W.surface, border: `1px solid ${W.border}` }}
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: W.surface,
+          border: `1px solid ${W.border}`,
+          borderRadius: '24px 24px 0 0',
+          width: '100%',
+          maxWidth: '430px',
+          padding: '24px 20px 36px',
+          animation: 'slideUpSheet 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 -8px 40px rgba(0, 0, 0, 0.5)',
+        }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-white/5">
+        {/* ── Header & Purpose Sentence ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
           <div>
-            <h3 className="text-base font-bold text-[#F5F5F5]">
-              {activePromise ? 'Edit Money Relationship' : 'Add Promise / Loan'}
-            </h3>
-            <p className="text-xs text-[#9CA3AF]">People and money obligations</p>
+            <div style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              color: isOwedToMe ? W.emerald : '#F43F5E',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              marginBottom: '3px',
+            }}>
+              {activePromise ? 'Edit Promise' : 'Promise'}
+            </div>
+            <div style={{
+              fontSize: '15px',
+              fontWeight: 600,
+              color: W.text,
+              letterSpacing: '-0.01em',
+            }}>
+              Who owes whom?
+            </div>
           </div>
+
           <button
-            onClick={onClose}
             type="button"
-            className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-[#9CA3AF] hover:text-white"
+            onClick={onClose}
+            style={{
+              background: W.dim,
+              border: `1px solid ${W.border}`,
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: W.sub,
+              transition: 'all 0.15s ease',
+            }}
           >
             <X size={15} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
-          {/* Direction toggle */}
-          {!activePromise && (
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setType('owed_to_me')}
-                className="py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5"
-                style={{
-                  background: type === 'owed_to_me' ? 'rgba(31, 163, 111, 0.15)' : '#0B0D0F',
-                  borderColor: type === 'owed_to_me' ? W.emerald : 'rgba(255, 255, 255, 0.08)',
-                  color: type === 'owed_to_me' ? W.emerald : '#9CA3AF',
-                }}
-              >
-                <span>↑ Someone owes me</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setType('i_owe')}
-                className="py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5"
-                style={{
-                  background: type === 'i_owe' ? 'rgba(239, 68, 68, 0.15)' : '#0B0D0F',
-                  borderColor: type === 'i_owe' ? W.danger : 'rgba(255, 255, 255, 0.08)',
-                  color: type === 'i_owe' ? W.danger : '#9CA3AF',
-                }}
-              >
-                <span>↓ I owe someone</span>
-              </button>
-            </div>
-          )}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          {/* ── Large Direction Toggle: OWED TO ME / I OWE ── */}
+          <div style={{
+            background: W.bg,
+            border: `1px solid ${W.border}`,
+            borderRadius: '16px',
+            padding: '4px',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '4px',
+          }}>
+            <button
+              type="button"
+              onClick={() => setType('owed_to_me')}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '12px',
+                background: isOwedToMe ? 'rgba(31, 163, 111, 0.18)' : 'transparent',
+                border: isOwedToMe ? `1px solid ${W.emerald}` : '1px solid transparent',
+                color: isOwedToMe ? W.emerald : W.sub,
+                fontSize: '12px',
+                fontWeight: isOwedToMe ? 800 : 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              <span>↑</span>
+              <span>OWED TO ME</span>
+            </button>
 
-          {/* Person name */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-[#9CA3AF]">Person *</label>
+            <button
+              type="button"
+              onClick={() => setType('i_owe')}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '12px',
+                background: !isOwedToMe ? 'rgba(239, 68, 68, 0.18)' : 'transparent',
+                border: !isOwedToMe ? '1px solid #EF4444' : '1px solid transparent',
+                color: !isOwedToMe ? '#EF4444' : W.sub,
+                fontSize: '12px',
+                fontWeight: !isOwedToMe ? 800 : 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              <span>↓</span>
+              <span>I OWE</span>
+            </button>
+          </div>
+
+          {/* Contextual Phrasing Pill */}
+          <div style={{
+            fontSize: '12px',
+            fontWeight: 600,
+            color: isOwedToMe ? W.emerald : '#EF4444',
+            background: isOwedToMe ? 'rgba(31, 163, 111, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            textAlign: 'center',
+          }}>
+            {relationshipSummary}
+          </div>
+
+          {/* ── Person Input ── */}
+          <div style={{
+            background: W.bg,
+            border: `1px solid ${W.border}`,
+            borderRadius: '16px',
+            padding: '12px 14px',
+          }}>
             <input
               type="text"
               required
-              placeholder="e.g. Ninad, Vasu, Alex"
+              placeholder="Person name (e.g. Ninad, Vasu, Alex)"
               value={person}
-              onChange={(e) => setPerson(e.target.value)}
-              className="px-3.5 py-2.5 rounded-xl bg-[#0B0D0F] border border-white/10 text-sm font-semibold text-[#F5F5F5] outline-none"
+              onChange={e => setPerson(e.target.value)}
+              autoFocus
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: W.text,
+                outline: 'none',
+                padding: 0,
+              }}
             />
           </div>
 
-          {/* Amount */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-[#9CA3AF]">Amount ({currencySymbol}) *</label>
+          {/* ── Primary Hero Input: Large Amount ── */}
+          <div style={{
+            background: W.bg,
+            border: `1px solid ${W.border}`,
+            borderRadius: '20px',
+            padding: '16px 18px',
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: '8px',
+          }}>
+            <span style={{
+              fontSize: '28px',
+              fontWeight: 800,
+              color: amount ? W.text : W.muted,
+              lineHeight: 1,
+            }}>
+              {currencySymbol}
+            </span>
             <input
               type="number"
               step="any"
-              min="1"
-              required
-              placeholder="0.00"
+              inputMode="decimal"
+              placeholder="0"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="px-3.5 py-2.5 rounded-xl bg-[#0B0D0F] border border-white/10 text-sm font-bold font-mono text-[#F5F5F5] outline-none"
+              onChange={e => setAmount(e.target.value)}
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: 'none',
+                fontSize: '36px',
+                fontWeight: 900,
+                color: W.text,
+                outline: 'none',
+                padding: 0,
+                margin: 0,
+                lineHeight: 1,
+                fontFamily: 'inherit',
+                letterSpacing: '-0.03em',
+                MozAppearance: 'textfield',
+                WebkitAppearance: 'none',
+              }}
             />
           </div>
 
-          {/* Due date */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-[#9CA3AF]">Expected Date</label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="px-3.5 py-2.5 rounded-xl bg-[#0B0D0F] border border-white/10 text-sm text-[#F5F5F5] outline-none"
-            />
+          {/* ── Expected by Date & Note Disclosure ── */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: W.bg,
+              border: `1px solid ${W.border}`,
+              borderRadius: '10px',
+              padding: '6px 10px',
+              position: 'relative',
+            }}>
+              <Calendar size={13} color={W.sub} />
+              <span style={{ fontSize: '11px', fontWeight: 600, color: W.text }}>
+                Expected: {isToday ? 'Today' : dueDate}
+              </span>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={e => setDueDate(e.target.value)}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  opacity: 0,
+                  cursor: 'pointer',
+                  width: '100%',
+                }}
+              />
+            </div>
+
+            {!showNote && (
+              <button
+                type="button"
+                onClick={() => setShowNote(true)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: W.sub,
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 4px',
+                }}
+              >
+                <Plus size={13} />
+                <span>Add note</span>
+              </button>
+            )}
           </div>
 
-          {/* Notes */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-[#9CA3AF]">Note (Optional)</label>
-            <input
-              type="text"
-              placeholder="Dinner split, trip cab, borrowed for books"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="px-3.5 py-2.5 rounded-xl bg-[#0B0D0F] border border-white/10 text-xs text-[#F5F5F5] outline-none"
-            />
-          </div>
+          {/* Collapsible Note Input */}
+          {showNote && (
+            <div style={{
+              background: W.bg,
+              border: `1px solid ${W.border}`,
+              borderRadius: '14px',
+              padding: '10px 14px',
+            }}>
+              <input
+                type="text"
+                placeholder="Optional note (e.g. Dinner split, Weekend trip)"
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                autoFocus
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '13px',
+                  color: W.text,
+                  outline: 'none',
+                  padding: 0,
+                }}
+              />
+            </div>
+          )}
 
-          {/* Actions */}
-          <div className="flex flex-col gap-2 pt-2">
+          {/* ── Action Buttons ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
             <button
               type="submit"
-              disabled={saving || !person.trim() || !amount}
-              className="w-full py-3 rounded-xl bg-[#1FA36F] text-[#0B0D0F] font-bold text-xs cursor-pointer hover:bg-[#1FA36F]/90 transition disabled:opacity-50"
+              disabled={!person.trim() || !amount || parseFloat(amount) <= 0 || saving}
+              style={{
+                width: '100%',
+                padding: '14px',
+                borderRadius: '16px',
+                background: isOwedToMe ? W.emerald : '#F43F5E',
+                border: 'none',
+                color: '#0E0F13',
+                fontSize: '14px',
+                fontWeight: 800,
+                letterSpacing: '0.01em',
+                cursor: (!person.trim() || !amount || parseFloat(amount) <= 0 || saving) ? 'not-allowed' : 'pointer',
+                opacity: (!person.trim() || !amount || parseFloat(amount) <= 0 || saving) ? 0.45 : 1,
+                transition: 'all 0.15s ease',
+              }}
             >
-              {saving ? 'Saving...' : activePromise ? 'Save Changes' : 'Record Promise'}
+              {saving ? 'Recording...' : (activePromise ? 'Save changes' : 'Record promise')}
             </button>
 
+            {/* Resolve button for existing promises */}
             {activePromise && onResolve && (
               <button
                 type="button"
                 onClick={handleResolve}
                 disabled={saving}
-                className="w-full py-2.5 rounded-xl bg-[#1F2922] border border-[#1FA36F]/40 text-[#1FA36F] font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-[#1F2922]/80 transition cursor-pointer"
+                style={{
+                  width: '100%',
+                  padding: '11px',
+                  borderRadius: '12px',
+                  background: 'rgba(31, 163, 111, 0.12)',
+                  border: `1px solid ${W.emerald}`,
+                  color: W.emerald,
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
               >
                 <CheckCircle2 size={14} />
-                <span>Mark as Settled / {type === 'owed_to_me' ? 'Received' : 'Paid'}</span>
+                <span>Mark as settled</span>
               </button>
             )}
 
+            {/* Delete button */}
             {activePromise && onDelete && (
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={saving}
-                className="w-full py-2 rounded-xl bg-transparent text-[#EF4444] font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-[#EF4444]/10 transition cursor-pointer"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '12px',
+                  background: 'transparent',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  color: '#EF4444',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
               >
                 <Trash2 size={13} />
-                <span>Delete Promise</span>
+                <span>Delete promise</span>
               </button>
             )}
           </div>

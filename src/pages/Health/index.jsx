@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings } from 'lucide-react';
 import { supabase } from '../../lib/supabase/index.js';
 import BottomNav from '../../components/layout/BottomNav.jsx';
 import { showToast } from '../../components/ui/Toast.jsx';
@@ -9,9 +8,7 @@ import { showToast } from '../../components/ui/Toast.jsx';
 import {
   C,
   todayStr,
-  NutritionCard,
 } from '../../components/domain/health/index.js';
-import { BodyRhythmRow } from '../../components/primitives/index.jsx';
 import BodyRhythmVisualizer from '../../components/domain/health/BodyRhythmVisualizer.jsx';
 import HealthMealsList from '../../components/domain/health/HealthMealsList.jsx';
 
@@ -21,6 +18,7 @@ import HeatmapGrid from '../../components/common/HeatmapGrid.jsx';
 import FoodPicker from '../../components/domain/food/FoodPicker.jsx';
 import EditLogModal from '../../components/domain/food/EditLogModal.jsx';
 import GoalSettingsModal from '../../components/domain/food/GoalSettingsModal.jsx';
+import SavedMealsSection from '../../components/domain/food/SavedMealsSection.jsx';
 
 // ─── Domain Engines & Services ──────────────────────────────────────────────
 import { computeHealthState } from '../../engines/health/index.js';
@@ -157,6 +155,28 @@ export default function Health() {
     }
     return "Body baseline steady.";
   }, [healthState]);
+
+  // ─── Pure Contextual Health Recommendation (What Would Help?) ───────────
+  const recommendationText = useMemo(() => {
+    const sleepHrs = healthState.sleep?.hours || 0;
+    const waterMl = healthState.hydration?.ml || 0;
+    const workoutMins = healthState.movement?.minutes || 0;
+    const mealsCount = mealLogs.length;
+
+    if (sleepHrs > 0 && sleepHrs < 6) {
+      return "Running on short sleep. Keep cognitive demands bounded, stay hydrated with 2L water, and aim for an earlier bedtime tonight.";
+    }
+    if (waterMl < 1000) {
+      return "Hydration pending. Drink 500ml water to sustain metabolic pacing and afternoon focus.";
+    }
+    if (workoutMins === 0) {
+      return "Movement gap today. A 20-minute brisk walk or light mobility session will reset posture and energy.";
+    }
+    if (mealsCount === 0) {
+      return "Fueling steadily supports cognitive stamina—tell Dex what you ate.";
+    }
+    return "Body rhythm is steady. Maintain your hydration pace and keep your evening wind-down routine calm.";
+  }, [healthState, mealLogs]);
 
   // ─── Ranked Personal Usuals (Fast 1-Tap Logging) ───────────────────────────
   const personalUsuals = useMemo(() => {
@@ -680,107 +700,243 @@ export default function Health() {
         />
       </div>
 
-      {/* ─── 4. TODAY'S MEALS (KNOWN/ESTIMATED/UNKNOWN) ─── */}
+      {/* ─── 3. TODAY'S MEALS (EDITORIAL & TAP-TO-INSPECT) ─── */}
       <div style={{ padding: '0 20px' }}>
         <HealthMealsList
           mealLogs={mealLogs}
+          personalUsuals={personalUsuals}
+          onSelectUsual={handleSelectUsual}
+          onRepeatYesterday={handleRepeatYesterday}
           onSeeAll={() => setActivePickerMealType('lunch')}
+          onAddMeal={() => setActivePickerMealType('lunch')}
+          onEditMeal={(log) => setEditingMealLog(log)}
+          onDeleteMeal={handleDeleteMealLog}
         />
       </div>
 
-      {/* ─── 4. QUICK CAPTURE STRIP (SECONDARY) ────────────────────────────── */}
-      <div style={{ padding: '24px 20px 0' }}>
+      {/* ─── 4. WHAT WOULD HELP? (CONTEXTUAL INTELLIGENCE) ─── */}
+      <div style={{ padding: '0 20px', marginTop: '16px' }}>
         <div style={{
-          fontSize: '10px',
-          fontWeight: 700,
+          background: '#15161B',
+          border: '1px solid #26272D',
+          borderRadius: '16px',
+          padding: '16px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '12px',
+        }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '10px',
+            background: 'rgba(56, 189, 248, 0.12)',
+            color: '#38BDF8',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '15px',
+            flexShrink: 0,
+          }}>
+            ✦
+          </div>
+          <div>
+            <div style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              color: '#38BDF8',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              marginBottom: '3px',
+            }}>
+              What would help
+            </div>
+            <div style={{
+              fontSize: '13px',
+              color: '#ECE8DF',
+              fontWeight: 500,
+              lineHeight: 1.5,
+            }}>
+              {recommendationText}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 5. COMPACT CAPTURE BAR ─── */}
+      <div style={{ padding: '20px 20px 0' }}>
+        <div style={{
+          fontSize: '11px',
+          fontWeight: 800,
           color: '#6B7280',
-          letterSpacing: '0.14em',
+          letterSpacing: '0.12em',
           textTransform: 'uppercase',
           marginBottom: '10px',
         }}>
-          Quick Log
+          Capture
         </div>
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={() => handleLogWater(250)}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '8px',
-              background: 'rgba(96, 165, 250, 0.1)',
-              border: '1px solid rgba(96, 165, 250, 0.25)',
-              color: '#60A5FA',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            + 250ml Water
-          </button>
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={() => handleLogSleep(7.5, 3)}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '8px',
-              background: 'rgba(31, 163, 111, 0.1)',
-              border: '1px solid rgba(31, 163, 111, 0.25)',
-              color: '#1FA36F',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            + 7.5h Sleep
-          </button>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+          {/* Water */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleLogWater(250)}
+              style={{
+                padding: '10px 8px',
+                borderRadius: '12px',
+                background: 'rgba(96, 165, 250, 0.1)',
+                border: '1px solid rgba(96, 165, 250, 0.25)',
+                color: '#60A5FA',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px',
+              }}
+            >
+              <span>💧 Water</span>
+              <span style={{ fontSize: '10px', opacity: 0.8 }}>+250ml</span>
+            </button>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleLogWater(500)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#60A5FA',
+                fontSize: '10px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: '2px',
+              }}
+            >
+              +500ml
+            </button>
+          </div>
+
+          {/* Meal */}
           <button
             type="button"
             disabled={isSubmitting}
             onClick={() => setActivePickerMealType('lunch')}
             style={{
-              padding: '8px 14px',
-              borderRadius: '8px',
+              padding: '10px 8px',
+              borderRadius: '12px',
               background: 'rgba(245, 158, 11, 0.1)',
               border: '1px solid rgba(245, 158, 11, 0.25)',
               color: '#F59E0B',
               fontSize: '12px',
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+              height: '52px',
             }}
           >
-            + Food
+            <span>🍲 Meal</span>
+            <span style={{ fontSize: '10px', opacity: 0.8 }}>Log food</span>
           </button>
+
+          {/* Sleep */}
           <button
             type="button"
             disabled={isSubmitting}
-            onClick={() => handleLogWorkout('Workout', 30, 7)}
+            onClick={() => handleLogSleep(7.5, 3)}
             style={{
-              padding: '8px 14px',
-              borderRadius: '8px',
-              background: 'rgba(167, 139, 250, 0.1)',
-              border: '1px solid rgba(167, 139, 250, 0.25)',
-              color: '#A78BFA',
+              padding: '10px 8px',
+              borderRadius: '12px',
+              background: 'rgba(31, 163, 111, 0.1)',
+              border: '1px solid rgba(31, 163, 111, 0.25)',
+              color: '#1FA36F',
               fontSize: '12px',
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+              height: '52px',
             }}
           >
-            + 30m Workout
+            <span>😴 Sleep</span>
+            <span style={{ fontSize: '10px', opacity: 0.8 }}>+7.5h</span>
           </button>
+
+          {/* Movement */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleLogWorkout('Workout', 30, 7)}
+              style={{
+                padding: '10px 8px',
+                borderRadius: '12px',
+                background: 'rgba(167, 139, 250, 0.1)',
+                border: '1px solid rgba(167, 139, 250, 0.25)',
+                color: '#A78BFA',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px',
+              }}
+            >
+              <span>⚡ Move</span>
+              <span style={{ fontSize: '10px', opacity: 0.8 }}>+30m</span>
+            </button>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => handleLogWorkout('Workout', 15, 6)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#A78BFA',
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: '2px',
+                }}
+              >
+                +15m
+              </button>
+              <span style={{ color: '#6B7280', fontSize: '10px' }}>·</span>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => handleLogWorkout('Workout', 60, 8)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#A78BFA',
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: '2px',
+                }}
+              >
+                +60m
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ─── 5. PROGRESSIVE DISCLOSURE: DETAILED LOGS & CONSISTENCY ─────────── */}
+      {/* ─── 6. PROGRESSIVE DISCLOSURE: 90-DAY BIO CONSISTENCY ─── */}
       <div style={{ padding: '24px 20px 120px' }}>
         <button
           type="button"
@@ -799,37 +955,29 @@ export default function Health() {
             outline: 'none',
           }}
         >
-          <span>{showDetailedLogs ? '▲ Hide detailed logs & consistency' : '▼ View detailed telemetry & consistency'}</span>
+          <span>{showDetailedLogs ? '▲ Hide bio consistency history' : '▼ View 90-day bio consistency'}</span>
         </button>
 
         {showDetailedLogs && (
-          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Heatmap */}
             <div style={{
-              background: '#15181B',
+              background: '#15161B',
               border: '1px solid #1C1D21',
-              borderRadius: '12px',
+              borderRadius: '16px',
               padding: '16px',
             }}>
               <HeatmapGrid color="#1FA36F" dataMap={heatmapData} label="Bio Consistency (90 Days)" />
             </div>
 
-            {/* Nutrition Breakdown */}
-            <NutritionCard
-              fuel={healthState.fuel}
-              mealLogs={mealLogs}
-              personalUsuals={personalUsuals}
-              savedMeals={savedMeals}
-              userId={user?.id}
-              onAddFood={(type) => setActivePickerMealType(type)}
-              onDeleteLog={handleDeleteMealLog}
-              onEditLog={(log) => setEditingMealLog(log)}
-              onLogSavedMeal={handleLogSavedMeal}
-              onDeleteSavedMeal={handleDeleteSavedMeal}
-              onSelectUsual={handleSelectUsual}
-              onRepeatYesterday={handleRepeatYesterday}
-              onMealSaved={(newMeal) => setSavedMeals((prev) => [newMeal, ...prev])}
-            />
+            {/* Saved Meal Templates (if any) */}
+            {savedMeals && savedMeals.length > 0 && (
+              <SavedMealsSection
+                savedMeals={savedMeals}
+                onLogSavedMeal={handleLogSavedMeal}
+                onDelete={handleDeleteSavedMeal}
+              />
+            )}
           </div>
         )}
       </div>

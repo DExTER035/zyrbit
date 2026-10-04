@@ -55,6 +55,13 @@ const ZONE_OPTIONS = [
 
 const QUICK_ICONS = ['🌱', '⚡', '🧠', '🌌', '💧', '🏃', '📚', '🧘', '🎯', '💤'];
 
+const HABIT_PRESETS = [
+  { label: 'Read 20 mins', zone: 'growth', icon: '📚' },
+  { label: 'Train', zone: 'body', icon: '⚡' },
+  { label: 'Drink water', zone: 'body', icon: '💧' },
+  { label: 'Sleep before 11', zone: 'mind', icon: '💤' },
+];
+
 const ZONE_COLORS = {
   mind: 'var(--color-zone-mind)',
   body: 'var(--color-zone-body)',
@@ -1177,7 +1184,8 @@ export default function Growth() {
       {/* Habit Create / Edit Modal */}
       {modalHabit && (
         <Modal
-          title={editHabit ? 'Edit Habit' : 'New Habit'}
+          title={editHabit ? 'EDIT HABIT' : 'NEW HABIT'}
+          subtitle={editHabit ? 'Update habit rhythm' : 'What do you want to make automatic?'}
           onClose={() => {
             setModalHabit(false);
             setEditHabit(null);
@@ -1193,18 +1201,49 @@ export default function Growth() {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
-              <FLabel>HABIT NAME</FLabel>
               <FInput
-                placeholder="e.g. 20 min deep reading..."
+                placeholder="Habit name (e.g. Read 20 mins)..."
                 value={formHabit.name}
                 onChange={e => setFormHabit(p => ({ ...p, name: e.target.value }))}
                 autoFocus
               />
+              {!editHabit && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                  {HABIT_PRESETS.map(preset => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => setFormHabit(p => ({
+                        ...p,
+                        name: preset.label,
+                        zone: preset.zone,
+                        icon: preset.icon,
+                      }))}
+                      style={{
+                        background: formHabit.name === preset.label ? 'rgba(31, 163, 111, 0.2)' : '#1B1F23',
+                        border: `1px solid ${formHabit.name === preset.label ? '#1FA36F' : '#26272C'}`,
+                        borderRadius: '16px',
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        color: formHabit.name === preset.label ? '#1FA36F' : '#9CA3AF',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span>{preset.icon}</span>
+                      <span>{preset.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
               <FLabel>ZONE</FLabel>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
                 {ZONE_OPTIONS.map(z => {
                   const isSel = formHabit.zone === z.id;
                   return (
@@ -1213,21 +1252,22 @@ export default function Growth() {
                       type="button"
                       onClick={() => setFormHabit(p => ({ ...p, zone: z.id }))}
                       style={{
-                        background: isSel ? 'rgba(31, 163, 111, 0.15)' : '#0B0D0F',
-                        border: `1px solid ${isSel ? '#1FA36F' : '#2E2F35'}`,
+                        background: isSel ? 'rgba(31, 163, 111, 0.15)' : '#1B1F23',
+                        border: `1px solid ${isSel ? '#1FA36F' : '#26272C'}`,
                         borderRadius: '8px',
-                        padding: '8px',
-                        color: isSel ? '#1FA36F' : '#A1A1AA',
-                        fontSize: '13px',
+                        padding: '8px 4px',
+                        color: isSel ? '#1FA36F' : '#9CA3AF',
+                        fontSize: '12px',
                         fontWeight: 700,
                         cursor: 'pointer',
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
+                        gap: '4px',
+                        transition: 'all 0.15s ease',
                       }}
                     >
-                      <span>{z.icon}</span>
+                      <span style={{ fontSize: '14px' }}>{z.icon}</span>
                       <span>{z.label}</span>
                     </button>
                   );
@@ -1236,35 +1276,90 @@ export default function Growth() {
             </div>
 
             <div>
-              <FLabel>ICON</FLabel>
-              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
-                {QUICK_ICONS.map(ic => (
-                  <button
-                    key={ic}
-                    type="button"
-                    onClick={() => setFormHabit(p => ({ ...p, icon: ic }))}
-                    style={{
-                      background: formHabit.icon === ic ? '#1FA36F' : '#0B0D0F',
-                      border: `1px solid ${formHabit.icon === ic ? '#1FA36F' : '#2E2F35'}`,
-                      borderRadius: '6px',
-                      width: '32px',
-                      height: '32px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '16px',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {ic}
-                  </button>
-                ))}
+              <FLabel>FREQUENCY</FLabel>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[
+                  { id: 'daily', label: 'Daily' },
+                  { id: 'weekly', label: 'Weekly' },
+                ].map(f => {
+                  const isSel = (formHabit.frequency || 'daily') === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setFormHabit(p => ({ ...p, frequency: f.id }))}
+                      style={{
+                        flex: 1,
+                        padding: '8px',
+                        background: isSel ? 'rgba(31, 163, 111, 0.15)' : '#1B1F23',
+                        border: `1px solid ${isSel ? '#1FA36F' : '#26272C'}`,
+                        borderRadius: '8px',
+                        color: isSel ? '#1FA36F' : '#9CA3AF',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
+            {/* Optional Reminder */}
+            <div>
+              {formHabit.reminder_enabled ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1B1F23', border: '1px solid #26272C', borderRadius: '10px', padding: '8px 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', color: '#ECE8DF', fontWeight: 600 }}>⏰ Reminder</span>
+                    <input
+                      type="time"
+                      value={formHabit.reminder_time || '08:00'}
+                      onChange={e => setFormHabit(p => ({ ...p, reminder_time: e.target.value }))}
+                      style={{
+                        background: '#0B0D0F',
+                        border: '1px solid #3A3B40',
+                        borderRadius: '6px',
+                        color: '#ECE8DF',
+                        padding: '4px 8px',
+                        fontSize: '12px'
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormHabit(p => ({ ...p, reminder_enabled: false }))}
+                    style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setFormHabit(p => ({ ...p, reminder_enabled: true, reminder_time: p.reminder_time || '08:00' }))}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#1FA36F',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: '2px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  + Add reminder (optional)
+                </button>
+              )}
+            </div>
+
             <BtnPrimary
-              label={editHabit ? 'Update Habit' : 'Create Habit'}
+              label={editHabit ? 'Save changes' : 'Create Habit'}
               onClick={saveHabit}
               disabled={!formHabit.name.trim()}
             />

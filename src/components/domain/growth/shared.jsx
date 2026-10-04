@@ -126,12 +126,17 @@ export const EmptyState = ({ icon, title, sub, action, actionLabel, examples = [
   </div>
 );
 
-export const Modal = ({ title, onClose, children }) => (
+export const Modal = ({ title, subtitle, onClose, children }) => (
   <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '16px 16px 0 0', width: '100%', maxWidth: '430px', padding: '20px 20px 48px', animation: 'slideUpModal 0.3s cubic-bezier(0.4,0,0.2,1)', maxHeight: '88vh', overflowY: 'auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <span style={{ fontSize: '16px', fontWeight: 700, color: C.text }}>{title}</span>
-        <button onClick={onClose} style={{ background: C.dim, border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: C.sub }}>
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '20px 20px 0 0', width: '100%', maxWidth: '430px', padding: '20px 20px 36px', animation: 'slideUpModal 0.25s cubic-bezier(0.4,0,0.2,1)', maxHeight: '90vh', overflowY: 'auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
+        <div>
+          <div style={{ fontSize: '12px', fontWeight: 800, color: C.growth, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{title}</div>
+          {subtitle && (
+            <div style={{ fontSize: '13px', color: '#9CA3AF', marginTop: '2px', fontWeight: 400 }}>{subtitle}</div>
+          )}
+        </div>
+        <button onClick={onClose} style={{ background: C.dim, border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: C.sub }}>
           <X size={14} />
         </button>
       </div>
