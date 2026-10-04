@@ -440,6 +440,31 @@ export async function toggleBillStatus({ userId, billId, status }) {
 }
 
 /**
+ * Fetches all bills and promises for an authenticated user.
+ * @param {Object} params
+ * @param {string} params.userId
+ * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
+ */
+export async function getBills({ userId }) {
+  if (!userId) {
+    return { success: false, error: 'User ID is required.' };
+  }
+  try {
+    const { data, error } = await supabase
+      .from('wealth_bills')
+      .select('*')
+      .eq('user_id', userId)
+      .order('due_date', { ascending: true });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true, data: data || [] };
+  } catch (err) {
+    return { success: false, error: err.message || 'Failed to fetch bills.' };
+  }
+}
+
+/**
  * Deletes a bill.
  * @param {Object} params
  * @param {string} params.userId - Authenticated user UUID
@@ -785,7 +810,7 @@ export async function recordMoneyEvent({
       // 2. Create receivable promise in wealth_bills
       const promiseName = person ? `${person} owes you` : (cleanNote || 'Money owed to you');
       const billDue = dueDate || eventDate;
-      await addBill({
+      const billRes = await addBill({
         userId,
         name: promiseName,
         amount: numericAmount,
@@ -794,7 +819,16 @@ export async function recordMoneyEvent({
         status: 'receivable',
       });
 
-      return { success: true, data: expRes.data };
+      return {
+        success: true,
+        data: {
+          ...expRes.data,
+          billId: billRes?.data?.id,
+          expenseId: expRes?.data?.id,
+          bill: billRes?.data,
+          expense: expRes?.data,
+        },
+      };
     }
 
     case 'BORROW': {
@@ -811,7 +845,7 @@ export async function recordMoneyEvent({
       // 2. Create commitment to return it
       const commitmentName = person ? `Return to ${person}` : (cleanNote || 'Repay debt');
       const billDue = dueDate || eventDate;
-      await addBill({
+      const billRes = await addBill({
         userId,
         name: commitmentName,
         amount: numericAmount,
@@ -820,7 +854,16 @@ export async function recordMoneyEvent({
         status: 'unpaid',
       });
 
-      return { success: true, data: incRes.data };
+      return {
+        success: true,
+        data: {
+          ...incRes.data,
+          billId: billRes?.data?.id,
+          incomeId: incRes?.data?.id,
+          bill: billRes?.data,
+          income: incRes?.data,
+        },
+      };
     }
 
     case 'COMMITMENT': {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase/index.js';
 import { showToast } from '../../components/ui/Toast.jsx';
 import BottomNav from '../../components/layout/BottomNav.jsx';
@@ -79,6 +79,7 @@ const getLocalYMD = (d = new Date()) => {
 
 export default function Wealth() {
   const navigate = useNavigate();
+  const location = useLocation();
   const todayDate = getLocalYMD();
 
   // ── Auth & Domain State ───────────────────────────────────────────────────
@@ -94,9 +95,15 @@ export default function Wealth() {
   const [bills, setBills] = useState([]);
 
   // Active view: 'home' | 'assets' | 'commitments' | 'promises' | 'flow' | 'recent'
-  const [activeView, setActiveView] = useState('home');
+  const [activeView, setActiveView] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('view') || 'home';
+  });
   const [commitmentsTab, setCommitmentsTab] = useState('upcoming'); // 'upcoming' | 'recurring' | 'past'
-  const [promisesTab, setPromisesTab] = useState('owed_to_me'); // 'owed_to_me' | 'i_owe'
+  const [promisesTab, setPromisesTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tab') || 'owed_to_me';
+  }); // 'owed_to_me' | 'i_owe'
   const [recentFilter, setRecentFilter] = useState('all'); // 'all' | 'expense' | 'income'
 
   // Modals & deep view editing
@@ -169,6 +176,19 @@ export default function Wealth() {
     window.addEventListener('dexos:refresh', handler);
     return () => window.removeEventListener('dexos:refresh', handler);
   }, [user, loadData]);
+
+  // Sync activeView from navigation state or URL query
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const viewParam = params.get('view') || location.state?.view;
+    const tabParam = params.get('tab') || location.state?.tab;
+    if (viewParam && ['home', 'assets', 'commitments', 'promises', 'flow', 'recent'].includes(viewParam)) {
+      setActiveView(viewParam);
+    }
+    if (tabParam && ['owed_to_me', 'i_owe'].includes(tabParam)) {
+      setPromisesTab(tabParam);
+    }
+  }, [location.search, location.state]);
 
   // Compute Money State
   const moneyState = useMemo(() => {

@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { X, Send, Sparkles, AlertCircle, CheckCircle2, RotateCcw, CornerDownLeft, Mic, MicOff } from 'lucide-react';
+import { X, Send, Sparkles, AlertCircle, CheckCircle2, RotateCcw, CornerDownLeft, Mic, MicOff, Plus } from 'lucide-react';
 import { processUserInput, DEX_RESULT_TYPE } from '../../dex/index.js';
 import { isVoiceSupported } from '../../voice/index.js';
 import DexCommandRippleView from '../domain/dex/DexCommandRippleView.jsx';
+import DexVisualCaptureCard from '../domain/dex/DexVisualCaptureCard.jsx';
+import { showToast } from '../ui/Toast.jsx';
+import { formatINR } from '../../services/visualCaptureService.js';
 
 // Domain mapping helper for live UI invalidation
 function getActionDomain(action) {
@@ -47,6 +50,23 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
   const [pendingClarification, setPendingClarification] = useState(null);
   const [pendingPlan, setPendingPlan] = useState(null);
   const [lastExecuted, setLastExecuted] = useState(null);
+  const [attachedImage, setAttachedImage] = useState(null);
+  const bottomFileInputRef = useRef(null);
+
+  const handleBottomFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setAttachedImage({
+        file,
+        dataUrl: event.target?.result,
+        name: file.name,
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   // Persist recent conversation window (last 5 messages) in sessionStorage
   useEffect(() => {
@@ -89,6 +109,7 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
       setPendingConfirmation(null);
       setPendingClarification(null);
       setPendingPlan(null);
+      setAttachedImage(null);
     }
   }, [isOpen]);
 
@@ -708,9 +729,38 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
             gap: '12px',
           }}
         >
-          {messages.length === 0 && (
+          {attachedImage && (
+            <DexVisualCaptureCard
+              userId={userId}
+              attachedImage={attachedImage}
+              initialText={inputText}
+              onClose={() => setAttachedImage(null)}
+              onNavigateToWealth={() => {
+                onClose();
+                navigate('/wealth?view=promises&tab=owed_to_me', {
+                  state: { view: 'promises', tab: 'owed_to_me' },
+                });
+              }}
+              onBatchCompleted={(res) => {
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    id: crypto.randomUUID(),
+                    role: 'dex',
+                    type: 'success',
+                    content: `Added ${res.count} money relationships totaling ${formatINR(res.total)}.`,
+                    timestamp: Date.now(),
+                  },
+                ]);
+                showToast(`Added ${res.count} money relationships · ${formatINR(res.total)}`, 'success');
+              }}
+            />
+          )}
+
+          {!attachedImage && messages.length === 0 && (
             <DexCommandRippleView
               onCommandSubmit={(cmd) => handleSend(cmd)}
+              onAttachImage={(img) => setAttachedImage(img)}
               loading={loading}
               suggestions={suggestions}
               pendingPlan={pendingPlan}
@@ -1071,6 +1121,39 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
                 gap: '8px',
               }}
             >
+              <button
+                type="button"
+                data-testid="dex-modal-attach-btn"
+                onClick={() => bottomFileInputRef.current?.click()}
+                disabled={loading}
+                aria-label="Attach screenshot or image"
+                title="Attach screenshot or image"
+                style={{
+                  background: 'transparent',
+                  color: '#9CA3AF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'color 0.15s ease',
+                  padding: 0,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#38BDF8')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#9CA3AF')}
+              >
+                <Plus size={16} />
+              </button>
+              <input
+                ref={bottomFileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleBottomFileChange}
+              />
               <input
                 ref={inputRef}
                 type="text"

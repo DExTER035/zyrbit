@@ -4,11 +4,12 @@
  * Renders the Luminous Dex Orb, Large Input Pill, Suggestion Chips,
  * Multi-Domain Ripple Proposal Card, and Confirmation/Undo State.
  */
-import React, { useState, useEffect } from 'react';
-import { Send, Mic, Sparkles, Check, RotateCcw, X, Utensils, Wallet, Compass } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Send, Mic, Sparkles, Check, RotateCcw, X, Utensils, Wallet, Compass, Plus } from 'lucide-react';
 
 export default function DexCommandRippleView({
   onCommandSubmit,
+  onAttachImage,
   loading = false,
   suggestions: customSuggestions = null,
   pendingPlan = null,
@@ -19,6 +20,22 @@ export default function DexCommandRippleView({
 }) {
   const [inputText, setInputText] = useState('');
   const [undoCountdown, setUndoCountdown] = useState(10);
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      onAttachImage?.({
+        file,
+        dataUrl: event.target?.result,
+        name: file.name,
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   // Default suggestions from visual reference
   const suggestions = customSuggestions && customSuggestions.length > 0 ? customSuggestions : [
@@ -346,14 +363,47 @@ export default function DexCommandRippleView({
             background: '#15161B',
             border: '1px solid #3A3B40',
             borderRadius: '9999px',
-            padding: '6px 8px 6px 18px',
+            padding: '6px 8px 6px 14px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '8px',
             marginBottom: '20px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
           }}
         >
+          <button
+            type="button"
+            data-testid="dex-attach-btn"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading}
+            aria-label="Attach screenshot or image"
+            title="Attach screenshot or image"
+            style={{
+              background: 'transparent',
+              color: '#9CA3AF',
+              border: 'none',
+              borderRadius: '50%',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'color 0.15s ease',
+              padding: 0,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#38BDF8')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#9CA3AF')}
+          >
+            <Plus size={16} />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
           <input
             type="text"
             value={inputText}
