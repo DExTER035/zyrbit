@@ -408,6 +408,32 @@ export const ACTION_SCHEMAS = {
     },
   },
 
+  repeat_meal: {
+    domain: 'health',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: "Repeats a meal or saved combo for today without modifying past records.",
+    params: {
+      mealType: { type: 'string', required: false, enum: ['breakfast', 'lunch', 'dinner', 'snack'], description: 'Meal slot to repeat' },
+      comboName: { type: 'string', required: false, description: 'Saved combo name if repeating a template' },
+      date: { type: 'date', required: false, default: null, description: 'Target date (defaults to today)' },
+    },
+    validate: (params) => {
+      let mealType = params?.mealType ? String(params.mealType).trim().toLowerCase() : 'lunch';
+      if (!['breakfast', 'lunch', 'dinner', 'snack'].includes(mealType)) {
+        mealType = 'lunch';
+      }
+      return {
+        valid: true,
+        normalized: {
+          mealType,
+          comboName: params?.comboName ? String(params.comboName).trim() : null,
+          date: params?.date && isValidDateStr(params.date) ? params.date : getLocalTodayStr(),
+        },
+      };
+    },
+  },
+
   // ─── WEALTH ───────────────────────────────────────────────────────────────
   add_expense: {
     domain: 'wealth',

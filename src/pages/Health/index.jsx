@@ -17,6 +17,7 @@ import HeatmapGrid from '../../components/common/HeatmapGrid.jsx';
 // ─── Nutrition Modals (Subdomain under Health) ──────────────────────────────
 import FoodPicker from '../../components/domain/food/FoodPicker.jsx';
 import EditLogModal from '../../components/domain/food/EditLogModal.jsx';
+import MealDetailModal from '../../components/domain/food/MealDetailModal.jsx';
 import GoalSettingsModal from '../../components/domain/food/GoalSettingsModal.jsx';
 import SavedMealsSection from '../../components/domain/food/SavedMealsSection.jsx';
 
@@ -37,6 +38,7 @@ import {
   updateMealLog as serviceUpdateMealLog,
   deleteMealLog as serviceDeleteMealLog,
   batchLogMeals as serviceBatchLogMeals,
+  saveMeal as serviceSaveMeal,
   deleteSavedMeal as serviceDeleteSavedMeal,
   createPersonalFood as serviceCreatePersonalFood,
   updatePersonalFood as serviceUpdatePersonalFood,
@@ -52,6 +54,7 @@ export default function Health() {
   // ─── Modal States ──────────────────────────────────────────────────────────
   const [activePickerMealType, setActivePickerMealType] = useState(null);
   const [editingMealLog, setEditingMealLog] = useState(null);
+  const [inspectingMealLog, setInspectingMealLog] = useState(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDetailedLogs, setShowDetailedLogs] = useState(false);
 
@@ -182,6 +185,11 @@ export default function Health() {
   const personalUsuals = useMemo(() => {
     return computePersonalUsuals(personalFoods, mealLogs, 6);
   }, [personalFoods, mealLogs]);
+
+  // ─── Set of Favorite Food Names for Quick Matching ─────────────────────────
+  const favoriteFoodNames = useMemo(() => {
+    return new Set((personalFoods || []).map((f) => (f.food_name || '').toLowerCase().trim()));
+  }, [personalFoods]);
 
   // ─── 90-Day Bio Consistency Heatmap Map ────────────────────────────────────
   const heatmapData = useMemo(() => {
@@ -566,7 +574,87 @@ export default function Health() {
     }
   };
 
-  // Personal Food Library Handlers
+  // ─── Save Meal Combo Template (saved_meals canonical write) ────────────────
+  const handleSaveCombo = async ({ name, mealType = 'lunch', items = [] }) => {
+    if (!user || isSubmitting || !name || !name.trim() || !items || items.length === 0) return;
+    setIsSubmitting(true);
+    const cleanName = name.trim();
+    try {
+      const res = await serviceSaveMeal({
+        userId: user.id,
+        name: cleanName,
+        mealType,
+        items,
+      });
+
+      if (!res.success) {
+        showToast("Couldn't save this meal combo. Try again.", 'error');
+        return;
+      }
+
+      setSavedMeals((prev) => [res.data, ...prev.filter((m) => m.id !== res.data.id)]);
+      showToast(`Saved "${cleanName}" ⭐`, 'success');
+    } catch {
+      showToast("Couldn't save this meal combo. Try again.", 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ─── Subtle Favorite / Star Toggle (Persists to user_food_library) ──────────
+  const handleToggleFavorite = async (logOrFood) => {
+    if (!user || isSubmitting || !logOrFood) return;
+    const foodName = (logOrFood.food_name || logOrFood.meal_name || logOrFood.name || '').trim();
+    if (!foodName) return;
+
+    const cleanLower = foodName.toLowerCase();
+    const existing = personalFoods.find((f) => (f.food_name || '').toLowerCase().trim() === cleanLower);
+
+    setIsSubmitting(true);
+    if (existing) {
+      // Unfavorite → Remove from user_food_library
+      try {
+        const res = await serviceDeletePersonalFood({ userId: user.id, foodId: existing.id });
+        if (!res.success) {
+          showToast("Couldn't save this food. Try again.", 'error');
+          return;
+        }
+        setPersonalFoods((prev) => prev.filter((f) => f.id !== existing.id));
+        showToast(`Removed "${foodName}" from Favorites`, 'info');
+      } catch {
+        showToast("Couldn't save this food. Try again.", 'error');
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      // Favorite → Create in user_food_library
+      try {
+        const res = await serviceCreatePersonalFood({
+          userId: user.id,
+          foodName,
+          servingSizeG: logOrFood.quantity_g || logOrFood.serving_size_g || 100,
+          calories: logOrFood.calories || 0,
+          protein: logOrFood.protein || logOrFood.protein_g || 0,
+          carbs: logOrFood.carbs || logOrFood.carbs_g || 0,
+          fat: logOrFood.fat || logOrFood.fat_g || 0,
+          fiber: logOrFood.fiber || logOrFood.fiber_g || 0,
+          isFavorite: true,
+        });
+        if (!res.success) {
+          showToast("Couldn't save this food. Try again.", 'error');
+          return;
+        }
+        setPersonalFoods((prev) => [...prev, res.data].sort((a, b) => a.food_name.localeCompare(b.food_name)));
+        showToast(`Saved "${foodName}" to Favorites ⭐`, 'success');
+      } catch {
+        showToast("Couldn't save this food. Try again.", 'error');
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  // ─── Personal Food Library Handlers ─────────────────────────────────────────
   const handleCreatePersonalFood = async (foodData) => {
     if (!user || isSubmitting) return;
     setIsSubmitting(true);
@@ -574,9 +662,9 @@ export default function Health() {
       const res = await serviceCreatePersonalFood({ userId: user.id, ...foodData });
       if (!res.success) throw new Error(res.error);
       setPersonalFoods((prev) => [...prev, res.data].sort((a, b) => a.food_name.localeCompare(b.food_name)));
-      showToast(`⭐ ${foodData.food_name} saved to My Foods!`, 'success');
-    } catch (err) {
-      showToast(`Failed to save personal food: ${err.message}`, 'error');
+      showToast(`Saved "${foodData.food_name}" ⭐`, 'success');
+    } catch {
+      showToast("Couldn't save this food. Try again.", 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -589,9 +677,9 @@ export default function Health() {
       const res = await serviceUpdatePersonalFood({ userId: user.id, foodId: foodData.id, ...foodData });
       if (!res.success) throw new Error(res.error);
       setPersonalFoods((prev) => prev.map((f) => (f.id === foodData.id ? res.data : f)));
-      showToast(`⭐ ${foodData.food_name} updated!`, 'success');
-    } catch (err) {
-      showToast(`Failed to update personal food: ${err.message}`, 'error');
+      showToast(`Saved "${foodData.food_name}"`, 'success');
+    } catch {
+      showToast("Couldn't save this food. Try again.", 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -605,8 +693,8 @@ export default function Health() {
       if (!res.success) throw new Error(res.error);
       setPersonalFoods((prev) => prev.filter((f) => f.id !== foodId));
       showToast('🗑 Personal food deleted', 'success');
-    } catch (err) {
-      showToast(`Failed to delete personal food: ${err.message}`, 'error');
+    } catch {
+      showToast("Couldn't save this food. Try again.", 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -705,12 +793,15 @@ export default function Health() {
         <HealthMealsList
           mealLogs={mealLogs}
           personalUsuals={personalUsuals}
+          favoriteFoodNames={favoriteFoodNames}
           onSelectUsual={handleSelectUsual}
           onRepeatYesterday={handleRepeatYesterday}
           onSeeAll={() => setActivePickerMealType('lunch')}
           onAddMeal={() => setActivePickerMealType('lunch')}
           onEditMeal={(log) => setEditingMealLog(log)}
           onDeleteMeal={handleDeleteMealLog}
+          onToggleFavorite={handleToggleFavorite}
+          onSaveCombo={handleSaveCombo}
         />
       </div>
 
@@ -994,6 +1085,7 @@ export default function Health() {
           onCreatePersonalFood={handleCreatePersonalFood}
           onUpdatePersonalFood={handleUpdatePersonalFood}
           onDeletePersonalFood={handleDeletePersonalFood}
+          onToggleFavorite={handleToggleFavorite}
           onClose={() => setActivePickerMealType(null)}
         />
       )}
@@ -1004,6 +1096,24 @@ export default function Health() {
           log={editingMealLog}
           onSave={handleEditMealLogSave}
           onClose={() => setEditingMealLog(null)}
+        />
+      )}
+
+      {/* Meal Detail Inspection Modal */}
+      {inspectingMealLog && (
+        <MealDetailModal
+          log={inspectingMealLog}
+          isFavorite={favoriteFoodNames.has(((inspectingMealLog.food_name || inspectingMealLog.meal_name || inspectingMealLog.name) || '').toLowerCase().trim())}
+          onToggleFavorite={handleToggleFavorite}
+          onEdit={(log) => {
+            setInspectingMealLog(null);
+            setEditingMealLog(log);
+          }}
+          onDelete={(id) => {
+            setInspectingMealLog(null);
+            handleDeleteMealLog(id);
+          }}
+          onClose={() => setInspectingMealLog(null)}
         />
       )}
 

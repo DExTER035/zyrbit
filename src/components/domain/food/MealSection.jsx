@@ -11,7 +11,17 @@ const MEAL_META = {
   snack:     { label: 'Snacks',    emoji: '🍎',  time: 'Anytime'  },
 };
 
-export default function MealSection({ mealType, logs = [], userId, onAddFood, onDeleteLog, onEditLog, onMealSaved }) {
+export default function MealSection({
+  mealType,
+  logs = [],
+  favoriteFoodNames = new Set(),
+  onAddFood,
+  onDeleteLog,
+  onEditLog,
+  onInspectLog,
+  onToggleFavorite,
+  onSaveCombo,
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const meta = MEAL_META[mealType] ?? { label: mealType, emoji: '🍽️', time: '' };
   const totalCal = logs.reduce((sum, l) => sum + (l.calories || 0), 0);
@@ -28,6 +38,7 @@ export default function MealSection({ mealType, logs = [], userId, onAddFood, on
     }}>
       {/* ── Header ── */}
       <button
+        type="button"
         onClick={() => setCollapsed(c => !c)}
         style={{
           width: '100%',
@@ -69,9 +80,20 @@ export default function MealSection({ mealType, logs = [], userId, onAddFood, on
       {!collapsed && (
         <div style={{ padding: '0 12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {/* Log items */}
-          {logs.map(log => (
-            <MealLogCard key={log.id} log={log} onDelete={onDeleteLog} onEdit={onEditLog} />
-          ))}
+          {logs.map((log) => {
+            const isFav = favoriteFoodNames.has((log.food_name || '').toLowerCase().trim());
+            return (
+              <MealLogCard
+                key={log.id}
+                log={log}
+                isFavorite={isFav}
+                onDelete={onDeleteLog}
+                onEdit={onEditLog}
+                onInspect={onInspectLog}
+                onToggleFavorite={onToggleFavorite}
+              />
+            );
+          })}
 
           {/* Empty state */}
           {isEmpty && (
@@ -89,6 +111,7 @@ export default function MealSection({ mealType, logs = [], userId, onAddFood, on
 
           {/* Add food button */}
           <button
+            type="button"
             onClick={() => onAddFood(mealType)}
             style={{
               display: 'flex',
@@ -113,13 +136,12 @@ export default function MealSection({ mealType, logs = [], userId, onAddFood, on
             Add Food
           </button>
 
-          {/* Save meal button — only shows when meal has items */}
-          {!isEmpty && onMealSaved && (
+          {/* Save combo button — only shows when meal has items */}
+          {!isEmpty && onSaveCombo && (
             <SaveMealButton
               logs={logs}
               mealType={mealType}
-              userId={userId}
-              onSaved={onMealSaved}
+              onSaveCombo={onSaveCombo}
             />
           )}
         </div>

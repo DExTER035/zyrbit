@@ -161,6 +161,54 @@ export const ACTION_REGISTRY = {
     },
   },
 
+  repeat_meal: {
+    action: 'repeat_meal',
+    domain: 'health',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: ACTION_SCHEMAS.repeat_meal.description,
+    schema: ACTION_SCHEMAS.repeat_meal,
+    execute: async ({ userId, params }) => {
+      // If comboName provided, look up saved combos
+      if (params.comboName) {
+        const savedRes = await healthService.getSavedMeals(userId);
+        if (savedRes.success && savedRes.data) {
+          const match = savedRes.data.find(m => m.name.toLowerCase().includes(params.comboName.toLowerCase()));
+          if (match && match.items?.length) {
+            return await healthService.batchLogMeals({
+              userId,
+              date: params.date || healthService.todayStr(),
+              mealType: match.meal_type || params.mealType || 'lunch',
+              items: match.items,
+            });
+          }
+        }
+      }
+
+      // Otherwise look up yesterday's meal logs
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yStr = yesterday.toISOString().split('T')[0];
+      const snapshot = await healthService.getHealthTelemetry(userId);
+      const allMeals = snapshot.data?.mealLogs || [];
+      const yestMeals = allMeals.filter(m => m.date === yStr);
+
+      const slotMeals = yestMeals.filter(m => m.meal_type === params.mealType);
+      const itemsToRepeat = slotMeals.length > 0 ? slotMeals : yestMeals;
+
+      if (!itemsToRepeat.length) {
+        return { success: false, error: `No previous ${params.mealType || 'meals'} found to repeat.` };
+      }
+
+      return await healthService.batchLogMeals({
+        userId,
+        date: params.date || healthService.todayStr(),
+        mealType: params.mealType || 'breakfast',
+        items: itemsToRepeat,
+      });
+    },
+  },
+
   // ─── WEALTH ───────────────────────────────────────────────────────────────
   add_expense: {
     action: 'add_expense',

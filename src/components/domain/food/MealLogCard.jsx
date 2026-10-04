@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Edit2 } from 'lucide-react';
+import { Trash2, Edit2, Star } from 'lucide-react';
 import { FC } from './shared.jsx';
 
 const formatLogTime = (createdAt) => {
@@ -16,11 +16,19 @@ const formatLogTime = (createdAt) => {
   }
 };
 
-export default function MealLogCard({ log, onDelete, onEdit }) {
+export default function MealLogCard({
+  log,
+  isFavorite = false,
+  onDelete,
+  onEdit,
+  onInspect,
+  onToggleFavorite,
+}) {
   const timeStr = formatLogTime(log.created_at);
 
   return (
     <div
+      onClick={() => onInspect && onInspect(log)}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -28,7 +36,15 @@ export default function MealLogCard({ log, onDelete, onEdit }) {
         padding: '10px 14px',
         background: FC.elev,
         borderRadius: '12px',
-        transition: 'background 0.15s',
+        border: '1px solid transparent',
+        cursor: onInspect ? 'pointer' : 'default',
+        transition: 'all 0.15s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = FC.border2;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'transparent';
       }}
     >
       {/* Food info */}
@@ -60,7 +76,7 @@ export default function MealLogCard({ log, onDelete, onEdit }) {
       </div>
 
       {/* Calories */}
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+      <div style={{ textAlign: 'right', flexShrink: 0, paddingRight: '4px' }}>
         <div style={{ fontSize: '14px', fontWeight: 800, color: FC.food }}>
           {Math.round(log.calories)}
         </div>
@@ -68,15 +84,52 @@ export default function MealLogCard({ log, onDelete, onEdit }) {
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
-        {onEdit && (
+      <div
+        style={{ display: 'flex', gap: '2px', alignItems: 'center', flexShrink: 0 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Subtle Star Favorite Button (☆ -> ⭐) */}
+        {onToggleFavorite && (
           <button
-            onClick={() => onEdit(log)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(log);
+            }}
             style={{
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              padding: '4px',
+              padding: '6px',
+              color: isFavorite ? '#F59E0B' : FC.muted,
+              display: 'flex',
+              alignItems: 'center',
+              borderRadius: '6px',
+              transition: 'all 0.15s ease',
+            }}
+            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            title={isFavorite ? 'Favorited' : 'Favorite this food'}
+          >
+            <Star
+              size={14}
+              fill={isFavorite ? '#F59E0B' : 'transparent'}
+              stroke={isFavorite ? '#F59E0B' : FC.muted}
+            />
+          </button>
+        )}
+
+        {onEdit && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(log);
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '6px',
               color: FC.sub,
               display: 'flex',
               alignItems: 'center',
@@ -86,18 +139,23 @@ export default function MealLogCard({ log, onDelete, onEdit }) {
             onMouseEnter={e => e.currentTarget.style.color = FC.food}
             onMouseLeave={e => e.currentTarget.style.color = FC.sub}
             aria-label="Edit meal log"
-            title="Edit quantity"
+            title="Edit portion"
           >
             <Edit2 size={13} />
           </button>
         )}
+
         <button
-          onClick={() => onDelete(log.id)}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(log.id);
+          }}
           style={{
             background: 'transparent',
             border: 'none',
             cursor: 'pointer',
-            padding: '4px',
+            padding: '6px',
             color: FC.muted,
             display: 'flex',
             alignItems: 'center',

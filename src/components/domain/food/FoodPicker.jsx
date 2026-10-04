@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Search, PlusCircle, X, Trash2, Edit2 } from 'lucide-react';
+import { Search, PlusCircle, X, Trash2, Edit2, Star } from 'lucide-react';
 import { FC, FBottomSheet, FInput, FBtn } from './shared.jsx';
 import {
   FOOD_DB,
@@ -24,6 +24,7 @@ export default function FoodPicker({
   onCreatePersonalFood,
   onDeletePersonalFood,
   onUpdatePersonalFood,
+  onToggleFavorite,
   onClose,
 }) {
   const [query, setQuery]           = useState('');
@@ -46,6 +47,10 @@ export default function FoodPicker({
   const [isSubmitting, setIsSubmitting]   = useState(false);
 
   // ── Categories list including My Foods ──────────────────────────────────────
+  const favoriteFoodNames = useMemo(() => {
+    return new Set((personalFoods || []).map(f => (f.food_name || '').toLowerCase().trim()));
+  }, [personalFoods]);
+
   const categoriesList = useMemo(() => {
     const list = [
       { id: 'all', emoji: '🍽️', label: 'All' },
@@ -286,9 +291,18 @@ export default function FoodPicker({
                     No food matches for "{query}"
                   </div>
                 ) : (
-                  displayFoods.map(food => (
-                    <FoodRow key={food.id} food={food} onSelect={handleSelectFood} />
-                  ))
+                  displayFoods.map(food => {
+                    const isFav = favoriteFoodNames.has((food.name || '').toLowerCase().trim());
+                    return (
+                      <FoodRow
+                        key={food.id}
+                        food={food}
+                        isFavorite={isFav}
+                        onSelect={handleSelectFood}
+                        onToggleFavorite={onToggleFavorite}
+                      />
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -485,34 +499,66 @@ function PersonalFoodRow({ food, onSelect, onEdit, onDelete }) {
   );
 }
 
-function FoodRow({ food, onSelect }) {
+function FoodRow({ food, onSelect, isFavorite, onToggleFavorite }) {
+  const calories = Math.round(food.per100g.cal * food.defaultServingG / 100);
   return (
-    <button
+    <div
       onClick={() => onSelect(food)}
       style={{
         display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '10px 12px', borderRadius: '12px',
-        background: 'transparent', border: 'none',
+        padding: '8px 12px', borderRadius: '12px',
+        background: 'transparent',
         cursor: 'pointer', width: '100%', textAlign: 'left',
         transition: 'background 0.15s',
       }}
       onMouseEnter={e => e.currentTarget.style.background = FC.elev}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
     >
-      <span style={{ fontSize: '22px', flexShrink: 0 }}>{food.emoji}</span>
+      <span style={{ fontSize: '20px', flexShrink: 0 }}>{food.emoji}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: '13px', fontWeight: 700, color: FC.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {food.name}
         </div>
         <div style={{ fontSize: '10px', color: FC.muted, marginTop: '1px' }}>{food.servingLabel}</div>
       </div>
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+      <div style={{ textAlign: 'right', flexShrink: 0, paddingRight: '4px' }}>
         <div style={{ fontSize: '13px', fontWeight: 800, color: FC.food }}>
-          {Math.round(food.per100g.cal * food.defaultServingG / 100)}
+          {calories}
         </div>
         <div style={{ fontSize: '9px', color: FC.muted }}>kcal</div>
       </div>
-    </button>
+      {onToggleFavorite && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite({
+              food_name: food.name,
+              name: food.name,
+              serving_size_g: food.defaultServingG || 100,
+              calories: calories,
+              protein: Math.round(food.per100g.protein * food.defaultServingG / 100),
+              carbs: Math.round(food.per100g.carbs * food.defaultServingG / 100),
+              fat: Math.round(food.per100g.fat * food.defaultServingG / 100),
+              fiber: Math.round(food.per100g.fiber * food.defaultServingG / 100),
+            });
+          }}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px',
+            color: isFavorite ? '#F59E0B' : FC.muted,
+            display: 'flex',
+            alignItems: 'center',
+            borderRadius: '6px',
+          }}
+          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <Star size={14} fill={isFavorite ? '#F59E0B' : 'transparent'} stroke={isFavorite ? '#F59E0B' : FC.muted} />
+        </button>
+      )}
+    </div>
   );
 }
 

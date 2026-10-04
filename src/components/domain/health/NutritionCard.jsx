@@ -12,15 +12,17 @@ export default function NutritionCard({
   mealLogs = [],
   personalUsuals = [],
   savedMeals = [],
-  userId,
+  favoriteFoodNames = new Set(),
   onAddFood,
   onDeleteLog,
   onEditLog,
+  onInspectLog,
+  onToggleFavorite,
+  onSaveCombo,
   onLogSavedMeal,
   onDeleteSavedMeal,
   onSelectUsual,
   onRepeatYesterday,
-  onMealSaved,
 }) {
   const [showMealDetails, setShowMealDetails] = useState(false);
 
@@ -158,11 +160,13 @@ export default function NutritionCard({
               key={type}
               mealType={type}
               logs={logsByMeal[type]}
-              userId={userId}
+              favoriteFoodNames={favoriteFoodNames}
               onAddFood={onAddFood}
               onDeleteLog={onDeleteLog}
               onEditLog={onEditLog}
-              onMealSaved={onMealSaved}
+              onInspectLog={onInspectLog}
+              onToggleFavorite={onToggleFavorite}
+              onSaveCombo={onSaveCombo}
             />
           ))}
         </div>

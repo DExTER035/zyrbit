@@ -188,48 +188,68 @@ export async function deleteMealLog({ userId, logId }) {
  * @param {string} params.userId - Authenticated user UUID
  * @param {string} params.foodName - Food name
  * @param {number} [params.servingSizeG=100] - Serving size in grams
+ * @param {string} [params.servingUnit='g'] - Unit of serving
  * @param {number} [params.calories=0] - Calories per serving
  * @param {number} [params.protein=0] - Protein per serving
  * @param {number} [params.carbs=0] - Carbs per serving
  * @param {number} [params.fat=0] - Fat per serving
  * @param {number} [params.fiber=0] - Fiber per serving
+ * @param {boolean} [params.isFavorite=true] - Whether pinned as favorite
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
 export async function createPersonalFood({
   userId,
   foodName,
   servingSizeG = 100,
+  servingUnit = 'g',
   calories = 0,
   protein = 0,
   carbs = 0,
   fat = 0,
   fiber = 0,
+  isFavorite = true,
 }) {
   if (!userId) {
     return { success: false, error: 'User ID is required.' };
   }
-  const cleanName = (foodName || '').trim();
+  const cleanName = (foodName || '').trim().slice(0, 150);
   if (!cleanName) {
     return { success: false, error: 'Food name cannot be empty.' };
   }
 
-  const payload = {
+  const basePayload = {
     user_id: userId,
     food_name: cleanName,
-    serving_size_g: Number(servingSizeG) || 100,
-    calories: Number(calories) || 0,
-    protein: Number(protein) || 0,
-    carbs: Number(carbs) || 0,
-    fat: Number(fat) || 0,
-    fiber: Number(fiber) || 0,
+    serving_size_g: Math.max(1, Math.min(50000, Number(servingSizeG) || 100)),
+    calories: Math.max(0, Math.min(10000, Number(calories) || 0)),
+    protein: Math.max(0, Math.min(2000, Number(protein) || 0)),
+    carbs: Math.max(0, Math.min(2000, Number(carbs) || 0)),
+    fat: Math.max(0, Math.min(2000, Number(fat) || 0)),
+    fiber: Math.max(0, Math.min(2000, Number(fiber) || 0)),
   };
 
   try {
-    const { data, error } = await supabase
+    // Attempt with extended schema columns
+    let { data, error } = await supabase
       .from('user_food_library')
-      .insert([payload])
+      .insert([{
+        ...basePayload,
+        serving_unit: (servingUnit || 'g').trim().slice(0, 20),
+        is_favorite: Boolean(isFavorite),
+      }])
       .select()
       .single();
+
+    if (error && (error.message?.includes('is_favorite') || error.message?.includes('serving_unit'))) {
+      // Fallback for baseline table schema without newly migrated columns
+      const fallbackRes = await supabase
+        .from('user_food_library')
+        .insert([basePayload])
+        .select()
+        .single();
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
 
     if (error) {
       return { success: false, error: error.message };
@@ -242,28 +262,81 @@ export async function createPersonalFood({
 
 /**
  * Updates a personal food item in user_food_library.
+ * Strict whitelist enforced: only mutable nutritional/metadata fields allowed.
+ * NEVER updates id, user_id, or created_at.
+ *
  * @param {Object} params
  * @param {string} params.userId - Authenticated user UUID
  * @param {string} params.foodId - Food item UUID
- * @param {Object} params.updates - Food updates
+ * @param {Object} [params.updates] - Whitelisted updates
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export async function updatePersonalFood({ userId, foodId, ...updates }) {
+export async function updatePersonalFood({ userId, foodId, updates = {}, ...rest }) {
   if (!userId || !foodId) {
     return { success: false, error: 'User ID and Food ID are required.' };
   }
 
+  const source = { ...rest, ...(typeof updates === 'object' && updates !== null ? updates : {}) };
+  const sanitized = {};
+
+  if (source.food_name !== undefined) {
+    sanitized.food_name = String(source.food_name).trim().slice(0, 150);
+  }
+  if (source.serving_size_g !== undefined) {
+    sanitized.serving_size_g = Math.max(1, Math.min(50000, Number(source.serving_size_g) || 100));
+  }
+  if (source.calories !== undefined) {
+    sanitized.calories = Math.max(0, Math.min(10000, Number(source.calories) || 0));
+  }
+  if (source.protein !== undefined) {
+    sanitized.protein = Math.max(0, Math.min(2000, Number(source.protein) || 0));
+  }
+  if (source.carbs !== undefined) {
+    sanitized.carbs = Math.max(0, Math.min(2000, Number(source.carbs) || 0));
+  }
+  if (source.fat !== undefined) {
+    sanitized.fat = Math.max(0, Math.min(2000, Number(source.fat) || 0));
+  }
+  if (source.fiber !== undefined) {
+    sanitized.fiber = Math.max(0, Math.min(2000, Number(source.fiber) || 0));
+  }
+  if (source.serving_unit !== undefined) {
+    sanitized.serving_unit = String(source.serving_unit).trim().slice(0, 20);
+  }
+  if (source.is_favorite !== undefined) {
+    sanitized.is_favorite = Boolean(source.is_favorite);
+  }
+
+  // Explicit safety guards
+  delete sanitized.id;
+  delete sanitized.user_id;
+  delete sanitized.created_at;
+
+  sanitized.updated_at = new Date().toISOString();
+
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('user_food_library')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
+      .update(sanitized)
       .eq('id', foodId)
       .eq('user_id', userId)
       .select()
       .single();
+
+    if (error && (error.message?.includes('is_favorite') || error.message?.includes('serving_unit'))) {
+      const fallback = { ...sanitized };
+      delete fallback.is_favorite;
+      delete fallback.serving_unit;
+      const fallbackRes = await supabase
+        .from('user_food_library')
+        .update(fallback)
+        .eq('id', foodId)
+        .eq('user_id', userId)
+        .select()
+        .single();
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
 
     if (error) {
       return { success: false, error: error.message };
@@ -303,28 +376,52 @@ export async function deletePersonalFood({ userId, foodId }) {
 }
 
 /**
- * Saves a meal combo template to saved_meals.
+ * Saves a meal combo template to saved_meals table.
+ * Canonical representation: column `items` (JSONB) and computed totals.
+ *
  * @param {Object} params
  * @param {string} params.userId - Authenticated user UUID
  * @param {string} params.name - Saved meal name
- * @param {string} params.mealType - Meal type
+ * @param {string} [params.mealType='lunch'] - Meal type
  * @param {Array} params.items - Food items array
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export async function saveMeal({ userId, name, mealType, items }) {
+export async function saveMeal({ userId, name, mealType = 'lunch', items = [] }) {
   if (!userId) {
     return { success: false, error: 'User ID is required.' };
   }
-  const cleanName = (name || '').trim();
+  const cleanName = (name || '').trim().slice(0, 150);
   if (!cleanName) {
     return { success: false, error: 'Meal name cannot be empty.' };
   }
+
+  const cleanItems = (items || []).map((item) => ({
+    food_id: item.food_id || null,
+    food_name: (item.food_name || 'Food').trim().slice(0, 150),
+    quantity_g: Math.max(1, Math.min(50000, Number(item.quantity_g) || 100)),
+    calories: Math.max(0, Math.min(10000, Number(item.calories) || 0)),
+    protein: Math.max(0, Math.min(2000, Number(item.protein) || 0)),
+    carbs: Math.max(0, Math.min(2000, Number(item.carbs) || 0)),
+    fat: Math.max(0, Math.min(2000, Number(item.fat) || 0)),
+    fiber: Math.max(0, Math.min(2000, Number(item.fiber) || 0)),
+  }));
+
+  const totalCal = Math.round(cleanItems.reduce((sum, i) => sum + (Number(i.calories) || 0), 0));
+  const totalProtein = Math.round(cleanItems.reduce((sum, i) => sum + (Number(i.protein) || 0), 0) * 10) / 10;
+  const totalCarbs = Math.round(cleanItems.reduce((sum, i) => sum + (Number(i.carbs) || 0), 0) * 10) / 10;
+  const totalFat = Math.round(cleanItems.reduce((sum, i) => sum + (Number(i.fat) || 0), 0) * 10) / 10;
+  const totalFiber = Math.round(cleanItems.reduce((sum, i) => sum + (Number(i.fiber) || 0), 0) * 10) / 10;
 
   const payload = {
     user_id: userId,
     name: cleanName,
     meal_type: mealType || 'lunch',
-    items_json: items || [],
+    items: cleanItems,
+    total_cal: totalCal,
+    total_protein: totalProtein,
+    total_carbs: totalCarbs,
+    total_fat: totalFat,
+    total_fiber: totalFiber,
   };
 
   try {
@@ -339,7 +436,35 @@ export async function saveMeal({ userId, name, mealType, items }) {
     }
     return { success: true, data };
   } catch (err) {
-    return { success: false, error: err.message || 'Failed to save meal.' };
+    return { success: false, error: err.message || 'Failed to save meal combo.' };
+  }
+}
+
+/**
+ * Deletes a saved meal combo template.
+ * @param {Object} params
+ * @param {string} params.userId - Authenticated user UUID
+ * @param {string} params.mealId - Saved meal UUID
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function deleteSavedMeal({ userId, mealId }) {
+  if (!userId || !mealId) {
+    return { success: false, error: 'User ID and Meal ID are required.' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('saved_meals')
+      .delete()
+      .eq('id', mealId)
+      .eq('user_id', userId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message || 'Failed to delete saved meal combo.' };
   }
 }
 

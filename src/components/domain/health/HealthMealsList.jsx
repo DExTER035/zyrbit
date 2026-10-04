@@ -4,13 +4,16 @@
  * On tap: opens a focused Meal Detail Sheet with macros, confidence, edit & delete.
  */
 import React, { useState } from 'react';
-import { X, Edit3, Trash2, ChevronRight, ArrowUpRight } from 'lucide-react';
+import { X, Edit3, Trash2, ChevronRight, ArrowUpRight, Star, BookmarkCheck } from 'lucide-react';
 
 export default function HealthMealsList({
   mealLogs = [],
+  favoriteFoodNames = new Set(),
   onSeeAll,
   onEditMeal,
   onDeleteMeal,
+  onToggleFavorite,
+  onSaveCombo,
   onAddMeal,
   onRepeatYesterday,
   personalUsuals = [],
@@ -146,6 +149,7 @@ export default function HealthMealsList({
           const isKnown = confidence === 'KNOWN';
           const mealName = meal.meal_name || meal.name || 'Meal';
           const cals = Math.round(meal.calories || 280);
+          const isFav = favoriteFoodNames.has((mealName || '').toLowerCase().trim());
 
           return (
             <div
@@ -210,6 +214,28 @@ export default function HealthMealsList({
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {onToggleFavorite && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleFavorite(meal);
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      padding: '4px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: isFav ? '#F59E0B' : '#6B7280',
+                      transition: 'all 0.15s ease',
+                    }}
+                    title={isFav ? 'Favorited' : 'Favorite this food'}
+                  >
+                    <Star size={14} fill={isFav ? '#F59E0B' : 'transparent'} stroke={isFav ? '#F59E0B' : '#6B7280'} />
+                  </button>
+                )}
                 <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>
                   {meal.meal_time || '9:15 AM'}
                 </span>
@@ -219,6 +245,37 @@ export default function HealthMealsList({
           );
         })}
       </div>
+
+      {/* ── Save as Combo quick action ── */}
+      {mealLogs.length > 0 && onSaveCombo && (
+        <div style={{ marginTop: '10px' }}>
+          <button
+            type="button"
+            onClick={() => onSaveCombo({ name: "Today's Meals Combo", mealType: 'lunch', items: mealLogs })}
+            style={{
+              width: '100%',
+              padding: '10px',
+              borderRadius: '12px',
+              background: '#15161B',
+              border: '1px dashed #26272D',
+              color: '#9A978F',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#E9B44C'; e.currentTarget.style.color = '#E9B44C'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#26272D'; e.currentTarget.style.color = '#9A978F'; }}
+          >
+            <BookmarkCheck size={13} color="#E9B44C" />
+            <span>Save All Today's Meals as Combo</span>
+          </button>
+        </div>
+      )}
 
       {/* ── Meal Detail Sheet (On Tap) ── */}
       {selectedMeal && (
@@ -275,24 +332,56 @@ export default function HealthMealsList({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={handleCloseDetail}
-                style={{
-                  background: '#1F2026',
-                  border: '1px solid #26272D',
-                  borderRadius: '50%',
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: '#9A978F',
-                }}
-              >
-                <X size={15} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {onToggleFavorite && (
+                  <button
+                    type="button"
+                    onClick={() => onToggleFavorite(selectedMeal)}
+                    style={{
+                      background: favoriteFoodNames.has(((selectedMeal.meal_name || selectedMeal.name) || '').toLowerCase().trim())
+                        ? 'rgba(245, 158, 11, 0.15)'
+                        : '#1F2026',
+                      border: `1px solid ${favoriteFoodNames.has(((selectedMeal.meal_name || selectedMeal.name) || '').toLowerCase().trim()) ? '#F59E0B' : '#26272D'}`,
+                      borderRadius: '50%',
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: favoriteFoodNames.has(((selectedMeal.meal_name || selectedMeal.name) || '').toLowerCase().trim())
+                        ? '#F59E0B'
+                        : '#9A978F',
+                    }}
+                    title={favoriteFoodNames.has(((selectedMeal.meal_name || selectedMeal.name) || '').toLowerCase().trim()) ? 'Favorited' : 'Add to favorites'}
+                  >
+                    <Star
+                      size={15}
+                      fill={favoriteFoodNames.has(((selectedMeal.meal_name || selectedMeal.name) || '').toLowerCase().trim()) ? '#F59E0B' : 'transparent'}
+                      stroke={favoriteFoodNames.has(((selectedMeal.meal_name || selectedMeal.name) || '').toLowerCase().trim()) ? '#F59E0B' : '#9A978F'}
+                    />
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleCloseDetail}
+                  style={{
+                    background: '#1F2026',
+                    border: '1px solid #26272D',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#9A978F',
+                  }}
+                >
+                  <X size={15} />
+                </button>
+              </div>
             </div>
 
             {/* Macros Breakdown Grid */}
