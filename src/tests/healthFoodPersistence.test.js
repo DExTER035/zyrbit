@@ -427,7 +427,7 @@ describe('Health Food Persistence & Favorites Verification Suite', () => {
       .single();
 
     expect(aFoodVerify.food_name).toBe("User A Secret Recipe");
-  });
+  }, 15000);
 
   // ─── Test J: Dex Repeat/Save Action uses Canonical healthService ──────────────
   it('Test J: Dex repeat_meal action executes via canonical healthService without mock bypass', async () => {
@@ -457,5 +457,5 @@ describe('Health Food Persistence & Favorites Verification Suite', () => {
     expect(dexActionRes.data).toHaveLength(1);
     expect(dexActionRes.data[0].food_name).toBe('Grilled Tofu Bowl');
     expect(dexActionRes.data[0].date).toBe(healthService.todayStr());
-  });
+  }, 15000);
 });

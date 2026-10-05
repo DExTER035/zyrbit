@@ -27,9 +27,51 @@ export const getLocalTodayStr = () => {
  */
 export function isValidDateStr(str) {
   if (typeof str !== 'string') return false;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return false;
-  const d = new Date(`${str}T00:00:00`);
-  return !isNaN(d.getTime());
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const d = new Date(year, month, day);
+  return (
+    d.getFullYear() === year &&
+    d.getMonth() === month &&
+    d.getDate() === day
+  );
+}
+
+/**
+ * Normalizes relative date keywords ('today', 'yesterday', 'tomorrow') or explicit YYYY-MM-DD dates.
+ * @param {string|null} val
+ * @param {{ defaultToToday?: boolean }} [options]
+ * @returns {string|null}
+ */
+export function normalizeActionDate(val, { defaultToToday = true } = {}) {
+  if (!val) {
+    return defaultToToday ? getLocalTodayStr() : null;
+  }
+  if (typeof val !== 'string') return null;
+  const lower = val.trim().toLowerCase();
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+
+  if (lower === 'today') {
+    return now.toISOString().split('T')[0];
+  }
+  if (lower === 'yesterday') {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0];
+  }
+  if (lower === 'tomorrow') {
+    const d = new Date(now);
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  }
+  if (isValidDateStr(lower)) {
+    return lower;
+  }
+  return null;
 }
 
 /**
@@ -761,6 +803,439 @@ export const ACTION_SCHEMAS = {
         valid: true,
         normalized: {
           route: cleanRoute,
+        },
+      };
+    },
+  },
+
+  // ─── WEALTH ACTIONS ────────────────────────────────────────────────────────
+  record_expense: {
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: 'Records an expense transaction in Wealth.',
+    params: {
+      amount: { type: 'number', required: true, min: 0.01, description: 'Expense amount (positive number)' },
+      category: { type: 'string', required: false, default: 'Other', description: 'Expense category (e.g. Food, Transport, Rent)' },
+      note: { type: 'string', required: false, default: '', description: 'Description or note' },
+      date: { type: 'date', required: false, default: null, description: 'Expense date (YYYY-MM-DD, today, yesterday)' },
+    },
+    formatConfirmation: (params) => {
+      const amtStr = Number(params.amount).toLocaleString('en-IN');
+      const noteStr = params.note ? ` (${params.note})` : '';
+      return `Add ₹${amtStr} expense for ${params.category}${noteStr}?`;
+    },
+    validate: (params) => {
+      const amount = parseSafeNumber(params.amount);
+      if (amount === null || amount <= 0) {
+        return { valid: false, error: 'Expense amount must be a positive number greater than 0.' };
+      }
+
+      const category = typeof params.category === 'string' && params.category.trim() ? params.category.trim() : 'Other';
+      const note = typeof params.note === 'string' ? params.note.trim() : '';
+
+      const date = normalizeActionDate(params.date, { defaultToToday: true });
+      if (!date) {
+        return { valid: false, error: 'Date must be in valid YYYY-MM-DD format (or relative like today/yesterday).' };
+      }
+
+      return {
+        valid: true,
+        normalized: {
+          amount: Number(amount.toFixed(2)),
+          category,
+          note,
+          date,
+        },
+      };
+    },
+  },
+
+  record_income: {
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: 'Records an income transaction in Wealth.',
+    params: {
+      amount: { type: 'number', required: true, min: 0.01, description: 'Income amount (positive number)' },
+      source: { type: 'string', required: false, default: 'Other', description: 'Income source (e.g. Salary, Freelance)' },
+      note: { type: 'string', required: false, default: '', description: 'Description or note' },
+      date: { type: 'date', required: false, default: null, description: 'Income date (YYYY-MM-DD, today, yesterday)' },
+    },
+    formatConfirmation: (params) => {
+      const amtStr = Number(params.amount).toLocaleString('en-IN');
+      const noteStr = params.note ? ` (${params.note})` : '';
+      return `Record ₹${amtStr} income from ${params.source}${noteStr}?`;
+    },
+    validate: (params) => {
+      const amount = parseSafeNumber(params.amount);
+      if (amount === null || amount <= 0) {
+        return { valid: false, error: 'Income amount must be a positive number greater than 0.' };
+      }
+
+      const source = typeof params.source === 'string' && params.source.trim() ? params.source.trim() : 'Other';
+      const note = typeof params.note === 'string' ? params.note.trim() : '';
+
+      const date = normalizeActionDate(params.date, { defaultToToday: true });
+      if (!date) {
+        return { valid: false, error: 'Date must be in valid YYYY-MM-DD format (or relative like today/yesterday).' };
+      }
+
+      return {
+        valid: true,
+        normalized: {
+          amount: Number(amount.toFixed(2)),
+          source,
+          note,
+          date,
+        },
+      };
+    },
+  },
+
+  record_transfer: {
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: 'Records a transfer between accounts or envelopes in Wealth.',
+    params: {
+      amount: { type: 'number', required: true, min: 0.01, description: 'Transfer amount (positive number)' },
+      note: { type: 'string', required: false, default: '', description: 'Description of transfer destination' },
+      date: { type: 'date', required: false, default: null, description: 'Transfer date (YYYY-MM-DD)' },
+    },
+    formatConfirmation: (params) => {
+      const amtStr = Number(params.amount).toLocaleString('en-IN');
+      const noteStr = params.note ? ` (${params.note})` : '';
+      return `Record ₹${amtStr} transfer${noteStr}?`;
+    },
+    validate: (params) => {
+      const amount = parseSafeNumber(params.amount);
+      if (amount === null || amount <= 0) {
+        return { valid: false, error: 'Transfer amount must be a positive number greater than 0.' };
+      }
+
+      const note = typeof params.note === 'string' ? params.note.trim() : '';
+
+      const date = normalizeActionDate(params.date, { defaultToToday: true });
+      if (!date) {
+        return { valid: false, error: 'Date must be in valid YYYY-MM-DD format (or relative like today/yesterday).' };
+      }
+
+      return {
+        valid: true,
+        normalized: {
+          amount: Number(amount.toFixed(2)),
+          note: note || 'Transfer',
+          date,
+        },
+      };
+    },
+  },
+
+  record_lending: {
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: 'Records money lent to someone (cash outflow + receivable promise).',
+    params: {
+      amount: { type: 'number', required: true, min: 0.01, description: 'Lent amount (positive number)' },
+      person: { type: 'string', required: false, default: '', description: 'Person who borrowed the money' },
+      note: { type: 'string', required: false, default: '', description: 'Description or reason' },
+      date: { type: 'date', required: false, default: null, description: 'Transaction date' },
+      dueDate: { type: 'date', required: false, default: null, description: 'Expected repayment date' },
+    },
+    formatConfirmation: (params) => {
+      const amtStr = Number(params.amount).toLocaleString('en-IN');
+      const personStr = params.person ? ` to ${params.person}` : '';
+      return `Record ₹${amtStr} lent${personStr}?`;
+    },
+    validate: (params) => {
+      const amount = parseSafeNumber(params.amount);
+      if (amount === null || amount <= 0) {
+        return { valid: false, error: 'Lending amount must be a positive number greater than 0.' };
+      }
+
+      const person = typeof params.person === 'string' ? params.person.trim() : '';
+      const note = typeof params.note === 'string' ? params.note.trim() : '';
+
+      const date = normalizeActionDate(params.date, { defaultToToday: true });
+      if (!date) {
+        return { valid: false, error: 'Date must be in valid YYYY-MM-DD format (or relative like today/yesterday).' };
+      }
+
+      let dueDate = null;
+      if (params.dueDate) {
+        dueDate = normalizeActionDate(params.dueDate, { defaultToToday: false });
+        if (!dueDate) {
+          return { valid: false, error: 'Due date must be in valid YYYY-MM-DD format.' };
+        }
+      }
+
+      return {
+        valid: true,
+        normalized: {
+          amount: Number(amount.toFixed(2)),
+          person,
+          note,
+          date,
+          dueDate,
+        },
+      };
+    },
+  },
+
+  record_borrowing: {
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: 'Records money borrowed from someone (cash inflow + debt liability).',
+    params: {
+      amount: { type: 'number', required: true, min: 0.01, description: 'Borrowed amount (positive number)' },
+      person: { type: 'string', required: false, default: '', description: 'Person or entity borrowed from' },
+      note: { type: 'string', required: false, default: '', description: 'Description or reason' },
+      date: { type: 'date', required: false, default: null, description: 'Transaction date' },
+      dueDate: { type: 'date', required: false, default: null, description: 'Repayment deadline' },
+    },
+    formatConfirmation: (params) => {
+      const amtStr = Number(params.amount).toLocaleString('en-IN');
+      const personStr = params.person ? ` from ${params.person}` : '';
+      return `Record ₹${amtStr} borrowed${personStr}?`;
+    },
+    validate: (params) => {
+      const amount = parseSafeNumber(params.amount);
+      if (amount === null || amount <= 0) {
+        return { valid: false, error: 'Borrowing amount must be a positive number greater than 0.' };
+      }
+
+      const person = typeof params.person === 'string' ? params.person.trim() : '';
+      const note = typeof params.note === 'string' ? params.note.trim() : '';
+
+      const date = normalizeActionDate(params.date, { defaultToToday: true });
+      if (!date) {
+        return { valid: false, error: 'Date must be in valid YYYY-MM-DD format (or relative like today/yesterday).' };
+      }
+
+      let dueDate = null;
+      if (params.dueDate) {
+        dueDate = normalizeActionDate(params.dueDate, { defaultToToday: false });
+        if (!dueDate) {
+          return { valid: false, error: 'Due date must be in valid YYYY-MM-DD format.' };
+        }
+      }
+
+      return {
+        valid: true,
+        normalized: {
+          amount: Number(amount.toFixed(2)),
+          person,
+          note,
+          date,
+          dueDate,
+        },
+      };
+    },
+  },
+
+  record_refund: {
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: 'Records a refund or reimbursement transaction.',
+    params: {
+      amount: { type: 'number', required: true, min: 0.01, description: 'Refund amount (positive number)' },
+      note: { type: 'string', required: false, default: '', description: 'Source or item refunded' },
+      date: { type: 'date', required: false, default: null, description: 'Refund date' },
+    },
+    formatConfirmation: (params) => {
+      const amtStr = Number(params.amount).toLocaleString('en-IN');
+      const noteStr = params.note ? ` for ${params.note}` : '';
+      return `Record ₹${amtStr} refund${noteStr}?`;
+    },
+    validate: (params) => {
+      const amount = parseSafeNumber(params.amount);
+      if (amount === null || amount <= 0) {
+        return { valid: false, error: 'Refund amount must be a positive number greater than 0.' };
+      }
+
+      const note = typeof params.note === 'string' ? params.note.trim() : '';
+
+      const date = normalizeActionDate(params.date, { defaultToToday: true });
+      if (!date) {
+        return { valid: false, error: 'Date must be in valid YYYY-MM-DD format (or relative like today/yesterday).' };
+      }
+
+      return {
+        valid: true,
+        normalized: {
+          amount: Number(amount.toFixed(2)),
+          note: note || 'Refund',
+          date,
+        },
+      };
+    },
+  },
+
+  // ─── HEALTH ACTIONS ────────────────────────────────────────────────────────
+  log_workout: {
+    domain: 'health',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: 'Logs a workout or physical activity session with RPE.',
+    params: {
+      activityType: { type: 'string', required: false, default: 'Workout', description: 'Type of exercise (e.g. Run, Lifting, Yoga)' },
+      activeMinutes: { type: 'number', required: true, min: 1, max: 1440, description: 'Active workout duration (1-1440)' },
+      rpe: { type: 'integer', required: false, min: 1, max: 10, default: 5, description: 'Rate of Perceived Exertion (1-10)' },
+      notes: { type: 'string', required: false, default: null, description: 'Optional workout notes' },
+      date: { type: 'date', required: false, default: null, description: 'Workout date (YYYY-MM-DD)' },
+    },
+    validate: (params) => {
+      const activityType = typeof params.activityType === 'string' && params.activityType.trim() ? params.activityType.trim() : 'Workout';
+
+      const mins = parseSafeNumber(params.activeMinutes);
+      if (mins === null) {
+        return { valid: false, error: 'Active minutes must be a valid number.' };
+      }
+
+      const rpeVal = params.rpe !== undefined && params.rpe !== null ? parseSafeNumber(params.rpe) : 5;
+      if (rpeVal === null) {
+        return { valid: false, error: 'RPE must be a valid number.' };
+      }
+
+      const check = validateWorkoutLog(mins, rpeVal);
+      if (!check.valid) {
+        return { valid: false, error: check.error };
+      }
+
+      const date = normalizeActionDate(params.date, { defaultToToday: true });
+      if (!date) {
+        return { valid: false, error: 'Date must be in valid YYYY-MM-DD format.' };
+      }
+
+      const notes = typeof params.notes === 'string' ? params.notes.trim() : null;
+
+      return {
+        valid: true,
+        normalized: {
+          activityType,
+          activeMinutes: check.minutes,
+          rpe: check.rpe,
+          notes,
+          date,
+        },
+      };
+    },
+  },
+
+  // ─── GROWTH ACTIONS ────────────────────────────────────────────────────────
+  create_goal: {
+    domain: 'growth',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: 'Creates a new milestone goal associated with a project or growth.',
+    params: {
+      name: { type: 'string', required: true, description: 'Goal title/name' },
+      projectId: { type: 'string', required: false, default: null, description: 'Optional associated project UUID' },
+      targetValue: { type: 'number', required: false, default: 1, description: 'Target metric quantity' },
+      unit: { type: 'string', required: false, default: 'done', description: 'Target unit' },
+      deadline: { type: 'date', required: false, default: null, description: 'Goal deadline (YYYY-MM-DD)' },
+    },
+    validate: (params) => {
+      const name = typeof params.name === 'string' ? params.name.trim() : '';
+      if (!name) return { valid: false, error: 'Goal title cannot be empty.' };
+
+      let targetValue = 1;
+      if (params.targetValue !== undefined && params.targetValue !== null) {
+        const tv = parseSafeNumber(params.targetValue);
+        if (tv === null || tv <= 0) {
+          return { valid: false, error: 'Target value must be a positive number.' };
+        }
+        targetValue = tv;
+      }
+
+      const unit = typeof params.unit === 'string' && params.unit.trim() ? params.unit.trim() : 'done';
+      const projectId = params.projectId ? String(params.projectId).trim() : null;
+
+      let deadline = null;
+      if (params.deadline) {
+        deadline = normalizeActionDate(params.deadline, { defaultToToday: false });
+        if (!deadline) {
+          return { valid: false, error: 'Deadline must be in valid YYYY-MM-DD format.' };
+        }
+      }
+
+      return {
+        valid: true,
+        normalized: {
+          name,
+          projectId,
+          targetValue,
+          unit,
+          deadline,
+        },
+      };
+    },
+  },
+
+  update_goal: {
+    domain: 'growth',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: 'Updates progress or completion status of an existing goal.',
+    params: {
+      goalId: { type: 'string', required: true, description: 'Goal UUID' },
+      currentValue: { type: 'number', required: false, description: 'New progress value' },
+      isComplete: { type: 'boolean', required: false, description: 'Goal completion status' },
+    },
+    validate: (params) => {
+      const goalId = typeof params.goalId === 'string' ? params.goalId.trim() : '';
+      if (!goalId) return { valid: false, error: 'Goal ID is required.' };
+
+      if (params.currentValue === undefined && params.isComplete === undefined) {
+        return { valid: false, error: 'At least one of currentValue or isComplete must be provided.' };
+      }
+
+      let currentValue = undefined;
+      if (params.currentValue !== undefined && params.currentValue !== null) {
+        const cv = parseSafeNumber(params.currentValue);
+        if (cv === null || cv < 0) {
+          return { valid: false, error: 'Current value must be a non-negative number.' };
+        }
+        currentValue = cv;
+      }
+
+      let isComplete = undefined;
+      if (params.isComplete !== undefined && params.isComplete !== null) {
+        isComplete = Boolean(params.isComplete);
+      }
+
+      return {
+        valid: true,
+        normalized: {
+          goalId,
+          ...(currentValue !== undefined && { currentValue }),
+          ...(isComplete !== undefined && { isComplete }),
+        },
+      };
+    },
+  },
+
+  delete_task: {
+    domain: 'growth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: 'Deletes a task from the Growth backlog or project.',
+    params: {
+      taskId: { type: 'string', required: true, description: 'Task UUID to delete' },
+    },
+    formatConfirmation: (params) => `Delete task ${params.taskId}?`,
+    validate: (params) => {
+      const taskId = typeof params.taskId === 'string' ? params.taskId.trim() : '';
+      if (!taskId) return { valid: false, error: 'Task ID is required to delete a task.' };
+
+      return {
+        valid: true,
+        normalized: {
+          taskId,
         },
       };
     },

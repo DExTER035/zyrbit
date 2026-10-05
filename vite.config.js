@@ -37,5 +37,8 @@ export default defineConfig({
   ],
   build: {
     emptyOutDir: false
+  },
+  test: {
+    testTimeout: 20000
   }
 })

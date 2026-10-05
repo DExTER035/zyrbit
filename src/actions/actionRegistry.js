@@ -342,6 +342,198 @@ export const ACTION_REGISTRY = {
     },
   },
 
+  // ─── WEALTH ACTIONS ────────────────────────────────────────────────────────
+  record_expense: {
+    action: 'record_expense',
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: ACTION_SCHEMAS.record_expense.description,
+    schema: ACTION_SCHEMAS.record_expense,
+    formatConfirmation: (params) => ACTION_SCHEMAS.record_expense.formatConfirmation(params),
+    execute: async ({ userId, params }) => {
+      return await wealthService.addExpense({
+        userId,
+        amount: params.amount,
+        category: params.category,
+        note: params.note,
+        date: params.date,
+      });
+    },
+  },
+
+  record_income: {
+    action: 'record_income',
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: ACTION_SCHEMAS.record_income.description,
+    schema: ACTION_SCHEMAS.record_income,
+    formatConfirmation: (params) => ACTION_SCHEMAS.record_income.formatConfirmation(params),
+    execute: async ({ userId, params }) => {
+      return await wealthService.addIncome({
+        userId,
+        amount: params.amount,
+        source: params.source,
+        note: params.note,
+        date: params.date,
+      });
+    },
+  },
+
+  record_transfer: {
+    action: 'record_transfer',
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: ACTION_SCHEMAS.record_transfer.description,
+    schema: ACTION_SCHEMAS.record_transfer,
+    formatConfirmation: (params) => ACTION_SCHEMAS.record_transfer.formatConfirmation(params),
+    execute: async ({ userId, params }) => {
+      return await wealthService.recordMoneyEvent({
+        userId,
+        type: 'TRANSFER',
+        amount: params.amount,
+        note: params.note,
+        date: params.date,
+      });
+    },
+  },
+
+  record_lending: {
+    action: 'record_lending',
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: ACTION_SCHEMAS.record_lending.description,
+    schema: ACTION_SCHEMAS.record_lending,
+    formatConfirmation: (params) => ACTION_SCHEMAS.record_lending.formatConfirmation(params),
+    execute: async ({ userId, params }) => {
+      return await wealthService.recordMoneyEvent({
+        userId,
+        type: 'LEND',
+        amount: params.amount,
+        person: params.person,
+        note: params.note,
+        date: params.date,
+        dueDate: params.dueDate,
+      });
+    },
+  },
+
+  record_borrowing: {
+    action: 'record_borrowing',
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: ACTION_SCHEMAS.record_borrowing.description,
+    schema: ACTION_SCHEMAS.record_borrowing,
+    formatConfirmation: (params) => ACTION_SCHEMAS.record_borrowing.formatConfirmation(params),
+    execute: async ({ userId, params }) => {
+      return await wealthService.recordMoneyEvent({
+        userId,
+        type: 'BORROW',
+        amount: params.amount,
+        person: params.person,
+        note: params.note,
+        date: params.date,
+        dueDate: params.dueDate,
+      });
+    },
+  },
+
+  record_refund: {
+    action: 'record_refund',
+    domain: 'wealth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: ACTION_SCHEMAS.record_refund.description,
+    schema: ACTION_SCHEMAS.record_refund,
+    formatConfirmation: (params) => ACTION_SCHEMAS.record_refund.formatConfirmation(params),
+    execute: async ({ userId, params }) => {
+      return await wealthService.recordMoneyEvent({
+        userId,
+        type: 'REFUND',
+        amount: params.amount,
+        note: params.note,
+        date: params.date,
+      });
+    },
+  },
+
+  // ─── HEALTH ACTIONS ────────────────────────────────────────────────────────
+  log_workout: {
+    action: 'log_workout',
+    domain: 'health',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: ACTION_SCHEMAS.log_workout.description,
+    schema: ACTION_SCHEMAS.log_workout,
+    execute: async ({ userId, params }) => {
+      return await healthService.logActivity({
+        userId,
+        activityType: params.activityType,
+        activeMinutes: params.activeMinutes,
+        rpe: params.rpe,
+        notes: params.notes,
+        date: params.date,
+      });
+    },
+  },
+
+  // ─── GROWTH ACTIONS ────────────────────────────────────────────────────────
+  create_goal: {
+    action: 'create_goal',
+    domain: 'growth',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: ACTION_SCHEMAS.create_goal.description,
+    schema: ACTION_SCHEMAS.create_goal,
+    execute: async ({ userId, params }) => {
+      return await growthService.createGoal({
+        userId,
+        name: params.name,
+        projectId: params.projectId,
+        targetValue: params.targetValue,
+        unit: params.unit,
+        deadline: params.deadline,
+      });
+    },
+  },
+
+  update_goal: {
+    action: 'update_goal',
+    domain: 'growth',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: ACTION_SCHEMAS.update_goal.description,
+    schema: ACTION_SCHEMAS.update_goal,
+    execute: async ({ userId, params }) => {
+      return await growthService.updateGoalProgress({
+        userId,
+        goalId: params.goalId,
+        currentValue: params.currentValue,
+        isComplete: params.isComplete,
+      });
+    },
+  },
+
+  delete_task: {
+    action: 'delete_task',
+    domain: 'growth',
+    risk: 'medium',
+    requiresConfirmation: true,
+    description: ACTION_SCHEMAS.delete_task.description,
+    schema: ACTION_SCHEMAS.delete_task,
+    formatConfirmation: (params) => ACTION_SCHEMAS.delete_task.formatConfirmation(params),
+    execute: async ({ userId, params }) => {
+      return await growthService.deleteTask({
+        userId,
+        taskId: params.taskId,
+      });
+    },
+  },
+
   navigate: {
     action: 'navigate',
     domain: 'system',

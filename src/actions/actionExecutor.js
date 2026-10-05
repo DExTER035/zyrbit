@@ -15,7 +15,22 @@ import { validateAction } from './actionValidator.js';
  * @param {string} args.action - Action identifier (e.g. 'add_expense', 'log_water')
  * @param {Object} args.params - Proposed action parameters
  * @param {boolean} [args.confirmed=false] - Explicit user confirmation flag (required for medium-risk actions)
- * @returns {Promise<{success: boolean, action?: string, data?: Object, requiresConfirmation?: boolean, message?: string, errorType?: 'validation'|'execution', error?: string, normalizedParams?: Object}>}
+ * @returns {Promise<{
+ *   success: boolean,
+ *   action?: string,
+ *   domain?: string,
+ *   entity?: string,
+ *   entityId?: string|null,
+ *   message?: string,
+ *   refreshDomain?: string,
+ *   data?: Object,
+ *   requiresConfirmation?: boolean,
+ *   errorType?: 'validation'|'execution',
+ *   error?: string,
+ *   code?: string,
+ *   retryable?: boolean,
+ *   normalizedParams?: Object
+ * }>}
  */
 export async function executeAction({ userId, action, params, confirmed = false }) {
   // 1. Session Context Guard
@@ -24,6 +39,8 @@ export async function executeAction({ userId, action, params, confirmed = false 
       success: false,
       errorType: 'validation',
       error: 'Authenticated user ID is required.',
+      code: 'AUTH_REQUIRED',
+      retryable: false,
     };
   }
 
@@ -33,7 +50,10 @@ export async function executeAction({ userId, action, params, confirmed = false 
     return {
       success: false,
       errorType: 'validation',
+      action: action ? String(action).trim().toLowerCase() : undefined,
       error: validation.error,
+      code: 'VALIDATION_FAILED',
+      retryable: false,
     };
   }
 
@@ -43,7 +63,10 @@ export async function executeAction({ userId, action, params, confirmed = false 
     return {
       success: false,
       errorType: 'validation',
+      action: action ? String(action).trim().toLowerCase() : undefined,
       error: `Action "${action}" is not registered.`,
+      code: 'ACTION_NOT_REGISTERED',
+      retryable: false,
     };
   }
 
@@ -57,6 +80,7 @@ export async function executeAction({ userId, action, params, confirmed = false 
       success: false,
       requiresConfirmation: true,
       action: entry.action,
+      domain: entry.domain,
       message: confirmationMessage,
       normalizedParams: validation.normalizedParams,
     };
@@ -74,13 +98,27 @@ export async function executeAction({ userId, action, params, confirmed = false 
         success: false,
         errorType: 'execution',
         action: entry.action,
+        domain: entry.domain,
         error: (serviceResult && serviceResult.error) ? serviceResult.error : `Failed to execute ${entry.action}.`,
+        code: serviceResult?.code || 'EXECUTION_FAILED',
+        retryable: Boolean(serviceResult?.retryable),
       };
     }
+
+    const entityId = serviceResult.data?.id
+      || serviceResult.data?.billId
+      || serviceResult.data?.expenseId
+      || serviceResult.data?.incomeId
+      || (validation.normalizedParams?.taskId || validation.normalizedParams?.goalId || null);
 
     return {
       success: true,
       action: entry.action,
+      domain: entry.domain,
+      entity: entry.domain,
+      entityId: entityId || null,
+      message: `${entry.action} completed successfully.`,
+      refreshDomain: entry.domain,
       data: serviceResult.data !== undefined ? serviceResult.data : null,
     };
   } catch (err) {
@@ -88,7 +126,10 @@ export async function executeAction({ userId, action, params, confirmed = false 
       success: false,
       errorType: 'execution',
       action: entry.action,
+      domain: entry.domain,
       error: err.message || `An unexpected error occurred executing ${entry.action}.`,
+      code: 'EXECUTION_ERROR',
+      retryable: false,
     };
   }
 }
