@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Target, Plus, CheckCircle, ChevronRight, ArrowUpRight } from 'lucide-react';
+import { Target, Plus, CheckCircle, ChevronRight, ArrowUpRight, Trash2 } from 'lucide-react';
 import { C, daysUntil, ProgressBar, Card, EmptyState, SectionLabel } from './shared.jsx';
 
 export default function GoalsTab({
@@ -8,6 +8,7 @@ export default function GoalsTab({
   projectMap = {},
   onAddGoal,
   onUpdateGoalProgress,
+  onDeleteGoal,
   onOpenProject,
 }) {
   const activeGoals = useMemo(() => {
@@ -162,47 +163,75 @@ export default function GoalsTab({
                   </div>
                 )}
 
-                {/* Quick Progress Buttons */}
-                {!isComplete && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '4px' }}>
+                {/* Actions row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
+                  {onDeleteGoal ? (
                     <button
                       type="button"
-                      onClick={() => onUpdateGoalProgress && onUpdateGoalProgress(g, Math.min(target, current + 1))}
+                      onClick={() => onDeleteGoal(g)}
+                      aria-label="Delete goal"
+                      title="Delete goal"
                       style={{
-                        background: '#1D1E24',
-                        border: '1px solid #26272D',
-                        color: '#ECE8DF',
-                        borderRadius: '6px',
-                        padding: '4px 10px',
-                        fontSize: '11px',
-                        fontWeight: 600,
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#6B7280',
                         cursor: 'pointer',
-                      }}
-                    >
-                      +1 {g.unit || 'step'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onUpdateGoalProgress && onUpdateGoalProgress(g, target)}
-                      style={{
-                        background: 'rgba(16, 185, 129, 0.1)',
-                        border: '1px solid rgba(16, 185, 129, 0.3)',
-                        color: '#10B981',
+                        padding: '4px 6px',
                         borderRadius: '6px',
-                        padding: '4px 10px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
+                        fontSize: '11px',
+                        transition: 'color 0.15s ease',
                       }}
+                      onMouseEnter={e => e.currentTarget.style.color = '#EF4444'}
+                      onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}
                     >
-                      <CheckCircle size={12} />
-                      <span>Complete Goal</span>
+                      <Trash2 size={13} />
                     </button>
-                  </div>
-                )}
+                  ) : <div />}
+
+                  {!isComplete && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateGoalProgress && onUpdateGoalProgress(g, Math.min(target, current + 1))}
+                        style={{
+                          background: '#1D1E24',
+                          border: '1px solid #26272D',
+                          color: '#ECE8DF',
+                          borderRadius: '6px',
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        +1 {g.unit || 'step'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateGoalProgress && onUpdateGoalProgress(g, target)}
+                        style={{
+                          background: 'rgba(16, 185, 129, 0.1)',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          color: '#10B981',
+                          borderRadius: '6px',
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <CheckCircle size={12} />
+                        <span>Complete Goal</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </Card>
             );
           })}

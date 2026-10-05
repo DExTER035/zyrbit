@@ -487,10 +487,10 @@ export async function syncRecoveryScore({ userId, score, date = todayStr() }) {
       .upsert(
         {
           user_id: userId,
-          log_date: date,
-          recovery_score: Math.max(0, Math.min(100, Math.round(score))),
+          summary_date: date,
+          health_score: Math.max(0, Math.min(100, Math.round(score))),
         },
-        { onConflict: 'user_id,log_date' }
+        { onConflict: 'user_id,summary_date' }
       );
 
     if (error) {

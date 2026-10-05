@@ -236,50 +236,46 @@ export async function importStatement({ userId, fileData, filename = 'statement.
     status: tx.isDuplicate ? 'ignored' : 'pending',
   }));
 
-  // 6. Persist to Supabase with fallback to local store
+  // 6. Persist to Supabase
   try {
     const { error: batchErr } = await supabase
       .from('statement_import_batches')
       .insert([batch]);
 
-    if (!batchErr) {
-      const dbTxRows = stagedTransactions.map(t => ({
-        id: t.id,
-        user_id: userId,
-        batch_id: batchId,
-        source: t.source,
-        source_transaction_id: t.sourceTransactionId,
-        fingerprint: t.fingerprint,
-        occurred_at: t.occurredAt,
-        amount: t.amount,
-        direction: t.direction,
-        counterparty: t.counterparty,
-        payment_method: t.paymentMethod,
-        raw_description: t.rawDescription,
-        resolution_state: t.resolutionState,
-        suggested_action: t.suggestedAction,
-        suggested_category: t.suggestedCategory,
-        suggested_note: t.suggestedNote,
-        review_reason: t.reviewReason || null,
-        status: t.status,
-      }));
-
-      await supabase.from('imported_transactions').insert(dbTxRows);
-    } else {
-      // Local fallback
-      const allBatches = getLocalStore(LOCAL_BATCHES_KEY);
-      setLocalStore(LOCAL_BATCHES_KEY, [batch, ...allBatches]);
-
-      const allTxs = getLocalStore(LOCAL_TRANSACTIONS_KEY);
-      setLocalStore(LOCAL_TRANSACTIONS_KEY, [...stagedTransactions, ...allTxs]);
+    if (batchErr) {
+      throw batchErr;
     }
-  } catch {
-    // Local fallback
-    const allBatches = getLocalStore(LOCAL_BATCHES_KEY);
-    setLocalStore(LOCAL_BATCHES_KEY, [batch, ...allBatches]);
 
-    const allTxs = getLocalStore(LOCAL_TRANSACTIONS_KEY);
-    setLocalStore(LOCAL_TRANSACTIONS_KEY, [...stagedTransactions, ...allTxs]);
+    const dbTxRows = stagedTransactions.map(t => ({
+      id: t.id,
+      user_id: userId,
+      batch_id: batchId,
+      source: t.source,
+      source_transaction_id: t.sourceTransactionId,
+      fingerprint: t.fingerprint,
+      occurred_at: t.occurredAt,
+      amount: t.amount,
+      direction: t.direction,
+      counterparty: t.counterparty,
+      payment_method: t.paymentMethod,
+      raw_description: t.rawDescription,
+      resolution_state: t.resolutionState,
+      suggested_action: t.suggestedAction,
+      suggested_category: t.suggestedCategory,
+      suggested_note: t.suggestedNote,
+      review_reason: t.reviewReason || null,
+      status: t.status,
+    }));
+
+    const { error: txErr } = await supabase.from('imported_transactions').insert(dbTxRows);
+    if (txErr) {
+      throw txErr;
+    }
+  } catch (err) {
+    return {
+      success: false,
+      error: err.message || 'Failed to save statement import to database.',
+    };
   }
 
   return {
@@ -401,7 +397,7 @@ export async function confirmImportTransactions({
   // 3. Update imported_transactions status and batch progress
   try {
     for (const u of updates) {
-      await supabase
+      const { error: txErr } = await supabase
         .from('imported_transactions')
         .update({
           status: 'confirmed',
@@ -411,9 +407,10 @@ export async function confirmImportTransactions({
         })
         .eq('id', u.id)
         .eq('user_id', userId);
+      if (txErr) throw txErr;
     }
 
-    await supabase
+    const { error: bErr } = await supabase
       .from('statement_import_batches')
       .update({
         confirmed_count: confirmedCount,
@@ -422,19 +419,12 @@ export async function confirmImportTransactions({
       })
       .eq('id', batchId)
       .eq('user_id', userId);
-  } catch {
-    // Local fallback update
-    const allBatches = getLocalStore(LOCAL_BATCHES_KEY);
-    const updatedBatches = allBatches.map(b =>
-      b.id === batchId ? { ...b, confirmed_count: confirmedCount, status: 'completed' } : b
-    );
-    setLocalStore(LOCAL_BATCHES_KEY, updatedBatches);
-
-    const allTxs = getLocalStore(LOCAL_TRANSACTIONS_KEY);
-    const updatedTxs = allTxs.map(t =>
-      transactionIds.includes(t.id) ? { ...t, status: 'confirmed' } : t
-    );
-    setLocalStore(LOCAL_TRANSACTIONS_KEY, updatedTxs);
+    if (bErr) throw bErr;
+  } catch (err) {
+    return {
+      success: false,
+      error: err.message || 'Failed to update statement import batch in database.',
+    };
   }
 
   // 4. Trigger global DexOS refresh event so Wealth & Dex update instantaneously
@@ -530,15 +520,11 @@ export async function getImportBatches(userId) {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    if (!error && data && data.length > 0) {
-      return { success: true, batches: data };
+    if (error) {
+      return { success: false, error: error.message, batches: [] };
     }
-
-    // Fallback to local store
-    const local = getLocalStore(LOCAL_BATCHES_KEY).filter(b => b.user_id === userId);
-    return { success: true, batches: local };
-  } catch {
-    const local = getLocalStore(LOCAL_BATCHES_KEY).filter(b => b.user_id === userId);
-    return { success: true, batches: local };
+    return { success: true, batches: data || [] };
+  } catch (err) {
+    return { success: false, error: err.message || 'Failed to fetch import batches.', batches: [] };
   }
 }

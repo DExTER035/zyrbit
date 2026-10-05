@@ -200,6 +200,13 @@ export async function deleteHabit({ userId, habitId }) {
   }
 
   try {
+    // Clean up dependent child logs and streaks to satisfy foreign key integrity
+    await Promise.all([
+      supabase.from('activity_log').delete().eq('habit_id', habitId).eq('user_id', userId),
+      supabase.from('habit_logs').delete().eq('habit_id', habitId).eq('user_id', userId),
+      supabase.from('user_streaks').delete().eq('habit_id', habitId).eq('user_id', userId),
+    ]);
+
     const { error } = await supabase
       .from('habits')
       .delete()
@@ -228,7 +235,7 @@ export async function deleteHabit({ userId, habitId }) {
  */
 export async function submitDailyReflection({
   userId,
-  mood = 'good',
+  mood = 4,
   content,
   reflectionText,
   completionPct = null,
@@ -239,12 +246,39 @@ export async function submitDailyReflection({
   }
 
   const text = (content || reflectionText || '').trim();
+
+  const MOOD_MAP = {
+    awful: 1,
+    terrible: 1,
+    bad: 2,
+    poor: 2,
+    neutral: 3,
+    okay: 3,
+    ok: 3,
+    good: 4,
+    fine: 4,
+    great: 5,
+    awesome: 5,
+    amazing: 5,
+  };
+
+  let numericMood = 4;
+  if (typeof mood === 'number' && !Number.isNaN(mood)) {
+    numericMood = Math.max(1, Math.min(5, Math.round(mood)));
+  } else if (typeof mood === 'string' && mood.trim()) {
+    const key = mood.trim().toLowerCase();
+    numericMood = MOOD_MAP[key] || parseInt(key, 10) || 4;
+    if (numericMood < 1 || numericMood > 5 || Number.isNaN(numericMood)) {
+      numericMood = 4;
+    }
+  }
+
   const payload = {
     user_id: userId,
     entry_date: date,
     content: text,
-    mood: mood || 'good',
-    completion_pct: completionPct != null ? Math.round(Number(completionPct)) : null,
+    mood: numericMood,
+    completion_rate: completionPct != null ? Math.round(Number(completionPct)) : null,
     created_at: new Date().toISOString(),
   };
 

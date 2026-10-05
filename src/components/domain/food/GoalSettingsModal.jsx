@@ -90,17 +90,18 @@ export default function GoalSettingsModal({ userId, currentSettings, onSave, onC
     try {
       const { error } = await supabase
         .from('food_settings')
-        .upsert([{ user_id: userId, ...settings }], { onConflict: 'user_id' });
+        .upsert([{ user_id: userId, ...settings, updated_at: new Date().toISOString() }], { onConflict: 'user_id' });
       if (error) throw error;
+
+      onSave(settings);
+      showToast('✓ Goals saved', 'success');
+      onClose();
     } catch (err) {
-      console.warn('food_settings save failed, using localStorage:', err.message);
+      console.error('food_settings save failed:', err);
+      showToast(`❌ Failed to save goals: ${err.message || 'Database error'}`, 'error');
+    } finally {
+      setSaving(false);
     }
-    // Always persist locally as fallback
-    localStorage.setItem(`dexos_food_settings_${userId}`, JSON.stringify(settings));
-    onSave(settings);
-    showToast('✓ Goals saved', 'success');
-    setSaving(false);
-    onClose();
   };
 
   const labelStyle  = { fontSize: '10px', color: FC.muted, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '6px' };

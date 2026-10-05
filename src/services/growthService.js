@@ -372,3 +372,88 @@ export async function updateGoalProgress({ userId, goalId, currentValue, isCompl
     return { success: false, error: err.message || 'Failed to update goal progress.' };
   }
 }
+
+/**
+ * Deletes a goal by ID.
+ * @param {Object} params
+ * @param {string} params.userId - Authenticated user UUID
+ * @param {string} params.goalId - Goal UUID
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function deleteGoal({ userId, goalId }) {
+  if (!userId || !goalId) {
+    return { success: false, error: 'User ID and Goal ID are required.' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('dexos_goals')
+      .delete()
+      .eq('id', goalId)
+      .eq('user_id', userId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message || 'Failed to delete goal.' };
+  }
+}
+
+/**
+ * Archives a project container.
+ * @param {Object} params
+ * @param {string} params.userId - Authenticated user UUID
+ * @param {string} params.projectId - Project UUID
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function archiveProject({ userId, projectId }) {
+  if (!userId || !projectId) {
+    return { success: false, error: 'User ID and Project ID are required.' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('growth_projects')
+      .update({ status: 'archived', updated_at: new Date().toISOString() })
+      .eq('id', projectId)
+      .eq('user_id', userId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message || 'Failed to archive project.' };
+  }
+}
+
+/**
+ * Permanently deletes a project container.
+ * @param {Object} params
+ * @param {string} params.userId - Authenticated user UUID
+ * @param {string} params.projectId - Project UUID
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function deleteProject({ userId, projectId }) {
+  if (!userId || !projectId) {
+    return { success: false, error: 'User ID and Project ID are required.' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('growth_projects')
+      .delete()
+      .eq('id', projectId)
+      .eq('user_id', userId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message || 'Failed to delete project.' };
+  }
+}
+

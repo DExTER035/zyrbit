@@ -36,6 +36,7 @@ import {
   endFocusSession as serviceEndFocusSession,
   createGoal as serviceCreateGoal,
   updateGoalProgress as serviceUpdateGoalProgress,
+  deleteGoal as serviceDeleteGoal,
 } from '../../services/growthService.js';
 import {
   toggleHabit as serviceToggleHabit,
@@ -158,8 +159,8 @@ export default function Growth() {
         supabase.from('growth_tasks').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
         supabase.from('growth_task_dependencies').select('*').eq('user_id', uid),
         supabase.from('growth_focus_sessions').select('*').eq('user_id', uid).order('session_date', { ascending: false }).limit(50),
-        supabase.from('dexos_streaks').select('*').eq('user_id', uid).maybeSingle(),
-        supabase.from('dexos_daily_summary').select('*').eq('user_id', uid).eq('log_date', today).maybeSingle(),
+        supabase.from('dexos_streaks').select('*').eq('user_id', uid).eq('domain', 'growth').maybeSingle(),
+        supabase.from('dexos_daily_summary').select('*').eq('user_id', uid).eq('summary_date', today).maybeSingle(),
         supabase.from('habits').select('*').eq('user_id', uid).order('created_at', { ascending: true }),
         supabase.from('activity_log').select('*').eq('user_id', uid).gte('completed_date', since365),
         supabase.from('user_streaks').select('*').eq('user_id', uid),
@@ -391,35 +392,42 @@ export default function Growth() {
     setFocusMode('done');
     if (!user) return;
 
-    const newSess = {
-      id: crypto.randomUUID ? crypto.randomUUID() : `temp_${Math.random()}`,
+    const startedAt = new Date(Date.now() - elapsed * 1000).toISOString();
+    const endedAt = new Date().toISOString();
+
+    const previousSessions = sessions;
+    const tempId = `temp_${Date.now()}`;
+    const optimisticSess = {
+      id: tempId,
       user_id: user.id,
       project_id: focusProject?.id || null,
       duration_minutes: mins,
       notes: focusNotes || null,
       session_date: todayStr(),
-      started_at: new Date(Date.now() - elapsed * 1000).toISOString(),
-      ended_at: new Date().toISOString(),
-      created_at: new Date().toISOString()
+      started_at: startedAt,
+      ended_at: endedAt,
+      created_at: new Date().toISOString(),
     };
 
-    const updated = [newSess, ...sessions];
-    setSessions(updated);
-    try { localStorage.setItem(`dexos_growth_sessions_${user.id}`, JSON.stringify(updated)); } catch { /* ignore */ }
+    setSessions([optimisticSess, ...previousSessions]);
 
     const res = await serviceEndFocusSession({
       userId: user.id,
       projectId: focusProject?.id || null,
       durationMinutes: mins,
       sessionDate: todayStr(),
-      startedAt: newSess.started_at,
-      endedAt: newSess.ended_at,
+      startedAt,
+      endedAt,
       notes: focusNotes || null,
     });
 
-    if (res.success) {
+    if (res.success && res.data) {
+      setSessions(prev => [res.data, ...prev.filter(s => s.id !== tempId)]);
       loadData(user.id, true);
       window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'growth', source: 'growth_page' } }));
+    } else {
+      setSessions(previousSessions);
+      showToast(res.error || 'Failed to record focus session', 'error');
     }
   }, [user, focusProject, focusNotes, sessions, loadData]);
 
@@ -688,6 +696,24 @@ export default function Growth() {
       setGoals(prev => prev.map(g => g.id === goal.id ? { ...g, current_value: currentVal, is_complete: isComplete } : g));
     } else {
       showToast(`Failed to update goal: ${res.error}`, 'error');
+    }
+  };
+
+  const deleteGoal = async (goal) => {
+    if (!user || !goal || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const res = await serviceDeleteGoal({ userId: user.id, goalId: goal.id });
+      if (res.success) {
+        setGoals(prev => prev.filter(g => g.id !== goal.id));
+        showToast('🗑 Goal deleted', 'success');
+      } else {
+        showToast(`Failed to delete goal: ${res.error}`, 'error');
+      }
+    } catch (err) {
+      showToast(`Failed to delete goal: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1089,6 +1115,7 @@ export default function Growth() {
             projectMap={projectMap}
             onAddGoal={() => setModalGoal(true)}
             onUpdateGoalProgress={updateGoalProgress}
+            onDeleteGoal={deleteGoal}
             onOpenProject={(p) => openProjectDetail(p)}
           />
         )}
