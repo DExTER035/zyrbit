@@ -534,6 +534,60 @@ export const ACTION_REGISTRY = {
     },
   },
 
+  create_project: {
+    action: 'create_project',
+    domain: 'growth',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: ACTION_SCHEMAS.create_project.description,
+    schema: ACTION_SCHEMAS.create_project,
+    execute: async ({ userId, params }) => {
+      return await growthService.createProject({
+        userId,
+        name: params.name,
+        icon: params.icon,
+        deadline: params.deadline,
+      });
+    },
+  },
+
+  create_plan: {
+    action: 'create_plan',
+    domain: 'growth',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: ACTION_SCHEMAS.create_plan.description,
+    schema: ACTION_SCHEMAS.create_plan,
+    execute: async ({ params }) => {
+      return {
+        success: true,
+        data: {
+          goal: params.goal,
+          steps: params.steps || [],
+          status: 'created',
+        },
+      };
+    },
+  },
+
+  create_habit: {
+    action: 'create_habit',
+    domain: 'habits',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: ACTION_SCHEMAS.create_habit.description,
+    schema: ACTION_SCHEMAS.create_habit,
+    execute: async ({ userId, params }) => {
+      return await habitService.createHabit({
+        userId,
+        name: params.name,
+        frequency: params.frequency,
+        zone: params.zone,
+        icon: params.icon,
+      });
+    },
+  },
+
   navigate: {
     action: 'navigate',
     domain: 'system',

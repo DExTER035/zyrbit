@@ -45,6 +45,7 @@ const FOOD_ALIASES = [
   // Fruits
   { patterns: [/^medium banana$/, /^banana(s)?$/], id: 'banana', unitWeightG: 120 },
   { patterns: [/^apple(s)?$/, /^medium apple$/], id: 'apple', unitWeightG: 150 },
+  { patterns: [/^date(s)?$/, /^khajoor$/], id: 'dates', unitWeightG: 10 },
 
   // Breakfast items
   { patterns: [/^poha$/], id: 'poha', unitWeightG: 150 },
@@ -187,7 +188,7 @@ export function splitCompoundFoodPhrase(phrase) {
 
   let cleaned = phrase
     .trim()
-    .replace(/^(i had|i ate|had|ate|logged|eating)\s+/i, '')
+    .replace(/^(?:i had|i ate|had|ate|logged|eating|log)\s+/i, '')
     .trim();
 
   // Protect multi-item canonical foods like "dal rice" or "roti + dal"
@@ -216,7 +217,7 @@ export function resolveFoodItem(parsed) {
 
   let quantityG = food.defaultServingG || 100;
 
-  if (parsed.unit === 'g') {
+  if (parsed.unit === 'g' || parsed.unit === 'ml') {
     quantityG = Math.max(1, Math.min(5000, Math.round(parsed.quantity)));
   } else if (['plate', 'plates', 'bowl', 'bowls', 'katori', 'katoris', 'glass', 'glasses', 'cup', 'cups'].includes(parsed.unit)) {
     quantityG = Math.max(1, Math.round(parsed.quantity * (food.defaultServingG || 150)));
@@ -274,7 +275,38 @@ export function resolveFoodInput(userMessage, preferredMealType = 'snack') {
     return { success: false, resolved: false, error: 'Empty food message.' };
   }
 
-  const clauses = splitCompoundFoodPhrase(userMessage);
+  let cleanMsg = userMessage.trim();
+
+  // Extract explicit meal type if stated: "for breakfast", "for lunch", "for dinner", "for snack"
+  let detectedMealType = preferredMealType;
+  if (/\b(?:for\s+breakfast|breakfast)\b/i.test(cleanMsg)) detectedMealType = 'breakfast';
+  else if (/\b(?:for\s+lunch|lunch)\b/i.test(cleanMsg)) detectedMealType = 'lunch';
+  else if (/\b(?:for\s+dinner|dinner)\b/i.test(cleanMsg)) detectedMealType = 'dinner';
+  else if (/\b(?:for\s+snack|snack)\b/i.test(cleanMsg)) detectedMealType = 'snack';
+
+  // Extract explicit time if stated: "at 9am", "at 9:00 am", "at 8pm"
+  let explicitTime = null;
+  const timeMatch = cleanMsg.match(/\bat\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i);
+  if (timeMatch) {
+    explicitTime = timeMatch[1].trim();
+    if (detectedMealType === 'snack') {
+      if (/\b(?:[5-9]|10|11)(?::\d{2})?\s*am\b/i.test(explicitTime) || /\b(?:[5-9]|10|11)\s*am\b/i.test(explicitTime)) {
+        detectedMealType = 'breakfast';
+      } else if (/\b(?:12|1|2|3)(?::\d{2})?\s*pm\b/i.test(explicitTime)) {
+        detectedMealType = 'lunch';
+      } else if (/\b(?:7|8|9|10|11)(?::\d{2})?\s*pm\b/i.test(explicitTime)) {
+        detectedMealType = 'dinner';
+      }
+    }
+  }
+
+  // Strip meal context and time from food item phrase so items are not corrupted
+  cleanMsg = cleanMsg
+    .replace(/\s+for\s+(?:breakfast|lunch|dinner|snack)\b/gi, '')
+    .replace(/\s+at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b/gi, '')
+    .trim();
+
+  const clauses = splitCompoundFoodPhrase(cleanMsg);
   if (clauses.length === 0) {
     return { success: false, resolved: false, error: 'No food items detected.' };
   }
@@ -297,14 +329,22 @@ export function resolveFoodInput(userMessage, preferredMealType = 'snack') {
     }
   }
 
-  // If nothing could be resolved against FOOD_DB
-  if (resolvedItems.length === 0) {
-    // Check if user was asking about eating or food generically
+  // If any item could not be resolved, do not create partial records
+  if (unresolvedItems.length > 0) {
+    if (resolvedItems.length === 0) {
+      return {
+        success: false,
+        resolved: false,
+        clarificationNeeded: true,
+        question: 'What food did you have and roughly how much?',
+        unresolved: unresolvedItems,
+      };
+    }
     return {
       success: false,
       resolved: false,
       clarificationNeeded: true,
-      question: 'What food did you have and roughly how much?',
+      question: `I couldn't identify "${unresolvedItems.join(', ')}". Which food did you mean?`,
       unresolved: unresolvedItems,
     };
   }
@@ -321,7 +361,7 @@ export function resolveFoodInput(userMessage, preferredMealType = 'snack') {
   const mealName = resolvedItems.map((i) => i.canonicalName).join(', ');
 
   // Determine mealType from category of first item if preferred is default
-  let mealType = preferredMealType;
+  let mealType = detectedMealType;
   if (mealType === 'snack' && resolvedItems[0].category) {
     mealType = resolvedItems[0].category === 'protein' ? 'snack' : resolvedItems[0].category;
   }
@@ -338,6 +378,7 @@ export function resolveFoodInput(userMessage, preferredMealType = 'snack') {
       carbs: totalCarbs,
       fat: totalFat,
       fiber: totalFiber,
+      ...(explicitTime && { time: explicitTime }),
     },
     items: resolvedItems,
     unresolvedCount: unresolvedItems.length,

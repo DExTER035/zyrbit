@@ -55,10 +55,10 @@ export function normalizeActionDate(val, { defaultToToday = true } = {}) {
   const now = new Date();
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
 
-  if (lower === 'today') {
+  if (lower === 'today' || lower === 'this morning' || lower === 'tonight') {
     return now.toISOString().split('T')[0];
   }
-  if (lower === 'yesterday') {
+  if (lower === 'yesterday' || lower === 'last night') {
     const d = new Date(now);
     d.setDate(d.getDate() - 1);
     return d.toISOString().split('T')[0];
@@ -68,9 +68,36 @@ export function normalizeActionDate(val, { defaultToToday = true } = {}) {
     d.setDate(d.getDate() + 1);
     return d.toISOString().split('T')[0];
   }
+  if (lower === 'last week') {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().split('T')[0];
+  }
   if (isValidDateStr(lower)) {
     return lower;
   }
+
+  // Parse natural month name e.g. "September 20", "20 September", "20th Sept"
+  const monthMatch = lower.match(/(?:on\s+)?(?:(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?|(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?))/i);
+  if (monthMatch) {
+    const monthStr = monthMatch[1] || monthMatch[4];
+    const dayStr = monthMatch[2] || monthMatch[3];
+    try {
+      const parsed = new Date(`${monthStr} ${dayStr}, ${now.getFullYear()}`);
+      if (!isNaN(parsed.getTime())) {
+        const y = parsed.getFullYear();
+        const m = String(parsed.getMonth() + 1).padStart(2, '0');
+        const d = String(parsed.getDate()).padStart(2, '0');
+        const formatted = `${y}-${m}-${d}`;
+        if (isValidDateStr(formatted)) {
+          return formatted;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   return null;
 }
 
@@ -1236,6 +1263,88 @@ export const ACTION_SCHEMAS = {
         valid: true,
         normalized: {
           taskId,
+        },
+      };
+    },
+  },
+
+  create_project: {
+    domain: 'growth',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: 'Creates a new project in Growth.',
+    params: {
+      name: { type: 'string', required: true, description: 'Project title/name' },
+      icon: { type: 'string', required: false, default: '📁', description: 'Emoji icon' },
+      deadline: { type: 'date', required: false, default: null, description: 'Project deadline in YYYY-MM-DD' },
+    },
+    validate: (params) => {
+      const name = typeof params.name === 'string' ? params.name.trim() : '';
+      if (!name) return { valid: false, error: 'Project name cannot be empty.' };
+
+      let deadline = null;
+      if (params.deadline) {
+        deadline = normalizeActionDate(params.deadline, { defaultToToday: false });
+        if (!deadline) {
+          return { valid: false, error: 'Deadline must be in valid YYYY-MM-DD format.' };
+        }
+      }
+
+      return {
+        valid: true,
+        normalized: {
+          name,
+          icon: params.icon || '📁',
+          deadline,
+        },
+      };
+    },
+  },
+
+  create_plan: {
+    domain: 'growth',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: 'Generates or stores a multi-step execution plan.',
+    params: {
+      goal: { type: 'string', required: true, description: 'Plan goal' },
+      steps: { type: 'array', required: false, default: [], description: 'List of plan steps' },
+    },
+    validate: (params) => {
+      const goal = typeof params.goal === 'string' ? params.goal.trim() : '';
+      if (!goal) return { valid: false, error: 'Plan goal cannot be empty.' };
+      return {
+        valid: true,
+        normalized: {
+          goal,
+          steps: Array.isArray(params.steps) ? params.steps : [],
+        },
+      };
+    },
+  },
+
+  create_habit: {
+    domain: 'habits',
+    risk: 'low',
+    requiresConfirmation: false,
+    description: 'Creates a new recurring habit definition.',
+    params: {
+      name: { type: 'string', required: true, description: 'Habit name' },
+      frequency: { type: 'string', required: false, default: 'daily', description: 'Habit frequency (e.g. daily, weekly)' },
+      zone: { type: 'string', required: false, default: 'mind', description: 'Life zone (mind, body, growth, soul)' },
+      icon: { type: 'string', required: false, default: '🪐', description: 'Emoji icon' },
+    },
+    validate: (params) => {
+      const name = typeof params.name === 'string' ? params.name.trim() : '';
+      if (!name) return { valid: false, error: 'Habit name cannot be empty.' };
+
+      return {
+        valid: true,
+        normalized: {
+          name,
+          frequency: typeof params.frequency === 'string' && params.frequency.trim() ? params.frequency.trim() : 'daily',
+          zone: typeof params.zone === 'string' && params.zone.trim() ? params.zone.trim() : 'mind',
+          icon: typeof params.icon === 'string' && params.icon.trim() ? params.icon.trim() : '🪐',
         },
       };
     },

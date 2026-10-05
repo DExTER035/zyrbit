@@ -129,6 +129,33 @@ export function parseSleepDetails(text) {
     }
   }
 
+  // Interval: e.g. "from 11pm to 6am", "11pm - 6am", "11 pm to 7 am", "11:30pm to 6:30am"
+  if (hours === null) {
+    const intervalMatch = str.match(/(?:from\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm))\s+(?:to|-)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
+    if (intervalMatch) {
+      const parseClockHour = (tStr) => {
+        const parts = tStr.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+        if (!parts) return null;
+        let h = parseInt(parts[1], 10);
+        const m = parts[2] ? parseInt(parts[2], 10) / 60 : 0;
+        const meridiem = parts[3];
+        if (meridiem === 'pm' && h < 12) h += 12;
+        if (meridiem === 'am' && h === 12) h = 0;
+        return h + m;
+      };
+
+      const startH = parseClockHour(intervalMatch[1]);
+      const endH = parseClockHour(intervalMatch[2]);
+      if (startH !== null && endH !== null) {
+        let diff = endH - startH;
+        if (diff <= 0) diff += 24;
+        if (diff >= 0.5 && diff <= 24) {
+          hours = diff;
+        }
+      }
+    }
+  }
+
   if (hours === null || isNaN(hours) || hours < 0.5 || hours > 24) return null;
 
   // Quality rating (1-5): e.g. "quality 4", "rating 5", "slept well"
@@ -150,7 +177,7 @@ export function parseSleepDetails(text) {
 
 /**
  * Parses workout activity type and duration from natural language.
- * E.g. "I walked for 30 minutes", "30 minute walk", "did a 45 min run", "went cycling 1 hour"
+ * E.g. "I walked for 30 minutes", "30 minute walk", "did a 45 min run", "went cycling 1 hour", "I ran 5 km"
  *
  * @param {string} text
  * @returns {{ activityType: string, activeMinutes: number, rpe: number } | null}
@@ -172,8 +199,26 @@ export function parseActivityDetails(text) {
   if (!activityType) return null;
 
   // Detect duration
-  const activeMinutes = parseDurationMinutes(str);
-  if (!activeMinutes) return null;
+  let activeMinutes = parseDurationMinutes(str);
+  if (!activeMinutes) {
+    const distMatch = str.match(/(\d+(?:\.\d+)?)\s*(?:km|kms|k)\b/i);
+    if (distMatch) {
+      const dist = parseFloat(distMatch[1]);
+      if (!isNaN(dist) && dist > 0) {
+        // Estimate running pace ~6 min/km, walking ~12 min/km
+        const pace = activityType === 'Walk' ? 12 : 6;
+        activeMinutes = Math.max(10, Math.round(dist * pace));
+      }
+    }
+  }
+
+  if (!activeMinutes) {
+    if (/\b(?:workout|gym|exercise)\b/i.test(str)) {
+      activeMinutes = 30;
+    } else {
+      return null;
+    }
+  }
 
   // Detect RPE (1-10) or default to 5
   let rpe = 5;

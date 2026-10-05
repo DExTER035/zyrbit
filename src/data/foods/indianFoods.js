@@ -769,6 +769,15 @@ export const FOOD_DB = [
     servingLabel: '10 cashews (30g)',
   },
   {
+    id: 'dates',
+    name: 'Dates',
+    category: 'snack',
+    emoji: '🌴',
+    per100g: { cal: 277, protein: 1.8, carbs: 75, fat: 0.2, fiber: 6.7 },
+    defaultServingG: 50,
+    servingLabel: '5 dates (50g)',
+  },
+  {
     id: 'greek_yogurt',
     name: 'Greek Yogurt',
     category: 'snack',

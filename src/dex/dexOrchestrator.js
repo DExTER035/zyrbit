@@ -29,6 +29,8 @@
 import { buildDexContext } from './dexContextProvider.js';
 import { parseIntent } from './dexIntentParser.js';
 import { executeAction } from '../actions/actionExecutor.js';
+import { validateAction } from '../actions/actionValidator.js';
+import { ACTION_REGISTRY } from '../actions/actionRegistry.js';
 import { executePlan } from './planning/index.js';
 import { supabase } from '../lib/supabase/index.js';
 
@@ -223,6 +225,12 @@ export async function processUserInput(inputOrArgs, optionalMetadata = {}) {
     return withMetadata(actionResult);
   }
 
+  // Compound multi-action intent — validate all first, require confirmation if needed, abort if any invalid
+  if (intent.intent === 'multi_action') {
+    const multiResult = await _executeMultiAction({ userId, intent, confirmed });
+    return withMetadata(multiResult);
+  }
+
   // Fallback
   return withMetadata({
     type: DEX_RESULT_TYPE.ERROR,
@@ -232,6 +240,101 @@ export async function processUserInput(inputOrArgs, optionalMetadata = {}) {
 
 
 // ─── Private Helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Validates and executes compound multi-actions sequentially.
+ * If any action fails validation, aborts entirely with no mutations.
+ * If any action requires confirmation, returns confirmation_required.
+ * @param {Object} args
+ * @param {string} args.userId
+ * @param {Object} args.intent
+ * @param {boolean} args.confirmed
+ * @returns {Promise<Object>}
+ */
+async function _executeMultiAction({ userId, intent, confirmed }) {
+  const actions = intent.actions || [];
+  if (!actions.length) {
+    return {
+      type: DEX_RESULT_TYPE.ERROR,
+      displayMessage: 'No actions found in compound request.',
+      intent,
+    };
+  }
+
+  // 1. Pre-validate every single action first
+  const validatedActions = [];
+  for (const act of actions) {
+    const valRes = validateAction({
+      action: act.action,
+      params: act.params,
+      userId,
+    });
+    if (!valRes.valid) {
+      return {
+        type: DEX_RESULT_TYPE.ERROR,
+        displayMessage: `Compound execution aborted: validation failed for ${act.action} (${valRes.error}).`,
+        action: act.action,
+        intent,
+      };
+    }
+    validatedActions.push({
+      action: valRes.action,
+      params: valRes.normalizedParams,
+      schema: ACTION_REGISTRY[valRes.action],
+    });
+  }
+
+  // 2. Check if any action requires confirmation and is not yet confirmed
+  const needsConfirm = validatedActions.some(
+    (a) => a.schema?.requiresConfirmation
+  );
+
+  if (needsConfirm && !confirmed) {
+    const confirmMessages = validatedActions
+      .map((a) => {
+        if (a.schema?.formatConfirmation) {
+          return a.schema.formatConfirmation(a.params);
+        }
+        return `Execute ${a.action}`;
+      })
+      .join(' and ');
+
+    return {
+      type: DEX_RESULT_TYPE.CONFIRMATION_REQUIRED,
+      displayMessage: confirmMessages,
+      intent,
+      actions: validatedActions.map((a) => ({ action: a.action, params: a.params })),
+    };
+  }
+
+  // 3. Sequential atomic execution
+  const results = [];
+  for (const item of validatedActions) {
+    const res = await executeAction({
+      userId,
+      action: item.action,
+      params: item.params,
+      confirmed: true,
+    });
+    if (!res.success) {
+      return {
+        type: DEX_RESULT_TYPE.ERROR,
+        displayMessage: `Failed executing ${item.action}: ${res.error}`,
+        action: item.action,
+        executedSteps: results,
+        intent,
+      };
+    }
+    results.push(res);
+  }
+
+  return {
+    type: DEX_RESULT_TYPE.SUCCESS,
+    displayMessage: intent.displayMessage || 'Successfully completed compound actions.',
+    data: { results },
+    intent,
+  };
+}
 
 /**
  * Executes a confirmed pending plan through the controlled planExecutor.

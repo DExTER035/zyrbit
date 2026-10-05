@@ -21,9 +21,11 @@ export function cleanHabitQuery(text) {
 
   return text
     .toLowerCase()
-    .replace(/^(please\s+|dex\s+)?(complete|finish|done|skip|do|did|checked off|check off|mark done|mark completed)\s+/i, '')
+    .replace(/^(?:please\s+|dex\s+|i\s+)?(?:complete|finish|finished|done|skip|skipped|mark|do|did|checked off|check off|mark done|mark completed)\s+/i, '')
+    .replace(/\s+(?:complete|completed|done|as done|as completed)$/i, '')
     .replace(/\b(my|the|a|an|today|tonight|this morning|this evening|this afternoon|habit|go for a|went for a)\b/gi, '')
     .replace(/[?!.,;]/g, '')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 

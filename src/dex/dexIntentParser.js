@@ -22,9 +22,13 @@ import {
   parseSleepDetails,
   parseActivityDetails,
   resolveFinancialInput,
+  resolveNaturalLanguageWealth,
   parseCurrencyAmount,
 } from './resolvers/index.js';
 import { isPlanningIntent, generatePlan, createPlan } from './planning/index.js';
+import { hasAction } from '../actions/actionRegistry.js';
+import { normalizeActionDate } from '../actions/actionSchemas.js';
+import { validateAction } from '../actions/actionValidator.js';
 
 
 /**
@@ -133,6 +137,26 @@ export function serializeContextForPrompt(context) {
 }
 
 /**
+ * Normalizes confidence scores into float numbers between 0.0 and 1.0.
+ * @param {any} val
+ * @returns {number}
+ */
+export function normalizeConfidence(val) {
+  if (typeof val === 'number') {
+    return Math.max(0, Math.min(1, Math.round(val * 100) / 100));
+  }
+  if (typeof val === 'string') {
+    const l = val.toLowerCase().trim();
+    if (l === 'high') return 0.95;
+    if (l === 'medium') return 0.75;
+    if (l === 'low') return 0.50;
+    const num = parseFloat(l);
+    if (!isNaN(num)) return Math.max(0, Math.min(1, Math.round(num * 100) / 100));
+  }
+  return 0.85;
+}
+
+/**
  * Parses the AI model's raw text response into a structured intent.
  * Strips any markdown code fences if the model ignores the no-fence rule.
  * @param {string} rawText
@@ -150,7 +174,7 @@ export function parseIntentResponse(rawText) {
     throw new Error('AI response is not a JSON object.');
   }
 
-  const validIntents = ['action', 'clarify', 'conversational', 'unsupported', 'plan'];
+  const validIntents = ['action', 'clarify', 'conversational', 'unsupported', 'plan', 'multi_action'];
   if (!validIntents.includes(parsed.intent)) {
     throw new Error(`Unknown intent: "${parsed.intent}"`);
   }
@@ -159,12 +183,37 @@ export function parseIntentResponse(rawText) {
     if (!parsed.action || typeof parsed.action !== 'string') {
       throw new Error('Action intent missing "action" field.');
     }
+    if (!hasAction(parsed.action)) {
+      throw new Error(`Invalid or unregistered action: "${parsed.action}".`);
+    }
     if (!parsed.params || typeof parsed.params !== 'object') {
       throw new Error('Action intent missing "params" object.');
     }
     // Security: strip any injected userId fields
     delete parsed.params.userId;
     delete parsed.params.user_id;
+
+    parsed.confidence = normalizeConfidence(parsed.confidence);
+    parsed.source = parsed.source || 'ai';
+  }
+
+  if (parsed.intent === 'multi_action') {
+    if (!Array.isArray(parsed.actions)) {
+      throw new Error('Multi-action intent missing "actions" array.');
+    }
+    for (const a of parsed.actions) {
+      if (!a.action || !hasAction(a.action)) {
+        throw new Error(`Invalid or unregistered action: "${a.action}".`);
+      }
+      if (a.params && typeof a.params === 'object') {
+        delete a.params.userId;
+        delete a.params.user_id;
+      }
+      a.confidence = normalizeConfidence(a.confidence);
+      a.source = a.source || 'ai';
+    }
+    parsed.confidence = normalizeConfidence(parsed.confidence);
+    parsed.source = parsed.source || 'ai';
   }
 
   if (parsed.intent === 'plan') {
@@ -172,6 +221,8 @@ export function parseIntentResponse(rawText) {
       delete parsed.plan.userId;
       delete parsed.plan.user_id;
     }
+    parsed.confidence = normalizeConfidence(parsed.confidence);
+    parsed.source = parsed.source || 'ai';
   }
 
   return parsed;
@@ -235,15 +286,77 @@ export function resolveDeterministicIntent(userMessage, context) {
   if (!userMessage || typeof userMessage !== 'string') return null;
   const str = userMessage.trim();
   const lower = str.toLowerCase();
+  const todayStr = new Date().toISOString().split('T')[0];
 
-  // 0. Planning Requests: "I have 45 minutes. What should I do?", "Plan my next hour", etc.
+  const extractDateFromContext = (t) => {
+    if (!t) return null;
+    const l = t.toLowerCase();
+    if (l.includes('yesterday') || l.includes('last night')) return normalizeActionDate('yesterday');
+    if (l.includes('tomorrow')) return normalizeActionDate('tomorrow');
+    if (l.includes('this morning') || l.includes('tonight') || l.includes('today')) return normalizeActionDate('today');
+    if (l.includes('last week')) return normalizeActionDate('last week');
+    const dMatch = l.match(/\b\d{4}-\d{2}-\d{2}\b/);
+    if (dMatch) return normalizeActionDate(dMatch[0]);
+    return null;
+  };
+
+  // 0a. Subtask hierarchy guard: unsupported in this phase
+  if (/\b(?:subtask|sub-task|sub\s+task|under\s+task)\b/i.test(lower)) {
+    return {
+      intent: 'unsupported',
+      displayMessage: 'Subtasks under tasks are not yet supported. You can create a top-level task instead.',
+      reasoning: 'Subtask hierarchy is not yet supported in this version.',
+    };
+  }
+
+  // 0b. Compound Multi-Action check (e.g. "I had 2 eggs and oats for breakfast and spent ₹300 on lunch.")
+  const compoundMatch = str.match(/^(.+?)\s+(?:and\s+(?:i\s+)?|&\s*|;\s*)(spent|paid|drank|slept|walked|ran|weighed|did|mark|complete|create|add)\b(.+)$/i);
+  if (compoundMatch) {
+    const clause1 = compoundMatch[1].trim();
+    const clause2 = `${compoundMatch[2]} ${compoundMatch[3]}`.trim();
+    // Resolve both clauses independently
+    const res1 = resolveDeterministicIntent(clause1, context);
+    const res2 = resolveDeterministicIntent(clause2, context);
+    if (res1 && res2 && res1.intent === 'action' && res2.intent === 'action') {
+      return {
+        intent: 'multi_action',
+        actions: [
+          { action: res1.action, params: res1.params, confidence: 0.95, source: 'deterministic' },
+          { action: res2.action, params: res2.params, confidence: 0.95, source: 'deterministic' },
+        ],
+        confidence: 0.95,
+        source: 'deterministic',
+        reasoning: 'Compound independent actions detected across domains',
+        displayMessage: `Understood: ${res1.action} and ${res2.action}.`,
+      };
+    }
+  }
+
+  // 0c. Repeat Meal: "Repeat yesterday's breakfast", "Log the same breakfast as yesterday"
+  if (/\b(?:repeat|log\s+the\s+same)\s+(?:yesterday'?s|previous)?\s*(breakfast|lunch|dinner|snack|meal)\b/i.test(lower)) {
+    const m = lower.match(/\b(?:repeat|log\s+the\s+same)\s+(?:yesterday'?s|previous)?\s*(breakfast|lunch|dinner|snack|meal)\b/i);
+    const mealType = m[1] === 'meal' ? 'breakfast' : m[1];
+    return {
+      intent: 'action',
+      action: 'repeat_meal',
+      params: { mealType, date: todayStr },
+      confidence: 0.95,
+      source: 'deterministic',
+      reasoning: `Repeat previous ${mealType}`,
+      displayMessage: `Repeating yesterday's ${mealType}.`,
+    };
+  }
+
+  // 0d. Planning Requests: "I have 45 minutes. What should I do?", "Plan my next hour", "Create a study plan for DSA"
   if (isPlanningIntent(str)) {
     const planRes = generatePlan({ userMessage: str, context });
     if (planRes.success && planRes.plan) {
       return {
         intent: 'plan',
         plan: planRes.plan,
-        confidence: 'high',
+        confidence: 0.95,
+        source: 'deterministic',
+        reasoning: 'Context-driven plan generated',
         displayMessage: 'Here is a suggested plan based on your context:',
       };
     }
@@ -256,6 +369,8 @@ export function resolveDeterministicIntent(userMessage, context) {
       return {
         intent: 'conversational',
         displayMessage: conv.displayMessage,
+        confidence: 0.95,
+        source: 'deterministic',
       };
     }
   }
@@ -267,11 +382,11 @@ export function resolveDeterministicIntent(userMessage, context) {
       intent: 'action',
       action: 'navigate',
       params: { route: navTarget.route },
-      confidence: 'high',
+      confidence: 0.95,
+      source: 'deterministic',
       displayMessage: `Opening ${navTarget.label}...`,
     };
   }
-
 
   // 2. Focus Session: "Start a 25 minute focus session", "Give me 45 minutes of focused study", "start focus 25"
   if (/\b(?:focus(?:ed|ing)?|pomodoro)\b/i.test(lower) && !/\b(?:task|habit|spent)\b/i.test(lower)) {
@@ -281,74 +396,102 @@ export function resolveDeterministicIntent(userMessage, context) {
         intent: 'action',
         action: 'start_focus',
         params: { durationMinutes: mins },
-        confidence: 'high',
+        confidence: 0.95,
+        source: 'deterministic',
         displayMessage: `Starting ${mins}-minute focus session.`,
       };
     }
   }
 
-  // 3. Water Log: "I drank 750 ml of water", "I just had 500ml", "drank 750"
-  if (/\b(?:water|hydration|drank|drunk)\b/i.test(lower) || /\b\d+\s*ml\b/i.test(lower) || /\b\d+(?:\.\d+)?\s*(?:l|liters?|litres?)\b/i.test(lower)) {
+  // 3. Water Log: "I drank 750ml water", "I drank 750 ml of water", "I had 2 glasses of water"
+  const isFoodMention = /\b(?:milk|juice|tea|coffee|shake|chai|oats|breakfast|lunch|dinner|snack|ate|eating|eggs?|dates)\b/i.test(lower);
+  if (!isFoodMention && (/\b(?:water|hydration)\b/i.test(lower) || (/\b(?:drank|drunk)\b/i.test(lower) && !/\b(?:beer|wine|alcohol|soda|coke)\b/i.test(lower)) || (/\b\d+\s*ml\s*water\b/i.test(lower)) || (/\bglasses?\s+of\s+water\b/i.test(lower)))) {
     const amountMl = parseWaterAmount(lower);
     if (amountMl) {
+      const explicitDate = extractDateFromContext(str);
+      const params = { amountMl };
+      if (explicitDate) params.date = explicitDate;
       return {
         intent: 'action',
         action: 'log_water',
-        params: { amountMl },
-        confidence: 'high',
+        params,
+        confidence: 0.95,
+        source: 'deterministic',
+        reasoning: `Logged ${amountMl}ml hydration`,
         displayMessage: `Logged ${amountMl}ml water.`,
       };
     }
   }
 
-  // 4. Sleep Log: "I slept 8 hours", "slept 7.5 hours"
+  // 4. Sleep Log: "I slept 7 hours", "I slept from 11pm to 6am", "I slept 7 hours last night"
   if (/\b(?:slept|sleep)\b/i.test(lower) && !/\b(?:habit|task|spent)\b/i.test(lower)) {
     const sleep = parseSleepDetails(lower);
     if (sleep) {
+      const explicitDate = extractDateFromContext(str);
+      const params = { durationHours: sleep.durationHours, quality: sleep.quality };
+      if (explicitDate) params.date = explicitDate;
       return {
         intent: 'action',
         action: 'log_sleep',
-        params: { durationHours: sleep.durationHours, quality: sleep.quality },
-        confidence: 'high',
+        params,
+        confidence: 0.95,
+        source: 'deterministic',
+        reasoning: `Logged ${sleep.durationHours}h sleep`,
         displayMessage: `Logged ${sleep.durationHours}h sleep (quality ${sleep.quality}/5).`,
       };
     }
   }
 
-  // 5. Activity / Workout Log: "I walked for 30 minutes", "30 minute walk"
+  // 5. Activity / Workout Log: "I did a 45 minute workout", "I ran 5 km", "Log today's workout", "Log my workout from yesterday"
   if (/\b(?:walked|walking|ran|running|cycling|swimming|lifted|workout|gym|yoga)\b/i.test(lower) && !/\b(?:habit|skip)\b/i.test(lower)) {
     const act = parseActivityDetails(lower);
     if (act) {
+      const explicitDate = extractDateFromContext(str);
+      const params = { activityType: act.activityType, activeMinutes: act.activeMinutes, rpe: act.rpe };
+      if (explicitDate) params.date = explicitDate;
       return {
         intent: 'action',
         action: 'log_activity',
-        params: { activityType: act.activityType, activeMinutes: act.activeMinutes, rpe: act.rpe },
-        confidence: 'high',
+        params,
+        confidence: 0.95,
+        source: 'deterministic',
+        reasoning: `Logged ${act.activeMinutes}min ${act.activityType}`,
         displayMessage: `Logged ${act.activeMinutes}min ${act.activityType}.`,
       };
     }
   }
 
-  // 5b. Weight Log: "Log 68 kilos", "Log 68 kg", "Weighed in at 68 kg", "I weigh 68.5 kilos"
-  const weightMatch = lower.match(/(?:log\s+weight\s+|log\s+|weighed\s+in\s+at\s+|i\s+weigh\s+)?(\d+(?:\.\d+)?)\s*(?:kilos?|kgs?|kg)\b/i);
+  // 5b. Weight Log: "Log my weight as 62 kg", "Log 68 kilos", "Weighed in at 68 kg"
+  const weightMatch = lower.match(/(?:log\s+(?:my\s+)?weight(?:\s+as)?\s+|log\s+|weighed\s+in\s+at\s+|i\s+weigh\s+)?(\d+(?:\.\d+)?)\s*(?:kilos?|kgs?|kg)\b/i);
   if (weightMatch && !/\b(?:spent|paid|food|rice|dal|water|focus)\b/i.test(lower)) {
     const weightKg = parseFloat(weightMatch[1]);
     if (!isNaN(weightKg) && weightKg > 0) {
+      const explicitDate = extractDateFromContext(str);
+      const params = { weightKg, weight: weightKg };
+      if (explicitDate) params.date = explicitDate;
       return {
         intent: 'action',
         action: 'log_weight',
-        params: { weightKg },
-        confidence: 'high',
+        params,
+        confidence: 0.95,
+        source: 'deterministic',
+        reasoning: `Logged scale weight of ${weightKg} kg`,
         displayMessage: `Logged weight of ${weightKg} kg.`,
       };
     }
   }
 
-  // 6. Food Log: "I ate 4 boiled eggs and a banana", "I ate poha for ₹30", "Poha 30"
-  if (/\b(?:ate|had|eating|lunch|dinner|breakfast|snack|poha|dosa|idli)\b/i.test(lower)) {
+  // 6. Food Log: "I ate 2 eggs", "I had 80g oats and 200ml milk for breakfast", "I ate oats, milk and 5 dates", "I had 3 eggs at 9am"
+  if (/\b(?:ate|had|eating|lunch|dinner|breakfast|snack|poha|dosa|idli|dates|eggs?|oats?|milk)\b/i.test(lower)) {
     const foodRes = resolveFoodInput(str);
     if (foodRes.success && foodRes.resolved) {
-      const finAmount = parseCurrencyAmount(str);
+      const hasExplicitCurrency = /[₹]|(?:\brs\.?\b)|(?:\brupees\b)|(?:\bbucks\b)|(?:\binr\b)|\b(?:spent|paid|cost)\b|\bfor\s+(?:₹|rs\.?|inr)?\s*\d+/i.test(str);
+      const finAmount = hasExplicitCurrency ? parseCurrencyAmount(str) : null;
+      const explicitDate = extractDateFromContext(str);
+      if (explicitDate) {
+        foodRes.mealParams.date = explicitDate;
+      }
+
       if (finAmount && finAmount > 0) {
         // Cross-domain capture: Food/Fuel state and Wealth spending together
         return {
@@ -371,7 +514,7 @@ export function resolveDeterministicIntent(userMessage, context) {
                   amount: finAmount,
                   category: 'Food',
                   note: foodRes.mealParams.foodName,
-                  date: new Date().toISOString().split('T')[0],
+                  date: explicitDate || todayStr,
                 },
                 label: `Record ₹${finAmount} food expense`,
                 order: 2,
@@ -379,6 +522,8 @@ export function resolveDeterministicIntent(userMessage, context) {
               },
             ],
           }),
+          confidence: 0.95,
+          source: 'deterministic',
           displayMessage: `Understood: Log ${foodRes.mealParams.foodName} and record ₹${finAmount} food spending.`,
         };
       }
@@ -387,10 +532,12 @@ export function resolveDeterministicIntent(userMessage, context) {
         intent: 'action',
         action: 'log_meal',
         params: foodRes.mealParams,
-        confidence: 'high',
+        confidence: 0.95,
+        source: 'deterministic',
+        reasoning: `Food log for ${foodRes.mealParams.foodName}`,
         displayMessage: `Logged ${foodRes.mealParams.foodName} (${foodRes.mealParams.calories} kcal).`,
       };
-    } else if (foodRes.clarificationNeeded && !parseCurrencyAmount(str)) {
+    } else if (foodRes.clarificationNeeded && !/[₹]|(?:\brs\.?\b)|(?:\brupees\b)|(?:\bbucks\b)|(?:\binr\b)|\b(?:spent|paid|cost)\b/i.test(str)) {
       return {
         intent: 'clarify',
         question: foodRes.question || 'What food did you have?',
@@ -399,17 +546,46 @@ export function resolveDeterministicIntent(userMessage, context) {
     }
   }
 
-  // 7. Habits: "Skip my morning run", "Complete my morning run", "Skip my run", "Do my morning habit"
-  if (/\b(?:complete|finish|done|skip|did)\b/i.test(lower) && /\b(?:run|habit|morning|evening|workout|reading|meditation)\b/i.test(lower)) {
+  // 7. Habits: "I finished my workout habit", "Mark reading complete", "Skip meditation today", "Create a habit to study DSA every day"
+  const createHabitMatch = str.match(/^(?:create|add|start)\s+(?:a\s+)?habit\s+(?:to\s+|called\s+|for\s+)?(.+)$/i);
+  if (createHabitMatch && !/\b(?:task|project|expense)\b/i.test(lower)) {
+    let habitName = createHabitMatch[1].trim();
+    let frequency = 'daily';
+    if (/\b(?:every\s+day|daily)\b/i.test(habitName)) {
+      frequency = 'daily';
+      habitName = habitName.replace(/\b(?:every\s+day|daily)\b/gi, '').trim();
+    } else if (/\b(?:every\s+week|weekly)\b/i.test(habitName)) {
+      frequency = 'weekly';
+      habitName = habitName.replace(/\b(?:every\s+week|weekly)\b/gi, '').trim();
+    }
+    if (habitName.length >= 2) {
+      return {
+        intent: 'action',
+        action: 'create_habit',
+        params: { name: habitName, frequency },
+        confidence: 0.95,
+        source: 'deterministic',
+        reasoning: 'Habit creation intent',
+        displayMessage: `Created habit "${habitName}".`,
+      };
+    }
+  }
+
+  if (/\b(?:complete|finish|finished|done|skip|skipped|did|mark)\b/i.test(lower) && /\b(?:run|habit|morning|evening|workout|reading|meditation)\b/i.test(lower)) {
     const actionType = /\bskip\b/i.test(lower) ? 'skip' : 'complete';
     const habitsList = context?.habits?.habits || [];
     const habitRes = resolveHabitMention({ userMessage: str, habits: habitsList, actionType });
     if (habitRes.status === 'resolved') {
+      const explicitDate = extractDateFromContext(str);
+      const params = { habitId: habitRes.habitId };
+      if (explicitDate) params.date = explicitDate;
       return {
         intent: 'action',
         action: actionType === 'skip' ? 'skip_habit' : 'complete_habit',
-        params: { habitId: habitRes.habitId },
-        confidence: 'high',
+        params,
+        confidence: 0.95,
+        source: 'deterministic',
+        reasoning: `${actionType === 'skip' ? 'Skipped' : 'Completed'} habit ${habitRes.habitName}`,
         displayMessage: `${actionType === 'skip' ? 'Skipped' : 'Completed'} habit "${habitRes.habitName}".`,
       };
     } else if (habitRes.status === 'ambiguous') {
@@ -428,26 +604,86 @@ export function resolveDeterministicIntent(userMessage, context) {
     }
   }
 
-  // 8. Money: "I spent ₹200 on lunch", "Lunch cost me 200", "I got paid ₹50,000", "I spent money"
+  // 8. Wealth: Natural Language Wealth (record_expense, record_income, record_transfer, record_lending, record_borrowing, record_refund, & ambiguities)
+  const nlWealth = resolveNaturalLanguageWealth(str);
+  if (nlWealth.status === 'clarify') {
+    return {
+      intent: 'clarify',
+      question: nlWealth.question,
+      options: nlWealth.options,
+      context: str,
+      reasoning: nlWealth.reasoning,
+    };
+  } else if (nlWealth.status === 'resolved') {
+    return {
+      intent: 'action',
+      action: nlWealth.action,
+      params: nlWealth.params,
+      confidence: 0.95,
+      source: 'deterministic',
+      reasoning: nlWealth.reasoning,
+      displayMessage: `Record ${nlWealth.action.replace('record_', '')} of ₹${nlWealth.params.amount}?`,
+    };
+  }
+
+  // 8b. Legacy Financial input resolver fallback
   const finRes = resolveFinancialInput(str);
   if (finRes.status === 'resolved') {
     return {
       intent: 'action',
       action: finRes.action,
       params: finRes.params,
-      confidence: 'high',
+      confidence: 0.95,
+      source: 'deterministic',
       displayMessage: finRes.action === 'add_expense' ? `Record expense of ₹${finRes.params.amount}?` : `Record ${finRes.action === 'add_income' ? 'income' : 'bill'} of ₹${finRes.params.amount}?`,
     };
   } else if (finRes.status === 'clarify') {
     return {
       intent: 'clarify',
       question: finRes.question,
+      options: finRes.options || finRes.clarifyOptions,
       context: str,
     };
   }
 
-  // 9a. Complete Task: "Mark clean my room as done", "clean my room is done", "complete task study DSA", "Finished the Wealth UI"
-  const doneMatch = str.match(/^(?:mark\s+task\s+|mark\s+)?(.+?)\s+(?:as\s+done|as\s+completed|done|completed)$/i) ||
+  // 9. Growth: Projects
+  // "Create a project for DSA preparation"
+  const projMatch = str.match(/^(?:create|add|start)\s+(?:a\s+)?project\s+(?:for|called|named)?\s*(.+)$/i);
+  if (projMatch && !/\b(?:habit|task|spent|meal|expense)\b/i.test(lower)) {
+    const projName = projMatch[1].trim();
+    if (projName.length >= 2) {
+      return {
+        intent: 'action',
+        action: 'create_project',
+        params: { name: projName },
+        confidence: 0.95,
+        source: 'deterministic',
+        reasoning: 'Project creation intent',
+        displayMessage: `Created project "${projName}".`,
+      };
+    }
+  }
+
+  // 9a. Delete Task: "Delete the API task", "Delete task API"
+  const delMatch = str.match(/^(?:delete|remove)\s+(?:the\s+)?task\s*(?:called|named)?\s*(.+)$/i) ||
+                   str.match(/^(?:delete|remove)\s+(.+?)\s+task$/i);
+  if (delMatch && !/\b(?:habit|project|expense)\b/i.test(lower)) {
+    const rawTarget = delMatch[1].replace(/^(?:the\s+|my\s+)/i, '').trim();
+    const pendingTasks = context?.growth?.pendingTasks || [];
+    const match = pendingTasks.find((t) => t.name.toLowerCase().includes(rawTarget.toLowerCase()) || t.id === rawTarget);
+    return {
+      intent: 'action',
+      action: 'delete_task',
+      params: { taskId: match ? match.id : rawTarget },
+      confidence: 0.95,
+      source: 'deterministic',
+      reasoning: 'Task deletion intent',
+      displayMessage: `Delete task "${match ? match.name : rawTarget}"?`,
+    };
+  }
+
+  // 9b. Complete Task: "Mark clean my room as done", "Mark database design complete", "complete task study DSA", "Finished the Wealth UI"
+  const doneMatch = str.match(/^(?:mark\s+task\s+|mark\s+)?(.+?)\s+(?:as\s+done|as\s+completed|done|completed|complete)$/i) ||
     str.match(/^(?:complete\s+task|finish\s+task|finished\s+the|finished|completed|done\s+with)\s+(.+)$/i);
   if (doneMatch && !/\b(?:habit|run|workout|reading|meditation)\b/i.test(str)) {
     const rawTarget = doneMatch[1].replace(/^(?:the\s+|task\s+|my\s+)/i, '').trim().toLowerCase();
@@ -459,10 +695,22 @@ export function resolveDeterministicIntent(userMessage, context) {
           intent: 'action',
           action: 'complete_task',
           params: { taskId: match.id, status: 'done' },
-          confidence: 'high',
+          confidence: 0.95,
+          source: 'deterministic',
           displayMessage: `Marked task "${match.name}" as done.`,
         };
       }
+    }
+    // If no context or not found in context, return action with rawTarget if it appears to be a direct task request
+    if (!context || !pendingTasks.length) {
+      return {
+        intent: 'action',
+        action: 'complete_task',
+        params: { taskId: rawTarget, status: 'done' },
+        confidence: 0.95,
+        source: 'deterministic',
+        displayMessage: `Marked task "${rawTarget}" as done.`,
+      };
     }
     return {
       intent: 'clarify',
@@ -472,7 +720,22 @@ export function resolveDeterministicIntent(userMessage, context) {
     };
   }
 
-  // 9b. Priority Task: "Make studying DSA my top priority", "Make DSA high priority"
+  // 9c. Add task to project: "Add API implementation to my project"
+  const addToProjMatch = str.match(/^(?:add|create)\s+(.+?)\s+to\s+(?:my\s+)?project(?:\s+([a-z0-9\s]+))?$/i);
+  if (addToProjMatch) {
+    const taskName = addToProjMatch[1].trim();
+    return {
+      intent: 'action',
+      action: 'create_task',
+      params: { name: taskName },
+      confidence: 0.95,
+      source: 'deterministic',
+      reasoning: 'Task addition to project',
+      displayMessage: `Task "${taskName}" added to project.`,
+    };
+  }
+
+  // 9d. Priority Task: "Make studying DSA my top priority", "Make DSA high priority"
   const priorityMatch = str.match(/^(?:make\s+)?(.+?)\s+(?:as\s+|my\s+)?(?:top priority|highest priority|high priority|p1|priority 1|urgent)$/i);
   if (priorityMatch && !/\b(?:habit|run|workout|spent)\b/i.test(str)) {
     let taskName = priorityMatch[1].replace(/^(?:task\s+|my\s+)/i, '').trim();
@@ -481,18 +744,17 @@ export function resolveDeterministicIntent(userMessage, context) {
         intent: 'action',
         action: 'create_task',
         params: { name: taskName, priority: 1 },
-        confidence: 'high',
+        confidence: 0.95,
+        source: 'deterministic',
         displayMessage: `Task "${taskName}" set as top priority.`,
       };
     }
   }
 
-  // 9c. Task Creation: "I need to clean my room today", "Finish my DSA assignment", "Create a task to finish my CEP report"
-  const taskMatch = str.match(/^(?:create\s+(?:a\s+)?task(?:\s+to)?\s+|add\s+(?:a\s+)?task(?:\s+to)?\s+|add\s+|remind\s+me\s+to\s+|need\s+to\s+|i\s+need\s+to\s+)(.+)$/i);
+  // 9e. Task Creation: "Create a task called database design", "I need to clean my room today", "Finish my DSA assignment"
+  const taskMatch = str.match(/^(?:create\s+(?:a\s+)?task\s+(?:called|named|to)?\s*|add\s+(?:a\s+)?task\s+(?:called|named|to)?\s*|add\s+|remind\s+me\s+to\s+|need\s+to\s+|i\s+need\s+to\s+)(.+)$/i);
   if (taskMatch || /^(?:finish|study|complete|submit|review|prepare|write|read)\b/i.test(str)) {
-    // Only if not already handled by habits/financial
     let taskName = (taskMatch ? taskMatch[1] : str).replace(/[.?!]+$/, '').trim();
-    // Check priority hint
     let priority = 3;
     if (/\b(?:high priority|p1|urgent|critical|important)\b/i.test(str)) {
       priority = 1;
@@ -502,23 +764,22 @@ export function resolveDeterministicIntent(userMessage, context) {
       taskName = taskName.replace(/\b(?:as\s+)?(?:medium priority|p2)\b/gi, '').trim();
     }
 
-    // Check if ends with "today" or "tonight"
-    let dueDate = null;
-    const todayMatch = taskName.match(/^(.+?)\s+(?:today|tonight)$/i);
-    if (todayMatch) {
-      taskName = todayMatch[1].trim();
-      dueDate = new Date().toISOString().split('T')[0];
+    const explicitDate = extractDateFromContext(taskName);
+    if (explicitDate) {
+      taskName = taskName.replace(/\b(?:today|tonight|tomorrow|yesterday)\b/gi, '').trim();
     }
 
     if (taskName.length >= 3) {
       const params = { name: taskName, priority };
-      if (dueDate) params.dueDate = dueDate;
+      if (explicitDate) params.dueDate = explicitDate;
       return {
         intent: 'action',
         action: 'create_task',
         params,
-        confidence: 'high',
-        displayMessage: `Task "${taskName}" added${dueDate ? ' for today' : ''}.`,
+        confidence: 0.95,
+        source: 'deterministic',
+        reasoning: 'Task creation intent',
+        displayMessage: `Task "${taskName}" added${explicitDate ? ' for ' + explicitDate : ''}.`,
       };
     }
   }
@@ -599,7 +860,7 @@ export async function parseIntent({ userMessage, context }) {
       }
 
       // If AI proposed financial action without amount, elevate to clarify
-      if (['add_expense', 'add_income', 'add_bill'].includes(intent.action)) {
+      if (['add_expense', 'add_income', 'add_bill', 'record_expense', 'record_income'].includes(intent.action)) {
         if (!intent.params?.amount || Number(intent.params.amount) <= 0) {
           return {
             success: true,
@@ -611,6 +872,20 @@ export async function parseIntent({ userMessage, context }) {
           };
         }
       }
+
+      // Strictly validate through actionValidator
+      const validation = validateAction({
+        action: intent.action,
+        params: intent.params,
+        userId: 'validation-check-user',
+      });
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: `AI action validation failed: ${validation.error}`,
+        };
+      }
+      intent.params = validation.normalizedParams;
     }
 
     return { success: true, intent, rawResponse };

@@ -12,7 +12,8 @@
 
 // Common category mapping keywords
 const CATEGORY_KEYWORDS = {
-  Food: ['lunch', 'dinner', 'breakfast', 'snack', 'coffee', 'chai', 'tea', 'cafe', 'groceries', 'restaurant', 'food', 'swiggy', 'zomato', 'poha', 'eggs'],
+  Groceries: ['groceries', 'grocery', 'blinkit', 'zepto', 'instamart', 'supermarket', 'vegetables', 'fruits'],
+  Food: ['lunch', 'dinner', 'breakfast', 'snack', 'coffee', 'chai', 'tea', 'cafe', 'restaurant', 'food', 'swiggy', 'zomato', 'poha', 'eggs'],
   Transport: ['cab', 'uber', 'ola', 'auto', 'metro', 'bus', 'train', 'flight', 'petrol', 'fuel', 'commute', 'transport'],
   Education: ['assignment', 'papers', 'book', 'exam', 'course', 'tuition', 'study', 'education'],
   Utilities: ['electricity', 'wifi', 'internet', 'water bill', 'gas', 'recharge', 'phone', 'bill'],
@@ -116,6 +117,12 @@ export function parseHistoricalDate(str, fallbackDate) {
   const lower = str.toLowerCase();
   const now = new Date();
 
+  // Explicit ISO date format: YYYY-MM-DD
+  const isoMatch = lower.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+  if (isoMatch) {
+    return isoMatch[1];
+  }
+
   const formatLocalDate = (d) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -123,10 +130,29 @@ export function parseHistoricalDate(str, fallbackDate) {
     return `${y}-${m}-${day}`;
   };
 
-  // "yesterday"
-  if (lower.includes('yesterday')) {
+  // "yesterday" or "last night"
+  if (lower.includes('yesterday') || lower.includes('last night')) {
     const d = new Date(now);
     d.setDate(d.getDate() - 1);
+    return formatLocalDate(d);
+  }
+
+  // "tomorrow"
+  if (lower.includes('tomorrow')) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + 1);
+    return formatLocalDate(d);
+  }
+
+  // "today", "tonight", "this morning"
+  if (lower.includes('today') || lower.includes('tonight') || lower.includes('this morning')) {
+    return formatLocalDate(now);
+  }
+
+  // "last week"
+  if (lower.includes('last week')) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 7);
     return formatLocalDate(d);
   }
 
@@ -213,6 +239,52 @@ export function resolveFinancialInput(userMessage) {
         options: ['Loan', 'Gift', 'Reimbursement'],
         clarifyOptions: ['Loan', 'Gift', 'Reimbursement'],
       };
+    }
+  }
+
+  // 1b. Ambiguous "I paid [person] [amount]" without "for [item]" or "at [store]"
+  // e.g. "I paid Rahul 1000", "paid Rahul 1000", "I paid Amit ₹500"
+  const paidPersonMatch = str.match(/(?:^|\bi\s+)paid\s+([a-z]+)\s+(?:₹|rs\.?|inr)?\s*([\d,k.]+)(?!\s+(?:for|on|at|towards)\b)/i);
+  if (paidPersonMatch) {
+    const personRaw = paidPersonMatch[1].toLowerCase();
+    const vendorOrCategory = ['swiggy', 'zomato', 'blinkit', 'zepto', 'instamart', 'uber', 'ola', 'amazon', 'flipkart', 'rent', 'electricity', 'wifi', 'bill', 'dinner', 'lunch'];
+    if (!vendorOrCategory.includes(personRaw)) {
+      const amountVal = parseCurrencyAmount(paidPersonMatch[2]);
+      if (amountVal && amountVal > 0) {
+        const amtFormatted = Number(amountVal).toLocaleString('en-IN');
+        const personTitle = personRaw.charAt(0).toUpperCase() + personRaw.slice(1);
+        return {
+          status: 'clarify',
+          question: `Was the ₹${amtFormatted} a payment, a loan to ${personTitle}, a gift, or a transfer?`,
+          options: ['Payment', `Loan to ${personTitle}`, 'Gift', 'Transfer'],
+          clarifyOptions: ['Payment', `Loan to ${personTitle}`, 'Gift', 'Transfer'],
+          person: personTitle,
+          amount: amountVal,
+        };
+      }
+    }
+  }
+
+  // 1c. Ambiguous "I got [amount] from [person]" without reason
+  // e.g. "I got 500 from Rahul", "Got ₹500 from Rahul"
+  const gotFromMatch = str.match(/(?:^|\bi\s+)got\s+(?:₹|rs\.?|inr)?\s*([\d,k.]+)\s+from\s+([a-z]+)(?!\s+(?:freelance|salary|work|job|client|editing)\b)/i);
+  if (gotFromMatch) {
+    const personRaw = gotFromMatch[2].toLowerCase();
+    const nonPersons = ['freelance', 'salary', 'work', 'job', 'client', 'editing', 'investments', 'dividend'];
+    if (!nonPersons.includes(personRaw)) {
+      const amountVal = parseCurrencyAmount(gotFromMatch[1]);
+      if (amountVal && amountVal > 0) {
+        const amtFormatted = Number(amountVal).toLocaleString('en-IN');
+        const personTitle = personRaw.charAt(0).toUpperCase() + personRaw.slice(1);
+        return {
+          status: 'clarify',
+          question: `Was the ₹${amtFormatted} from ${personTitle} income, borrowed money, a refund, or a transfer?`,
+          options: ['Income', 'Borrowing', 'Refund', 'Transfer'],
+          clarifyOptions: ['Income', 'Borrowing', 'Refund', 'Transfer'],
+          person: personTitle,
+          amount: amountVal,
+        };
+      }
     }
   }
 
@@ -423,4 +495,216 @@ export function resolveFinancialInput(userMessage) {
       date: parseHistoricalDate(str, todayStr),
     },
   };
+}
+
+/**
+ * Resolves natural language wealth requests into canonical Phase C action intents.
+ * Canonical actions:
+ * - record_expense
+ * - record_income
+ * - record_transfer
+ * - record_lending
+ * - record_borrowing
+ * - record_refund
+ *
+ * @param {string} userMessage
+ * @param {string} [fallbackDate]
+ * @returns {{
+ *   status: 'resolved' | 'clarify' | 'not_financial',
+ *   action?: string,
+ *   params?: Object,
+ *   question?: string,
+ *   options?: string[],
+ *   reasoning?: string,
+ * }}
+ */
+export function resolveNaturalLanguageWealth(userMessage, fallbackDate) {
+  if (!userMessage || typeof userMessage !== 'string') {
+    return { status: 'not_financial' };
+  }
+  const str = userMessage.trim();
+  const lower = str.toLowerCase();
+  const todayStr = fallbackDate || new Date().toISOString().split('T')[0];
+  const date = parseHistoricalDate(lower, todayStr);
+  const toTitleCase = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s);
+
+  // 1. Ambiguity: Paid [person] [amount] without purpose
+  // e.g. "I paid Rahul 1000", "Paid Rahul ₹1000"
+  const paidPersonMatch = lower.match(/(?:^|\bi\s+)paid\s+([a-z]+)\s+(?:₹|rs\.?|inr)?\s*([\d,k.]+)(?!\s+(?:for|on|at|towards)\b)/i);
+  if (paidPersonMatch) {
+    const personRaw = paidPersonMatch[1].toLowerCase();
+    const vendorOrCategory = ['swiggy', 'zomato', 'blinkit', 'zepto', 'instamart', 'uber', 'ola', 'amazon', 'flipkart', 'rent', 'electricity', 'wifi', 'bill', 'dinner', 'lunch'];
+    if (!vendorOrCategory.includes(personRaw)) {
+      const amountVal = parseCurrencyAmount(paidPersonMatch[2]);
+      if (amountVal && amountVal > 0) {
+        const amtFormatted = Number(amountVal).toLocaleString('en-IN');
+        const personTitle = toTitleCase(personRaw);
+        return {
+          status: 'clarify',
+          question: `Was the ₹${amtFormatted} a payment, a loan to ${personTitle}, a gift, or a transfer?`,
+          options: ['Payment', `Loan to ${personTitle}`, 'Gift', 'Transfer'],
+          reasoning: 'Ambiguous recipient payment could be an expense, lending, gift, or transfer',
+        };
+      }
+    }
+  }
+
+  // 2. Ambiguity: Got [amount] from [person] without source
+  // e.g. "I got 500 from Rahul", "Got ₹500 from Rahul"
+  const hasIncomeContext = /\b(?:freelance|salary|work|job|client|editing|project|stipend|bonus|dividend|interest|stocks|crypto|refund)\b/i.test(lower);
+  const gotFromMatch = !hasIncomeContext ? lower.match(/(?:^|\bi\s+)got\s+(?:₹|rs\.?|inr)?\s*([\d,k.]+)\s+from\s+([a-z]+)\b/i) : null;
+  if (gotFromMatch) {
+    const personRaw = gotFromMatch[2].toLowerCase();
+    const nonPersons = ['freelance', 'salary', 'work', 'job', 'client', 'editing', 'investments', 'dividend', 'savings', 'bank'];
+    if (!nonPersons.includes(personRaw)) {
+      const amountVal = parseCurrencyAmount(gotFromMatch[1]);
+      if (amountVal && amountVal > 0) {
+        const amtFormatted = Number(amountVal).toLocaleString('en-IN');
+        const personTitle = toTitleCase(personRaw);
+        return {
+          status: 'clarify',
+          question: `Was the ₹${amtFormatted} from ${personTitle} income, borrowed money, a refund, or a transfer?`,
+          options: ['Income', 'Borrowing', 'Refund', 'Transfer'],
+          reasoning: 'Ambiguous incoming funds could be income, borrowing, refund, or transfer',
+        };
+      }
+    }
+  }
+
+  // 3. Lending: "I lent Rahul ₹1000", "Rahul owes me 1000", "Lent 1000 to Rahul"
+  if (/\b(?:lent|owes(?:\s+me)?)\b/i.test(lower)) {
+    const amountVal = parseCurrencyAmount(lower);
+    if (amountVal && amountVal > 0) {
+      let person = 'Someone';
+      const pMatch = lower.match(/lent\s+(?:to\s+)?([a-z]+)/i) ||
+                     lower.match(/lent\s+([a-z]+)\s+(?:₹|rs\.?|inr)?\s*[\d,k.]+/i) ||
+                     lower.match(/^([a-z]+)\s+owes/i) ||
+                     lower.match(/owes(?:\s+me)?\s+([a-z]+)/i);
+      if (pMatch) person = toTitleCase(pMatch[1]);
+      return {
+        status: 'resolved',
+        action: 'record_lending',
+        params: {
+          amount: amountVal,
+          person,
+          note: `Lent to ${person}`,
+          date,
+        },
+        reasoning: `Lending transaction for ${person}`,
+      };
+    }
+  }
+
+  // 4. Borrowing: "I borrowed ₹500 from Amit", "Borrowed 500 from Amit"
+  if (/\b(?:borrowed|borrow)\b/i.test(lower)) {
+    const amountVal = parseCurrencyAmount(lower);
+    if (amountVal && amountVal > 0) {
+      let person = 'Someone';
+      const pMatch = lower.match(/(?:from\s+)([a-z]+)/i);
+      if (pMatch) person = toTitleCase(pMatch[1]);
+      return {
+        status: 'resolved',
+        action: 'record_borrowing',
+        params: {
+          amount: amountVal,
+          person,
+          note: `Borrowed from ${person}`,
+          date,
+        },
+        reasoning: `Borrowing liability from ${person}`,
+      };
+    }
+  }
+
+  // 5. Refund: "Amazon refunded me ₹799", "I got a refund of 799", "refund of 799 from Amazon"
+  if (/\b(?:refund|refunded)\b/i.test(lower)) {
+    const amountVal = parseCurrencyAmount(lower);
+    if (amountVal && amountVal > 0) {
+      let note = 'Refund';
+      const vendorMatch = lower.match(/(amazon|flipkart|myntra|swiggy|zomato|blinkit|zepto|uber|ola)/i);
+      if (vendorMatch) note = toTitleCase(vendorMatch[1]);
+      return {
+        status: 'resolved',
+        action: 'record_refund',
+        params: {
+          amount: amountVal,
+          note,
+          date,
+        },
+        reasoning: `Refund transaction of ₹${amountVal}`,
+      };
+    }
+  }
+
+  // 6. Transfer: "Move ₹5000 from savings to expenses", "Transferred 2000 from savings to current"
+  if (/\b(?:move|moved|transfer|transferred)\b/i.test(lower) && /\b(?:from|to|between)\b/i.test(lower)) {
+    const amountVal = parseCurrencyAmount(lower);
+    if (amountVal && amountVal > 0) {
+      const transferMatch = lower.match(/(?:from\s+([a-z\s]+?)\s+to\s+([a-z\s]+)|to\s+([a-z\s]+))/i);
+      const note = transferMatch ? transferMatch[0].trim() : 'Account Transfer';
+      return {
+        status: 'resolved',
+        action: 'record_transfer',
+        params: {
+          amount: amountVal,
+          note,
+          date,
+        },
+        reasoning: `Account transfer of ₹${amountVal}`,
+      };
+    }
+  }
+
+  // 7. Income: "I received ₹20,000 salary", "My salary of 20000 came today", "Got 20k from freelance work"
+  if (/\b(?:received|salary|freelance|stipend|got paid|earned|income)\b/i.test(lower)) {
+    const amountVal = parseCurrencyAmount(lower);
+    if (amountVal && amountVal > 0) {
+      let source = 'Salary';
+      if (/freelance/i.test(lower)) source = 'Freelance';
+      else if (/stipend/i.test(lower)) source = 'Stipend';
+      else if (/bonus|gift/i.test(lower)) source = 'Bonus';
+      else if (/editing/i.test(lower)) source = 'Editing';
+      else if (/salary/i.test(lower)) source = 'Salary';
+
+      return {
+        status: 'resolved',
+        action: 'record_income',
+        params: {
+          amount: amountVal,
+          source,
+          note: str,
+          date,
+        },
+        reasoning: `Income received from ${source}`,
+      };
+    }
+  }
+
+  // 8. Expense: "I spent ₹450 on groceries", "I spent 450 rupees at Blinkit", "I paid 500 for dinner"
+  if (/\b(?:spent|paid|cost|bought|purchased)\b/i.test(lower) || /^(?:lunch|dinner|breakfast|coffee|uber|cab|swiggy|zomato|blinkit|zepto)\b/i.test(lower)) {
+    const amountVal = parseCurrencyAmount(lower);
+    if (amountVal && amountVal > 0) {
+      const category = inferCategory(lower);
+      let note = '';
+      const noteMatch = lower.match(/(?:on|for|at)\s+([a-z0-9\s]+)/i);
+      if (noteMatch) {
+        note = noteMatch[1].trim();
+      } else {
+        note = category.toLowerCase();
+      }
+      return {
+        status: 'resolved',
+        action: 'record_expense',
+        params: {
+          amount: amountVal,
+          category,
+          note,
+          date,
+        },
+        reasoning: `Expense of ₹${amountVal} for ${category}`,
+      };
+    }
+  }
+
+  return { status: 'not_financial' };
 }
