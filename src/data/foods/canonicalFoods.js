@@ -2254,7 +2254,10 @@ export const PREPARATION_VARIANTS = [
   }
 ];
 
-export const ALL_CANONICAL_FOODS = [...CANONICAL_FOODS, ...PREPARATION_VARIANTS];
+import GLOBAL_CANONICAL_FOODS from './globalCanonicalFoods.js';
+import GLOBAL_ALIASES from './globalFoodAliases.js';
+
+export const ALL_CANONICAL_FOODS = GLOBAL_CANONICAL_FOODS;
 
 /**
  * Curated aliases mapping synonyms, plurals, and regional names to canonical food IDs.
@@ -2366,6 +2369,15 @@ export function findCanonicalFood(rawName, options = {}) {
         );
         return { food: match, unitWeightG: alias.unitWeightG, candidates: variants };
       }
+    }
+  }
+
+  // 1b. Global Alias Dictionary (USDA / CoFID synonyms & plurals)
+  if (GLOBAL_ALIASES && GLOBAL_ALIASES[q]) {
+    const aliasEntry = GLOBAL_ALIASES[q];
+    const match = ALL_CANONICAL_FOODS.find((f) => f.id === aliasEntry.canonicalId);
+    if (match) {
+      return { food: match, unitWeightG: aliasEntry.unitWeightG || match.defaultServingG, candidates: [match] };
     }
   }
 

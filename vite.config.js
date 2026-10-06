@@ -10,6 +10,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         globPatterns: [
           '**/*.{js,css,html,ico,png,svg}'
         ],
@@ -39,6 +40,7 @@ export default defineConfig({
     emptyOutDir: false
   },
   test: {
-    testTimeout: 20000
+    testTimeout: 20000,
+    include: ['src/tests/**/*.test.{js,jsx}']
   }
 })

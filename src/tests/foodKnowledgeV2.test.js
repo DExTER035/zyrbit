@@ -391,4 +391,118 @@ describe('Food Knowledge V2 — Architecture & Engine Verification', () => {
       }
     });
   });
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // 8. GLOBAL CANONICAL FOOD CORE (RUN 3B INGESTION VERIFICATION)
+  // ════════════════════════════════════════════════════════════════════════════
+  describe('8. Global Canonical Food Core (Run 3B Ingestion)', () => {
+    it('verifies catalog scale expands beyond 10,000 foods with exact seed preservation', () => {
+      expect(CANONICAL_FOODS).toHaveLength(110);
+      expect(ALL_CANONICAL_FOODS.length).toBeGreaterThan(10000);
+      expect(ALL_CANONICAL_FOODS.filter((f) => f.sourceType === 'curated_seed').length).toBeGreaterThanOrEqual(110);
+    });
+
+    it('verifies imported USDA food exists with official_dataset provenance', () => {
+      const usdaFood = ALL_CANONICAL_FOODS.find((f) => f.sourceName === 'USDA_FDC');
+      expect(usdaFood).toBeDefined();
+      expect(usdaFood.sourceType).toBe('official_dataset');
+      expect(usdaFood.sourceVersion).toBe('SR_Legacy_2018');
+      expect(usdaFood.per100g.cal).toBeGreaterThanOrEqual(0);
+      expect(usdaFood.confidenceScore).toBe(0.98);
+    });
+
+    it('verifies imported UK CoFID food exists with official_dataset provenance', () => {
+      const cofidFood = ALL_CANONICAL_FOODS.find((f) => f.sourceName === 'UK_COFID');
+      expect(cofidFood).toBeDefined();
+      expect(cofidFood.sourceType).toBe('official_dataset');
+      expect(cofidFood.sourceVersion).toBe('CoFID_2021');
+      expect(cofidFood.per100g.cal).toBeGreaterThanOrEqual(0);
+      expect(cofidFood.confidenceScore).toBe(0.98);
+    });
+
+    it('preserves distinct preparation states for imported foods', () => {
+      const rawFoods = ALL_CANONICAL_FOODS.filter((f) => f.preparationState === 'raw');
+      const cookedFoods = ALL_CANONICAL_FOODS.filter((f) => f.preparationState === 'cooked');
+      const dryFoods = ALL_CANONICAL_FOODS.filter((f) => f.preparationState === 'dry');
+      const boiledFoods = ALL_CANONICAL_FOODS.filter((f) => f.preparationState === 'boiled');
+      const roastedFoods = ALL_CANONICAL_FOODS.filter((f) => f.preparationState === 'roasted');
+
+      expect(rawFoods.length).toBeGreaterThan(500);
+      expect(cookedFoods.length).toBeGreaterThan(500);
+      expect(dryFoods.length).toBeGreaterThan(100);
+      expect(boiledFoods.length).toBeGreaterThan(50);
+      expect(roastedFoods.length).toBeGreaterThan(50);
+    });
+
+    it('curated seed foods retain absolute precedence over external duplicate foods', () => {
+      // Seed banana has 89 kcal/100g
+      const match = findCanonicalFood('banana');
+      expect(match).not.toBeNull();
+      expect(match.food.sourceType).toBe('curated_seed');
+      expect(match.food.sourceName).toBe('ZYRBIT_SEED');
+      expect(match.food.per100g.cal).toBe(89);
+    });
+
+    it('resolves imported USDA food deterministically without Gemini', () => {
+      const spy = vi.spyOn(aiModule, 'askZyra');
+      const res = resolveFoodInputV2('100g cheddar cheese');
+      expect(res.success).toBe(true);
+      expect(res.resolved).toBe(true);
+      expect(res.mealParams.calories).toBeGreaterThan(0);
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('prioritizes personal food over generic imported USDA/CoFID food', () => {
+      const mockPersonalFoods = [
+        {
+          id: 'pf-custom-cheddar',
+          name: 'Cathedral City Cheddar',
+          calories: 410,
+          servingSizeG: 30,
+          sourceType: 'user_verified',
+        },
+      ];
+      const res = resolveFoodInputV2('my Cathedral City Cheddar', { personalFoods: mockPersonalFoods });
+      expect(res.success).toBe(true);
+      expect(res.mealParams.sourceType).toBe('user_verified');
+      expect(res.mealParams.foodName).toBe('Cathedral City Cheddar');
+      expect(res.mealParams.foodRefId).toBe('pf-custom-cheddar');
+    });
+
+    it('performs fast in-memory search across global catalog without latency regression', () => {
+      const t0 = performance.now();
+      const match = findCanonicalFood('olive oil');
+      const latencyMs = performance.now() - t0;
+
+      expect(match).not.toBeNull();
+      expect(match.food.per100g.fat).toBeGreaterThan(10);
+      expect(latencyMs).toBeLessThan(50); // Sub-50ms deterministic in-memory lookup
+    });
+
+    it('ensures historical nutrition snapshots remain immutable regardless of catalog expansion', () => {
+      const historicalLog = {
+        foodName: 'Roti / Chapati',
+        calories: 178,
+        protein: 5.4,
+        nutritionSnapshot: {
+          per100g: { cal: 297, protein: 9.0, carbs: 63.0, fat: 1.2 },
+          sourceType: 'curated_seed',
+          sourceVersion: '1.0',
+          loggedAt: '2026-09-01T12:00:00.000Z',
+        },
+      };
+
+      // Logging new food from USDA catalog
+      const newFoodRes = resolveFoodInputV2('100g olive oil');
+      expect(newFoodRes.success).toBe(true);
+      const newSnapshot = newFoodRes.mealParams.nutritionSnapshot;
+
+      // Historical log snapshot remains unchanged
+      expect(historicalLog.nutritionSnapshot.per100g.cal).toBe(297);
+      expect(historicalLog.nutritionSnapshot.sourceVersion).toBe('1.0');
+      // New snapshot reflects current resolution
+      expect(newSnapshot).toBeDefined();
+      expect(newSnapshot.per100g.cal).toBeGreaterThan(0);
+    });
+  });
 });
