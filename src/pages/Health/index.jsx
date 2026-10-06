@@ -1080,6 +1080,7 @@ export default function Health() {
         <FoodPicker
           mealType={activePickerMealType}
           recentFoodIds={[]}
+          recentMealLogs={mealLogs}
           personalFoods={personalFoods}
           onLog={handleAddFoodFromPicker}
           onCreatePersonalFood={handleCreatePersonalFood}
