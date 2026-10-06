@@ -4,6 +4,7 @@
  */
 
 export * from './foodResolver.js';
+export * from './foodResolverV2.js';
 export * from './habitResolver.js';
 export * from './timeResolver.js';
 export * from './moneyResolver.js';

@@ -22,12 +22,12 @@ import { processUserInput, DEX_RESULT_TYPE } from '../dex/dexOrchestrator.js';
 import { validateAction } from '../actions/actionValidator.js';
 import { executeAction } from '../actions/actionExecutor.js';
 import { ACTION_REGISTRY } from '../actions/actionRegistry.js';
-import { normalizeActionDate } from '../actions/actionSchemas.js';
+import { normalizeActionDate, getLocalTodayStr } from '../actions/actionSchemas.js';
 import * as aiModule from '../lib/ai/index.js';
 
 describe('Zyrbit Phase C — Natural Language Intent Engine', () => {
   const mockUserId = '11111111-2222-3333-4444-555555555555';
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayStr();
 
   beforeEach(() => {
     vi.restoreAllMocks();

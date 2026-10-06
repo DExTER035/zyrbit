@@ -56,6 +56,11 @@ export async function logMeal({
   carbs = 0,
   fat = 0,
   fiber = 0,
+  nutritionSnapshot = null,
+  sourceType = null,
+  preparationState = null,
+  confidence = null,
+  foodRefId = null,
   date = todayStr(),
 }) {
   if (!userId) {
@@ -93,7 +98,7 @@ export async function logMeal({
     }
   }
 
-  const payload = {
+  const basePayload = {
     user_id: userId,
     date,
     meal_type: mealType || 'snack',
@@ -107,17 +112,41 @@ export async function logMeal({
     fiber: finalFib,
   };
 
+  const extendedPayload = {
+    ...basePayload,
+    ...(nutritionSnapshot ? { nutrition_snapshot: nutritionSnapshot } : {}),
+    ...(sourceType ? { source_type: sourceType } : {}),
+    ...(preparationState ? { preparation_state: preparationState } : {}),
+    ...(confidence !== null && confidence !== undefined ? { confidence } : {}),
+    ...(foodRefId ? { food_ref_id: foodRefId } : {}),
+  };
+
   try {
     const { data, error } = await supabase
       .from('meal_logs')
-      .insert([payload])
+      .insert([extendedPayload])
       .select()
       .single();
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!error) {
+      return { success: true, data };
     }
-    return { success: true, data };
+
+    // Graceful fallback: If extended columns do not exist in database schema, insert base payload
+    if (error.message && (error.message.includes('column') || error.message.includes('schema'))) {
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('meal_logs')
+        .insert([basePayload])
+        .select()
+        .single();
+
+      if (fallbackError) {
+        return { success: false, error: fallbackError.message };
+      }
+      return { success: true, data: fallbackData };
+    }
+
+    return { success: false, error: error.message };
   } catch (err) {
     return { success: false, error: err.message || 'Failed to log meal.' };
   }

@@ -338,6 +338,7 @@ export function resolveFoodInput(userMessage, preferredMealType = 'snack') {
         clarificationNeeded: true,
         question: 'What food did you have and roughly how much?',
         unresolved: unresolvedItems,
+        matchedCount: 0,
       };
     }
     return {
@@ -346,6 +347,7 @@ export function resolveFoodInput(userMessage, preferredMealType = 'snack') {
       clarificationNeeded: true,
       question: `I couldn't identify "${unresolvedItems.join(', ')}". Which food did you mean?`,
       unresolved: unresolvedItems,
+      matchedCount: resolvedItems.length,
     };
   }
 

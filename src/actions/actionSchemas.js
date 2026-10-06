@@ -472,6 +472,12 @@ export const ACTION_SCHEMAS = {
           fat: fat !== undefined ? Math.round(fat * 10) / 10 : undefined,
           fiber: fiber !== undefined ? Math.round(fiber * 10) / 10 : undefined,
           date,
+          ...(params.nutritionSnapshot ? { nutritionSnapshot: params.nutritionSnapshot } : {}),
+          ...(params.sourceType ? { sourceType: params.sourceType } : {}),
+          ...(params.preparationState ? { preparationState: params.preparationState } : {}),
+          ...(params.confidence !== undefined && params.confidence !== null ? { confidence: params.confidence } : {}),
+          ...(params.foodRefId ? { foodRefId: params.foodRefId } : {}),
+          ...(params.time ? { time: params.time } : {}),
         },
       };
     },

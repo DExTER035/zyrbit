@@ -16,6 +16,7 @@ import {
   resolveConversationalQuery,
   isConversationalQuery,
   resolveFoodInput,
+  resolveFoodInputV2,
   resolveHabitMention,
   parseDurationMinutes,
   parseWaterAmount,
@@ -25,6 +26,7 @@ import {
   resolveNaturalLanguageWealth,
   parseCurrencyAmount,
 } from './resolvers/index.js';
+import { FEATURES } from '../config/features.js';
 import { isPlanningIntent, generatePlan, createPlan } from './planning/index.js';
 import { hasAction } from '../actions/actionRegistry.js';
 import { normalizeActionDate } from '../actions/actionSchemas.js';
@@ -481,9 +483,28 @@ export function resolveDeterministicIntent(userMessage, context) {
     }
   }
 
-  // 6. Food Log: "I ate 2 eggs", "I had 80g oats and 200ml milk for breakfast", "I ate oats, milk and 5 dates", "I had 3 eggs at 9am"
-  if (/\b(?:ate|had|eating|lunch|dinner|breakfast|snack|poha|dosa|idli|dates|eggs?|oats?|milk)\b/i.test(lower)) {
-    const foodRes = resolveFoodInput(str);
+  // 6. Food Log: "I ate 2 eggs", "2 rotis", "Log 2 rotis", "I had 80g oats and 200ml milk for breakfast", "I ate oats, milk and 5 dates", "I had 3 eggs at 9am"
+  const isOtherDomain = /\b(?:water|hydration|slept|sleep|walked|ran|workout|gym|weight|habit|task|spent|paid|borrowed|lent|refund|freelance|salary|invested|bill|transfer|due)\b/i.test(lower);
+  const isFoodLikely = /\b(?:ate|had|eating|lunch|dinner|breakfast|snack|food|meal|poha|dosa|idli|dates|eggs?|oats?|milk|rotis?|chapatis?|rice|dal|paneer|chicken|fruit|banana|apple|salad)\b/i.test(lower) ||
+    (/^\s*(?:log|logged|record|ate|had)?\s*(?:\d+|one|two|three|four|five|half|a|an)?\s*[a-z]/i.test(lower) && !isOtherDomain);
+
+  if (isFoodLikely) {
+    const personalFoodsList = context?.personalFoods || context?.userFoodLibrary || [];
+    const foodRes = FEATURES.FOOD_KNOWLEDGE_V2
+      ? resolveFoodInputV2(str, { personalFoods: personalFoodsList })
+      : resolveFoodInput(str);
+
+    if (foodRes.ambiguous) {
+      return {
+        intent: 'clarify',
+        action: 'log_meal',
+        question: foodRes.question,
+        options: foodRes.candidates ? foodRes.candidates.map((c) => c.name) : undefined,
+        candidates: foodRes.candidates,
+        context: str,
+      };
+    }
+
     if (foodRes.success && foodRes.resolved) {
       const hasExplicitCurrency = /[₹]|(?:\brs\.?\b)|(?:\brupees\b)|(?:\bbucks\b)|(?:\binr\b)|\b(?:spent|paid|cost)\b|\bfor\s+(?:₹|rs\.?|inr)?\s*\d+/i.test(str);
       const finAmount = hasExplicitCurrency ? parseCurrencyAmount(str) : null;
@@ -532,17 +553,22 @@ export function resolveDeterministicIntent(userMessage, context) {
         intent: 'action',
         action: 'log_meal',
         params: foodRes.mealParams,
-        confidence: 0.95,
+        confidence: foodRes.mealParams.confidence || 0.95,
         source: 'deterministic',
         reasoning: `Food log for ${foodRes.mealParams.foodName}`,
         displayMessage: `Logged ${foodRes.mealParams.foodName} (${foodRes.mealParams.calories} kcal).`,
       };
-    } else if (foodRes.clarificationNeeded && !/[₹]|(?:\brs\.?\b)|(?:\brupees\b)|(?:\bbucks\b)|(?:\binr\b)|\b(?:spent|paid|cost)\b/i.test(str)) {
-      return {
-        intent: 'clarify',
-        question: foodRes.question || 'What food did you have?',
-        context: str,
-      };
+    } else if (foodRes.clarificationNeeded && /\b(?:ate|had|eating|lunch|dinner|breakfast|snack|food|meal)\b/i.test(lower) && !/[₹]|(?:\brs\.?\b)|(?:\brupees\b)|(?:\bbucks\b)|(?:\binr\b)|\b(?:spent|paid|cost)\b/i.test(str)) {
+      const isPureGenericMeal = /^(?:i\s+)?(?:had|ate|eating|have|finished|took|just\s+ate)\s+(?:a\s+|some\s+)?(?:meal|food|lunch|dinner|breakfast|snack)$/i.test(str.trim());
+      const hasPartialMatch = (foodRes.matchedCount && foodRes.matchedCount > 0) || (foodRes.question && foodRes.question.includes("couldn't identify"));
+      if (isPureGenericMeal || hasPartialMatch) {
+        return {
+          intent: 'clarify',
+          question: foodRes.question || 'What food did you have?',
+          context: str,
+        };
+      }
+      // If user supplied specific food not found in deterministic catalog, allow fallthrough to AI fallback (askZyra)
     }
   }
 
@@ -826,11 +852,23 @@ export async function parseIntent({ userMessage, context }) {
 
     // Post-AI Deterministic Normalization & Safety Bounds
     if (intent.intent === 'action') {
-      // If AI proposed log_meal, ensure nutrition is calculated deterministically from FOOD_DB
+      // If AI proposed log_meal, ensure nutrition is calculated deterministically from FOOD_DB / Canonical catalog
       if (intent.action === 'log_meal') {
-        const resolvedMeal = resolveFoodInput(intent.params?.foodName || cleanMessage);
+        if (!intent.params) intent.params = {};
+        if (!intent.params.mealType) intent.params.mealType = 'snack';
+        const personalFoodsList = context?.personalFoods || context?.userFoodLibrary || [];
+        const resolvedMeal = FEATURES.FOOD_KNOWLEDGE_V2
+          ? resolveFoodInputV2(intent.params?.foodName || cleanMessage, { personalFoods: personalFoodsList })
+          : resolveFoodInput(intent.params?.foodName || cleanMessage);
         if (resolvedMeal.success && resolvedMeal.resolved) {
           intent.params = { ...intent.params, ...resolvedMeal.mealParams };
+        } else if (FEATURES.FOOD_KNOWLEDGE_V2) {
+          intent.params = {
+            ...intent.params,
+            sourceType: 'ai_estimate',
+            sourceName: 'GEMINI_AI',
+            confidence: intent.confidence || 0.65,
+          };
         }
       }
 
