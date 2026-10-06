@@ -6,9 +6,11 @@ export const FEATURES = {
   /**
    * Food Knowledge V2: Multi-tier canonical resolver, personal foods,
    * preparation states, provenance, nutrition snapshots, and ambiguity handling.
-   * Default: false (preserves legacy Phase C food path).
+   * Enabled in browser for localhost testing; defaults to false in Node/test runner.
    */
-  FOOD_KNOWLEDGE_V2: false,
+  FOOD_KNOWLEDGE_V2: typeof window !== 'undefined'
+    ? (window.localStorage?.getItem('ZYRBIT_FOOD_KNOWLEDGE_V2') !== 'false')
+    : false,
 };
 
 /**

@@ -13,6 +13,9 @@
  *   servingLabel    — human label for that portion
  */
 
+import { FEATURES } from '../../config/features.js';
+import { ALL_CANONICAL_FOODS } from './canonicalFoods.js';
+
 export const FOOD_DB = [
   // ── BREAKFAST ──────────────────────────────────────────────────────────────
   {
@@ -1036,20 +1039,23 @@ export function computeNutrition(food, grams) {
 
 /** Get foods filtered by category */
 export function getFoodsByCategory(category) {
-  if (!category || category === 'all') return FOOD_DB;
-  return FOOD_DB.filter(f => f.category === category);
+  const dataset = (FEATURES.FOOD_KNOWLEDGE_V2 && ALL_CANONICAL_FOODS) ? ALL_CANONICAL_FOODS : FOOD_DB;
+  if (!category || category === 'all') return dataset.slice(0, 100);
+  return dataset.filter(f => f.category === category).slice(0, 50);
 }
 
 /** Search foods by name (case-insensitive) */
 export function searchFoods(query) {
   const q = query.toLowerCase().trim();
-  if (!q) return FOOD_DB;
-  return FOOD_DB.filter(f => f.name.toLowerCase().includes(q));
+  const dataset = (FEATURES.FOOD_KNOWLEDGE_V2 && ALL_CANONICAL_FOODS) ? ALL_CANONICAL_FOODS : FOOD_DB;
+  if (!q) return dataset.slice(0, 100);
+  return dataset.filter(f => f.name.toLowerCase().includes(q)).slice(0, 50);
 }
 
 /** Get a food by id */
 export function getFoodById(id) {
-  return FOOD_DB.find(f => f.id === id) ?? null;
+  const dataset = (FEATURES.FOOD_KNOWLEDGE_V2 && ALL_CANONICAL_FOODS) ? ALL_CANONICAL_FOODS : FOOD_DB;
+  return dataset.find(f => f.id === id) ?? null;
 }
 
 export const FOOD_CATEGORIES = [
