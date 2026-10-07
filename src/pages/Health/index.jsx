@@ -382,12 +382,27 @@ export default function Health() {
   };
 
   // 5. Nutrition / Meals
-  const handleAddFoodFromPicker = async ({ food_id, food_name, quantity_g, calories, protein, carbs, fat, fiber }) => {
+  const handleAddFoodFromPicker = async (foodLog) => {
+    const {
+      food_id,
+      food_name,
+      meal_type,
+      quantity_g,
+      calories,
+      protein,
+      carbs,
+      fat,
+      fiber,
+      preparation_state,
+      source_type,
+      nutrition_snapshot,
+    } = foodLog || {};
+
     if (!user || isSubmitting || !activePickerMealType) return;
     setIsSubmitting(true);
     const cleanName = (food_name || 'Food').trim().slice(0, 150);
     const today = todayStr();
-    const mealType = activePickerMealType;
+    const mealType = meal_type || activePickerMealType;
 
     try {
       const res = await serviceLogMeal({
@@ -402,6 +417,9 @@ export default function Health() {
         carbs,
         fat,
         fiber,
+        nutritionSnapshot: nutrition_snapshot || null,
+        sourceType: source_type || null,
+        preparationState: preparation_state || null,
       });
 
       if (!res.success) {
