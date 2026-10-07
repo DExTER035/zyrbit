@@ -537,9 +537,10 @@ export default function Wealth() {
   }
 
   // ── Calculate Hero Figures ──────────────────────────────────────────────
-  const liquidCash = Math.max(0, Number(moneyState?.liquidCash || 0));
+  const liquidCash = Number(moneyState?.liquidCash ?? 0);
   const committedTotal = Number(moneyState?.upcomingBillTotal || moneyState?.committedNext30Total || 0);
-  const safeToSpend = Math.max(0, Number(moneyState?.safeToSpendDaily || moneyState?.unencumberedCash || (liquidCash - committedTotal)));
+  const unencumberedCash = Number(moneyState?.unencumberedCash ?? Math.max(0, liquidCash - committedTotal));
+  const safeToSpendDaily = Number(moneyState?.safeToSpendDaily || 0);
   const _runwayDays = (moneyState?.runwayDays > 0) ? moneyState.runwayDays : 31;
 
   // ── Sub-view Renderers ──────────────────────────────────────────────────
@@ -1356,9 +1357,9 @@ export default function Wealth() {
           <WealthFlowHero
             liquidCash={liquidCash}
             upcomingBillTotal={committedTotal}
-            unencumberedCash={safeToSpend}
-            safeToSpendDaily={moneyState.safeToSpendDaily || 280}
-            daysLeft={moneyState.daysLeft || 24}
+            unencumberedCash={unencumberedCash}
+            safeToSpendDaily={safeToSpendDaily}
+            daysLeft={moneyState?.daysLeft || 1}
             onOpenIncome={() => {
               setEditingTransaction(null);
               setTransactionModalType('income');
@@ -1386,8 +1387,9 @@ export default function Wealth() {
             promises={bills}
             onSeeAll={() => setActiveView('recent')}
             onTransactionClick={(tx) => {
-              setEditingTransaction(tx);
-              setTransactionModalType('expense');
+              const isIncome = tx.isCredit || tx.txType === 'income' || tx.type === 'INCOME' || !!tx.source || tx.raw?.source;
+              setEditingTransaction(tx.raw || tx);
+              setTransactionModalType(isIncome ? 'income' : 'expense');
               setIsTransactionModalOpen(true);
             }}
           />

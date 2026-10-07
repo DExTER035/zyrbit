@@ -7,16 +7,24 @@ import React, { useState } from 'react';
 import { ChevronRight, Plus, ArrowDownLeft, FileText, Users, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function WealthFlowHero({
-  liquidCash = 24000,
-  upcomingBillTotal = 12000,
-  unencumberedCash = 8400,
-  safeToSpendDaily = 280,
+  liquidCash = 0,
+  upcomingBillTotal = 0,
+  unencumberedCash = 0,
+  safeToSpendDaily = 0,
   onOpenIncome,
   onOpenExpense,
   onOpenBills,
   onOpenPromises,
 }) {
   const [showExplanation, setShowExplanation] = useState(false);
+
+  // Dynamic end-of-month calculation based on user's current local date
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthShort = now.toLocaleDateString([], { month: 'short' });
+  const endOfMonthLabel = `${daysInMonth} ${monthShort}`;
 
   // Format currency numbers cleanly
   const fmt = (n) => `₹${Number(n || 0).toLocaleString()}`;
@@ -126,7 +134,7 @@ export default function WealthFlowHero({
           marginTop: '14px',
           fontWeight: 400,
         }}>
-          ≈ {fmt(safeToSpendDaily)} per day until 28 Oct
+          ≈ {fmt(safeToSpendDaily)} per day until {endOfMonthLabel}
         </div>
 
         {/* Expandable Line-by-Line Explanation */}
