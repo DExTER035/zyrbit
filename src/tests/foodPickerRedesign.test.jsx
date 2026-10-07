@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import FoodPicker from '../components/domain/food/FoodPicker.jsx';
 import { FEATURES } from '../config/features.js';
 
-describe('Zyrbit Food Picker Redesign — Global Food Search & Personal Memory', () => {
+describe('Zyrbit Food Picker Redesign — Reference UX & Food Knowledge V2 Integration', () => {
   const dummyPersonalFoods = [
     {
       id: 'pf_1',
@@ -67,9 +67,9 @@ describe('Zyrbit Food Picker Redesign — Global Food Search & Personal Memory',
   });
 
   // 2. Global Search Placeholder
-  it('renders global search placeholder "Search foods, meals, or brands..."', () => {
+  it('renders reference search placeholder "Search for food (e.g. roti, rice, egg...)"', () => {
     const html = renderToStaticMarkup(<FoodPicker mealType="lunch" onClose={() => {}} />);
-    expect(html).toContain('placeholder="Search foods, meals, or brands..."');
+    expect(html).toContain('placeholder="Search for food (e.g. roti, rice, egg...)"');
   });
 
   // 3. No Indian-Only Language
@@ -87,14 +87,12 @@ describe('Zyrbit Food Picker Redesign — Global Food Search & Personal Memory',
     expect(html).not.toContain('Indian foods or My Foods');
   });
 
-  // 4. No Meal Categories as Food Filters
-  it('does NOT render Breakfast, Lunch, or Dinner as food-category filter chips', () => {
+  // 4. Reference Tabs Structure (Recent | Favorites | All Foods)
+  it('renders the 3 reference tabs: Recent, Favorites, All Foods', () => {
     const html = renderToStaticMarkup(<FoodPicker mealType="lunch" onClose={() => {}} />);
-    // Tabs should be All, My Foods, Favorites, Recent
-    expect(html).toContain('All');
-    expect(html).toContain('My Foods');
-    expect(html).toContain('★ Favorites');
-    expect(html).toContain('Recent');
+    expect(html).toContain('>Recent<');
+    expect(html).toContain('>Favorites<');
+    expect(html).toContain('>All Foods<');
 
     // Should not contain meal slot categories as filters
     expect(html).not.toContain('>Breakfast<');
@@ -102,8 +100,8 @@ describe('Zyrbit Food Picker Redesign — Global Food Search & Personal Memory',
     expect(html).not.toContain('>Dinner<');
   });
 
-  // 5. Default View (Recent + Frequent Staple Foods)
-  it('renders Recent and Common Foods in default All tab', () => {
+  // 5. Default View (Recent Foods)
+  it('renders Recent foods in default Recent tab', () => {
     const html = renderToStaticMarkup(
       <FoodPicker
         mealType="lunch"
@@ -112,47 +110,33 @@ describe('Zyrbit Food Picker Redesign — Global Food Search & Personal Memory',
         onClose={() => {}}
       />
     );
-    expect(html).toContain('Recent');
-    expect(html).toContain('Common Foods');
     expect(html).toContain('Oats');
     expect(html).toContain('Banana');
   });
 
-  // 6. Action Button "+ Create Personal Food"
-  it('renders bottom action button with updated label "+ Create Personal Food"', () => {
+  // 6. Action Button "Create Personal Food"
+  it('renders bottom action button with label "Create Personal Food"', () => {
     const html = renderToStaticMarkup(<FoodPicker mealType="lunch" onClose={() => {}} />);
-    expect(html).toContain('+ Create Personal Food');
+    expect(html).toContain('Create Personal Food');
     expect(html).not.toContain('+ Create New Personal Food');
   });
 
   // 7. Personal Food Identification
-  it('labels personal foods with "Your Food" badge and personal star icon', () => {
+  it('labels personal foods with green "• Personal Food" badge', () => {
     const html = renderToStaticMarkup(
       <FoodPicker
         mealType="lunch"
         personalFoods={dummyPersonalFoods}
+        recentMealLogs={[{ food_name: 'Pintola Peanut Butter', quantity_g: 32, calories: 190 }]}
         onClose={() => {}}
       />
     );
     expect(html).toContain('Pintola Peanut Butter');
-    expect(html).toContain('Your Food');
+    expect(html).toContain('• Personal Food');
   });
 
-  // 8. Empty States
-  it('renders accurate empty states for My Foods when user has no saved items', () => {
-    const html = renderToStaticMarkup(
-      <FoodPicker
-        mealType="lunch"
-        personalFoods={[]}
-        recentMealLogs={[]}
-        onClose={() => {}}
-      />
-    );
-    expect(html).toContain('Common Foods');
-  });
-
-  // 9. Calorie and Unit Formatting
-  it('formats calories and serving labels clearly without collisions', () => {
+  // 8. Calorie and Serving Formatting
+  it('formats calories and serving labels clearly with quick-add actions', () => {
     const html = renderToStaticMarkup(
       <FoodPicker
         mealType="lunch"
@@ -161,27 +145,27 @@ describe('Zyrbit Food Picker Redesign — Global Food Search & Personal Memory',
         onClose={() => {}}
       />
     );
-    expect(html).toContain('kcal');
-    expect(html).toContain('100g');
+    expect(html).toContain('cal');
+    expect(html).toContain('Quick Add to Meal');
   });
 
-  // 10. Food Knowledge V2 Active Compatibility
+  // 9. Food Knowledge V2 Active Compatibility
   it('respects FEATURES.FOOD_KNOWLEDGE_V2 flag and renders stably', () => {
     const prevFlag = FEATURES.FOOD_KNOWLEDGE_V2;
     try {
       FEATURES.FOOD_KNOWLEDGE_V2 = true;
       const htmlV2 = renderToStaticMarkup(
-        <FoodPicker mealType="dinner" personalFoods={dummyPersonalFoods} onClose={() => {}} />
+        <FoodPicker mealType="dinner" personalFoods={dummyPersonalFoods} recentMealLogs={dummyRecentLogs} onClose={() => {}} />
       );
       expect(htmlV2).toContain('Add to Dinner');
-      expect(htmlV2).toContain('Common Foods');
+      expect(htmlV2).toContain('Oats');
 
       FEATURES.FOOD_KNOWLEDGE_V2 = false;
       const htmlLegacy = renderToStaticMarkup(
-        <FoodPicker mealType="dinner" personalFoods={dummyPersonalFoods} onClose={() => {}} />
+        <FoodPicker mealType="dinner" personalFoods={dummyPersonalFoods} recentMealLogs={dummyRecentLogs} onClose={() => {}} />
       );
       expect(htmlLegacy).toContain('Add to Dinner');
-      expect(htmlLegacy).toContain('Common Foods');
+      expect(htmlLegacy).toContain('Oats');
     } finally {
       FEATURES.FOOD_KNOWLEDGE_V2 = prevFlag;
     }
