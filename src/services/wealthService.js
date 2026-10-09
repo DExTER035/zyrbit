@@ -608,6 +608,10 @@ export async function getWealthSnapshot(userId) {
         .order('due_date', { ascending: true }),
     ]);
 
+    if (eRes.error) throw new Error(`Failed to fetch expenses: ${eRes.error.message}`);
+    if (iRes.error) throw new Error(`Failed to fetch income: ${iRes.error.message}`);
+    if (bRes.error) throw new Error(`Failed to fetch bills: ${bRes.error.message}`);
+
     const snapshotData = {
       settings: sRes.data || null,
       expenses: eRes.data || [],
