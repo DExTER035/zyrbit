@@ -275,15 +275,6 @@ export default function Profile() {
             </button>
           )}
 
-          {/* Stats shortcut */}
-          <button
-            onClick={() => navigate('/stats')}
-            className="btn-secondary"
-            style={{ width: '100%', marginBottom: 'var(--space-12)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-8)' }}
-          >
-            📊 View Lifetime Stats
-          </button>
-
           <button onClick={handleSignOut} className="btn-secondary" style={{ width: '100%', color: 'var(--color-error)', borderColor: 'var(--color-error-dim)' }}>SIGNOUT</button>
         </div>
       )}

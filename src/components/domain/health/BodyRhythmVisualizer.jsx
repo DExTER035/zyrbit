@@ -8,7 +8,7 @@ import React, { useMemo } from 'react';
 import { Moon, Utensils, Droplets, Zap } from 'lucide-react';
 
 export default function BodyRhythmVisualizer({
-  sleepHours = 5.3,
+  sleepHours = 0,
   mealLogs = [],
   waterLogs = [],
 }) {
@@ -20,9 +20,8 @@ export default function BodyRhythmVisualizer({
 
   // Compute fuel meal dots
   const mealDots = useMemo(() => {
-    if (mealLogs.length === 0) {
-      // Default representative meal positions if fresh day
-      return [8.5, 13.5, 20.0];
+    if (!mealLogs || mealLogs.length === 0) {
+      return [];
     }
     return mealLogs.map((m) => {
       if (m.meal_time) {
@@ -39,9 +38,9 @@ export default function BodyRhythmVisualizer({
 
   // Total metrics
   const totalWaterMl = waterLogs.reduce((s, w) => s + (Number(w.amount_ml) || 250), 0);
-  const waterDisplay = totalWaterMl > 0 ? `${(totalWaterMl / 1000).toFixed(1)}L` : '1.8L';
-  const sleepDisplay = sleepHours > 0 ? `${Math.floor(sleepHours)}h ${Math.round((sleepHours % 1) * 60)}m` : '5h 20m';
-  const mealsCount = mealLogs.length > 0 ? mealLogs.length : 3;
+  const waterDisplay = totalWaterMl > 0 ? `${(totalWaterMl / 1000).toFixed(1)}L` : '0.0L';
+  const sleepDisplay = sleepHours > 0 ? `${Math.floor(sleepHours)}h ${Math.round((sleepHours % 1) * 60)}m` : '0h';
+  const mealsCount = mealLogs?.length || 0;
 
   return (
     <div style={{
@@ -257,7 +256,7 @@ export default function BodyRhythmVisualizer({
             <Utensils size={14} />
           </div>
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#ECE8DF' }}>
-            {mealsCount} meals
+            {mealsCount} {mealsCount === 1 ? 'meal' : 'meals'}
           </div>
           <div style={{ fontSize: '10px', color: '#9A978F', marginTop: '1px' }}>
             Fuel

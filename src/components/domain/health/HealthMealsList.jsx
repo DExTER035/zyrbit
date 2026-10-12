@@ -20,23 +20,7 @@ export default function HealthMealsList({
   onSelectUsual,
 }) {
   const [selectedMeal, setSelectedMeal] = useState(null);
-
-  // Fallback representative meals if fresh day
-  const displayMeals = mealLogs.length > 0 ? mealLogs : [
-    {
-      id: 'meal-default-1',
-      meal_name: 'Poha',
-      name: 'Poha',
-      serving_size: '1 plate',
-      calories: 280,
-      protein_g: 5.2,
-      carbs_g: 48,
-      fat_g: 7,
-      meal_time: '09:15',
-      confidence: 'ESTIMATED',
-      cost: 30,
-    },
-  ];
+  const displayMeals = mealLogs || [];
 
   const handleOpenDetail = (meal) => {
     setSelectedMeal(meal);
@@ -142,109 +126,130 @@ export default function HealthMealsList({
         </div>
       )}
 
-      {/* ── Clean Editorial Meals List ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {displayMeals.map((meal) => {
-          const confidence = meal.confidence || (meal.source === 'verified_db' ? 'KNOWN' : 'ESTIMATED');
-          const isKnown = confidence === 'KNOWN';
-          const mealName = meal.meal_name || meal.name || 'Meal';
-          const cals = Math.round(meal.calories || 280);
-          const isFav = favoriteFoodNames.has((mealName || '').toLowerCase().trim());
+      {/* ── Meals List or Clean Empty State ── */}
+      {displayMeals.length === 0 ? (
+        <div style={{
+          background: '#15161B',
+          border: '1px solid #26272D',
+          borderRadius: '16px',
+          padding: '24px 16px',
+          textAlign: 'center',
+        }}>
+          <p style={{
+            margin: 0,
+            fontSize: '13px',
+            color: '#9A978F',
+            lineHeight: 1.5,
+          }}>
+            No meals logged today. Tap Log Food to get started.
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {displayMeals.map((meal) => {
+            const confidence = meal.confidence || (meal.source === 'verified_db' ? 'KNOWN' : 'ESTIMATED');
+            const isKnown = confidence === 'KNOWN';
+            const mealName = meal.meal_name || meal.name || 'Meal';
+            const cals = Math.round(meal.calories ?? 0);
+            const isFav = favoriteFoodNames.has((mealName || '').toLowerCase().trim());
 
-          return (
-            <div
-              key={meal.id}
-              onClick={() => handleOpenDetail(meal)}
-              style={{
-                background: '#15161B',
-                border: '1px solid #26272D',
-                borderRadius: '16px',
-                padding: '14px 16px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#3A3B40';
-                e.currentTarget.style.background = '#181920';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#26272D';
-                e.currentTarget.style.background = '#15161B';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '12px',
-                  background: 'rgba(233, 180, 76, 0.12)',
+            return (
+              <div
+                key={meal.id}
+                onClick={() => handleOpenDetail(meal)}
+                style={{
+                  background: '#15161B',
+                  border: '1px solid #26272D',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '17px',
-                }}>
-                  🍲
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#ECE8DF' }}>
-                      {mealName}
-                    </span>
-                    <span style={{
-                      fontSize: '9px',
-                      fontWeight: 800,
-                      color: isKnown ? '#10B981' : '#E9B44C',
-                      background: isKnown ? 'rgba(16, 185, 129, 0.12)' : 'rgba(233, 180, 76, 0.12)',
-                      padding: '1px 6px',
-                      borderRadius: '4px',
-                      letterSpacing: '0.04em',
-                    }}>
-                      {confidence}
-                    </span>
+                  justifyContent: 'space-between',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#3A3B40';
+                  e.currentTarget.style.background = '#181920';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#26272D';
+                  e.currentTarget.style.background = '#15161B';
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '12px',
+                    background: 'rgba(233, 180, 76, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '17px',
+                  }}>
+                    🍲
                   </div>
 
-                  <div style={{ fontSize: '12px', color: '#9A978F', marginTop: '3px' }}>
-                    {meal.serving_size || '1 plate'} · ~{cals} kcal
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#ECE8DF' }}>
+                        {mealName}
+                      </span>
+                      <span style={{
+                        fontSize: '9px',
+                        fontWeight: 800,
+                        color: isKnown ? '#10B981' : '#E9B44C',
+                        background: isKnown ? 'rgba(16, 185, 129, 0.12)' : 'rgba(233, 180, 76, 0.12)',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        letterSpacing: '0.04em',
+                      }}>
+                        {confidence}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '12px', color: '#9A978F', marginTop: '3px' }}>
+                      {meal.serving_size || '1 serving'} · ~{cals} kcal
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {onToggleFavorite && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFavorite(meal);
-                    }}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      padding: '4px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      color: isFav ? '#F59E0B' : '#6B7280',
-                      transition: 'all 0.15s ease',
-                    }}
-                    title={isFav ? 'Favorited' : 'Favorite this food'}
-                  >
-                    <Star size={14} fill={isFav ? '#F59E0B' : 'transparent'} stroke={isFav ? '#F59E0B' : '#6B7280'} />
-                  </button>
-                )}
-                <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>
-                  {meal.meal_time || '9:15 AM'}
-                </span>
-                <ChevronRight size={14} color="#6B7280" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {onToggleFavorite && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(meal);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: '4px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: isFav ? '#F59E0B' : '#6B7280',
+                        transition: 'all 0.15s ease',
+                      }}
+                      title={isFav ? 'Favorited' : 'Favorite this food'}
+                    >
+                      <Star size={14} fill={isFav ? '#F59E0B' : 'transparent'} stroke={isFav ? '#F59E0B' : '#6B7280'} />
+                    </button>
+                  )}
+                  {meal.meal_time && (
+                    <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>
+                      {meal.meal_time}
+                    </span>
+                  )}
+                  <ChevronRight size={14} color="#6B7280" />
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* ── Save as Combo quick action ── */}
       {mealLogs.length > 0 && onSaveCombo && (
@@ -328,7 +333,7 @@ export default function HealthMealsList({
                   {selectedMeal.meal_name || selectedMeal.name}
                 </div>
                 <div style={{ fontSize: '12px', color: '#9A978F', marginTop: '2px' }}>
-                  {selectedMeal.serving_size || '1 plate'} · {selectedMeal.meal_time || '9:15 AM'}
+                  {selectedMeal.serving_size || '1 serving'}{selectedMeal.meal_time ? ` · ${selectedMeal.meal_time}` : ''}
                 </div>
               </div>
 
@@ -398,32 +403,32 @@ export default function HealthMealsList({
             }}>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#ECE8DF' }}>
-                  {Math.round(selectedMeal.calories || 280)}
+                  {Math.round(selectedMeal.calories ?? 0)}
                 </div>
                 <div style={{ fontSize: '10px', color: '#9A978F', marginTop: '2px', fontWeight: 600 }}>kcal</div>
               </div>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#10B981' }}>
-                  {selectedMeal.protein_g ? `${selectedMeal.protein_g}g` : '~5g'}
+                  {selectedMeal.protein_g != null ? `${selectedMeal.protein_g}g` : (selectedMeal.protein != null ? `${selectedMeal.protein}g` : '0g')}
                 </div>
                 <div style={{ fontSize: '10px', color: '#9A978F', marginTop: '2px', fontWeight: 600 }}>protein</div>
               </div>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#E9B44C' }}>
-                  {selectedMeal.carbs_g ? `${selectedMeal.carbs_g}g` : '~48g'}
+                  {selectedMeal.carbs_g != null ? `${selectedMeal.carbs_g}g` : (selectedMeal.carbs != null ? `${selectedMeal.carbs}g` : '0g')}
                 </div>
                 <div style={{ fontSize: '10px', color: '#9A978F', marginTop: '2px', fontWeight: 600 }}>carbs</div>
               </div>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#F43F5E' }}>
-                  {selectedMeal.fat_g ? `${selectedMeal.fat_g}g` : '~7g'}
+                  {selectedMeal.fat_g != null ? `${selectedMeal.fat_g}g` : (selectedMeal.fat != null ? `${selectedMeal.fat}g` : '0g')}
                 </div>
                 <div style={{ fontSize: '10px', color: '#9A978F', marginTop: '2px', fontWeight: 600 }}>fat</div>
               </div>
             </div>
 
             {/* Cross-domain Wealth connection if present */}
-            {(selectedMeal.cost || selectedMeal.expense_id || selectedMeal.meal_name?.toLowerCase().includes('poha')) && (
+            {(selectedMeal.cost != null || selectedMeal.expense_id) && (
               <div style={{
                 background: 'rgba(31, 163, 111, 0.08)',
                 border: '1px solid rgba(31, 163, 111, 0.25)',
@@ -438,7 +443,7 @@ export default function HealthMealsList({
                   <span style={{ fontSize: '14px' }}>💳</span>
                   <div>
                     <div style={{ fontSize: '12px', fontWeight: 700, color: '#1FA36F' }}>
-                      ₹{selectedMeal.cost || 30} Food Expense
+                      ₹{selectedMeal.cost ?? 0} Food Expense
                     </div>
                     <div style={{ fontSize: '11px', color: '#9A978F' }}>
                       Reconciled in Wealth Flow
@@ -451,7 +456,7 @@ export default function HealthMealsList({
 
             {/* Action buttons */}
             <div style={{ display: 'flex', gap: '10px' }}>
-              {onEditMeal && selectedMeal.id !== 'meal-default-1' && (
+              {onEditMeal && selectedMeal && (
                 <button
                   type="button"
                   onClick={() => {
@@ -481,7 +486,7 @@ export default function HealthMealsList({
                 </button>
               )}
 
-              {onDeleteMeal && selectedMeal.id !== 'meal-default-1' && (
+              {onDeleteMeal && selectedMeal && (
                 <button
                   type="button"
                   onClick={() => {

@@ -20,6 +20,7 @@ import ErrorBoundary from './components/common/ErrorBoundary.jsx'
 const Zenith = lazy(() => import('./pages/Zenith/index.jsx'))
 const Growth = lazy(() => import('./pages/Growth/index.jsx'))
 const Health = lazy(() => import('./pages/Health/index.jsx'))
+const Food = lazy(() => import('./pages/Food/index.jsx'))
 const Wealth = lazy(() => import('./pages/Wealth/index.jsx'))
 const Profile = lazy(() => import('./pages/Profile/index.jsx'))
 
@@ -100,7 +101,7 @@ function MainApp({ handleSignOut, currentUserId }) {
         <Route path="/health" element={<ProtectedRoute onSignOut={handleSignOut}><Health /></ProtectedRoute>} />
         <Route path="/wealth" element={<ProtectedRoute onSignOut={handleSignOut}><Wealth /></ProtectedRoute>} />
         <Route path="/dex" element={<Navigate to="/zenith?openDex=true" replace />} />
-        <Route path="/food" element={<Navigate to="/health" replace />} />
+        <Route path="/food" element={<ProtectedRoute onSignOut={handleSignOut}><Food /></ProtectedRoute>} />
         <Route path="/challenge" element={<Navigate to="/growth" replace />} />
         <Route path="/stats" element={<Navigate to="/zenith" replace />} />
         <Route path="/profile" element={<ProtectedRoute onSignOut={handleSignOut}><Profile /></ProtectedRoute>} />

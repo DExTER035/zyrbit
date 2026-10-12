@@ -27,24 +27,24 @@ import { getHealthSnapshot } from '../../services/healthService.js';
 import DayReceiptModal from '../../components/domain/zenith/DayReceiptModal.jsx';
 
 const ZONE_OPTIONS = [
-  { id: 'mind', label: 'Mind', icon: 'ðŸ§ ' },
-  { id: 'body', label: 'Body', icon: 'âš¡' },
-  { id: 'growth', label: 'Growth', icon: 'ðŸŒ±' },
-  { id: 'soul', label: 'Soul', icon: 'ðŸŒŒ' },
+  { id: 'mind', label: 'Mind', icon: '🧠' },
+  { id: 'body', label: 'Body', icon: '⚡' },
+  { id: 'growth', label: 'Growth', icon: '🌱' },
+  { id: 'soul', label: 'Soul', icon: '🌌' },
 ];
 
-const QUICK_ICONS = ['ðŸŒ±', 'âš¡', 'ðŸ§ ', 'ðŸŒŒ', 'ðŸ’§', 'ðŸƒ', 'ðŸ“š', 'ðŸ§˜', 'ðŸŽ¯', 'ðŸ’¤'];
+const QUICK_ICONS = ['🌱', '⚡', '🧠', '🌌', '💧', '🏃', '📚', '🧘', '🎯', '💤'];
 
-// â”€â”€â”€ colour tokens (Zenith Premium palette) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── colour tokens (Zenith Premium palette) ──────────────────────────────────
 const C = {
   bg:        '#0B0D0F',
   surface:   '#17181B',
   surfaceAlt:'#1C1D21',
   border:    '#26272C',
   border2:   '#2E2F35',
-  accent:    '#8B7FFF',   // violet  â€“ OS Score
-  cyan:      '#5EE6F5',   // cyan    â€“ briefing
-  green:     '#10B981',   // emerald â€“ completed
+  accent:    '#8B7FFF',   // violet  — OS Score
+  cyan:      '#5EE6F5',   // cyan    — briefing
+  green:     '#10B981',   // emerald — completed
   amber:     '#F59E0B',
   red:       '#EF4444',
   muted:     '#71717A',
@@ -180,7 +180,7 @@ const compileTopPriorities = (
   if (recoveryScore < 50) {
     candidates.push({
       id: 'low_recovery_protocol',
-      name: `Rest day â€” focus on sleep and water (${recoveryScore}% recovery)`,
+      name: `Rest day — focus on sleep and water (${recoveryScore}% recovery)`,
       pScore: 95,
       type: 'health_action'
     });
@@ -189,7 +189,7 @@ const compileTopPriorities = (
   if (monthlyBudgetExceeded) {
     candidates.push({
       id: 'discretionary_freeze',
-      name: 'Monthly budget reached â€” slow down spending today',
+      name: 'Monthly budget reached — slow down spending today',
       pScore: 90,
       type: 'wealth_action'
     });
@@ -211,7 +211,7 @@ const compileTopPriorities = (
     const priorityWeight = priority === 1 ? 10 : priority === 2 ? 5 : 0;
     candidates.push({
       id: t.id,
-      name: `${t.name} â€” overdue${daysOverdue > 1 ? ` ${daysOverdue}d` : ''}`,
+      name: `${t.name} — overdue${daysOverdue > 1 ? ` ${daysOverdue}d` : ''}`,
       pScore: Math.min(93, 80 + priorityWeight + daysOverdue),
       type: 'task',
       taskObj: t
@@ -290,7 +290,7 @@ export default function Zenith() {
   const [editHabit, setEditHabit] = useState(null);
   const [skipTarget, setSkipTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [form, setForm] = useState({ name: '', zone: 'mind', icon: 'ðŸŒ±', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
+  const [form, setForm] = useState({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
 
   // Submission Locks
   const [submittingHabits, setSubmittingHabits] = useState({});
@@ -298,7 +298,7 @@ export default function Zenith() {
 
   const today = getTodayStr();
 
-  // â”€â”€ Derived State Calculations (useMemo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Derived State Calculations (useMemo) ───────────────────────────────────
   const ctx = React.useMemo(() => {
     const completedTasksToday = tasks.filter(t => t.status === 'done' && isTodayLocal(t.completed_at, today)).length;
     const totalTasksToday = tasks.filter(t => t.due_date === today || (t.status === 'done' && isTodayLocal(t.completed_at, today))).length;
@@ -455,7 +455,7 @@ export default function Zenith() {
     return winsToday;
   }, [ctx, focusSessions, sleepLogs, waterLogs, moveLogs, today]);
 
-  // â”€â”€ Food totals for today â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Food totals for today ──────────────────────────────────────────────────
   const foodTotals = React.useMemo(() => ({
     calories: Math.round(foodLogs.reduce((s, l) => s + (l.calories || 0), 0)),
     protein:  Math.round(foodLogs.reduce((s, l) => s + (l.protein  || 0), 0)),
@@ -515,7 +515,7 @@ export default function Zenith() {
       rawEvents.push({
         ts: new Date(log.created_at || today + 'T07:00:00').getTime(),
         type: 'task',
-        text: `${h ? h.icon : 'âœ…'} Habit done: ${h ? h.name : 'Unknown'}`
+        text: `${h ? h.icon : '✅'} Habit done: ${h ? h.name : 'Unknown'}`
       });
     });
     
@@ -531,7 +531,7 @@ export default function Zenith() {
       rawEvents.push({
         ts: new Date(today + 'T06:00:00').getTime(),
         type: 'sleep',
-        text: `Slept ${Number(lastSleep.duration_hours).toFixed(1)}h â€” Quality ${lastSleep.quality}/5`
+        text: `Slept ${Number(lastSleep.duration_hours).toFixed(1)}h — Quality ${lastSleep.quality}/5`
       });
     }
     
@@ -547,7 +547,7 @@ export default function Zenith() {
       rawEvents.push({
         ts: new Date(m.created_at || today + 'T09:00:00').getTime(),
         type: 'workout',
-        text: `${m.activity_type} â€” ${m.active_minutes}min (RPE ${m.rpe})`
+        text: `${m.activity_type} — ${m.active_minutes}min (RPE ${m.rpe})`
       });
     });
     
@@ -555,7 +555,7 @@ export default function Zenith() {
       rawEvents.push({
         ts: new Date(f.started_at || today + 'T10:00:00').getTime(),
         type: 'focus',
-        text: `Focus session â€” ${f.duration_minutes}min`
+        text: `Focus session — ${f.duration_minutes}min`
       });
     });
 
@@ -563,7 +563,7 @@ export default function Zenith() {
       rawEvents.push({
         ts: new Date(l.created_at || today + 'T12:30:00').getTime(),
         type: 'food',
-        text: `${l.meal_type ? l.meal_type.charAt(0).toUpperCase() + l.meal_type.slice(1) : 'Meal'}: ${l.food_name} â€” ${Math.round(l.calories || 0)} kcal`
+        text: `${l.meal_type ? l.meal_type.charAt(0).toUpperCase() + l.meal_type.slice(1) : 'Meal'}: ${l.food_name} — ${Math.round(l.calories || 0)} kcal`
       });
     });
     
@@ -571,7 +571,7 @@ export default function Zenith() {
       rawEvents.push({
         ts: new Date(e.created_at || today + 'T12:00:00').getTime(),
         type: 'expense',
-        text: `â‚¹${Number(e.amount).toFixed(0)} â€” ${e.note || e.category || 'Expense'}`
+        text: `₹${Number(e.amount).toFixed(0)} — ${e.note || e.category || 'Expense'}`
       });
     });
     
@@ -783,7 +783,7 @@ export default function Zenith() {
     }
   }, [loadHabitsAndStreaks, loadGrowthData, loadHealthData, loadWealthData, loadFoodData]);
 
-  // â”€â”€ load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── load ───────────────────────────────────────────────────────────────────
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -803,7 +803,7 @@ export default function Zenith() {
       }
     }).catch(() => setLoading(false));
 
-    // Weekly Review â€” show every Sunday
+    // Weekly Review — show every Sunday
     const now = new Date();
     if (now.getDay() === 0) {
       const weekKey = `${now.getFullYear()}-W${Math.ceil(now.getDate() / 7)}`;
@@ -814,7 +814,7 @@ export default function Zenith() {
     }
   }, [loadData]);
 
-  // â”€â”€â”€ Dex OS Live Invalidation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Dex OS Live Invalidation ──────────────────────────────────────────────
   useEffect(() => {
     const handleDexRefresh = () => {
       const activeUid = userRef.current?.id || user?.id;
@@ -863,10 +863,10 @@ export default function Zenith() {
       });
 
       if (!res.success) {
-        showToast(isCompleted ? 'âŒ Failed to uncheck habit.' : "âŒ Failed to log today's habit.", 'error');
+        showToast(isCompleted ? '❌ Failed to uncheck habit.' : "❌ Failed to log today's habit.", 'error');
       } else {
         if (!isCompleted) {
-          showToast('âœ… Habit logged!', 'success');
+          showToast('✅ Habit logged!', 'success');
           const nextActivity = [...activity, res.data];
           setActivity(nextActivity);
           checkAllDone(nextActivity);
@@ -901,11 +901,11 @@ export default function Zenith() {
       });
 
       if (res.success) {
-        showToast('â­ï¸ Skipped â€” stay consistent tomorrow!', 'warning');
+        showToast('⏭️ Skipped — stay consistent tomorrow!', 'warning');
         setActivity(prev => [...prev, res.data]);
         await loadHabitsAndStreaks(currentUser.id);
       } else {
-        showToast('âŒ Failed to skip habit.', 'error');
+        showToast('❌ Failed to skip habit.', 'error');
       }
     } finally {
       setSubmittingHabits(prev => {
@@ -937,11 +937,11 @@ export default function Zenith() {
         });
 
         if (res.success) {
-          showToast('âœ… Habit updated!', 'success');
+          showToast('✅ Habit updated!', 'success');
           setShowModal(false);
           await loadHabitsAndStreaks(currentUser.id);
         } else {
-          showToast('âŒ Failed to update habit.', 'error');
+          showToast('❌ Failed to update habit.', 'error');
         }
       } else {
         const res = await serviceCreateHabit({
@@ -956,11 +956,11 @@ export default function Zenith() {
         });
 
         if (res.success) {
-          showToast('ðŸŒ± New habit added!', 'success');
+          showToast('🌱 New habit added!', 'success');
           setShowModal(false);
           await loadHabitsAndStreaks(currentUser.id);
         } else {
-          showToast('âŒ Failed to add habit.', 'error');
+          showToast('❌ Failed to add habit.', 'error');
         }
       }
     } finally {
@@ -987,10 +987,10 @@ export default function Zenith() {
       if (res.success) {
         setShowModal(false);
         setDeleteTarget(null);
-        showToast('ðŸ—‘ï¸ Habit removed', 'info');
+        showToast('🗑️ Habit removed', 'info');
         await loadHabitsAndStreaks(currentUser.id);
       } else {
-        showToast('âŒ Delete failed. Try again.', 'error');
+        showToast('❌ Delete failed. Try again.', 'error');
       }
     } finally {
       setIsSubmittingForm(false);
@@ -1015,12 +1015,12 @@ export default function Zenith() {
       });
       
       if (res.success) {
-        showToast('ðŸ“ Daily reflection saved!', 'success');
+        showToast('📝 Daily reflection saved!', 'success');
         setShowReflection(false);
         setReflectionText('');
         setTimeout(() => setShowCelebration(true), 300);
       } else {
-        showToast('âŒ Failed to save reflection.', 'error');
+        showToast('❌ Failed to save reflection.', 'error');
       }
     } finally {
       setIsSubmittingForm(false);
@@ -1034,7 +1034,7 @@ export default function Zenith() {
     setShowWeeklyReview(false)
   }
 
-  // â”€â”€ Toggle priority done â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Toggle priority done ───────────────────────────────────────────────────
   const togglePriority = async (p) => {
     if (p.done || !user) return;
     if (p.type !== 'task') {
@@ -1052,7 +1052,7 @@ export default function Zenith() {
       });
 
       if (!res.success) throw new Error(res.error || 'Failed to complete task');
-      showToast('ðŸŽ¯ Priority complete!', 'success');
+      showToast('🎯 Priority complete!', 'success');
       await loadGrowthData(user.id);
     } catch (e) {
       console.error(e);

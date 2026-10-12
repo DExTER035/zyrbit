@@ -231,6 +231,7 @@ export function resolveFoodItemV2(parsed, options = {}) {
         if (spread > FOOD_AMBIGUITY_CALORIE_THRESHOLD) {
           ambiguity = {
             isAmbiguous: true,
+            targetName: parsed.name,
             question: `Do you mean ${parsed.quantity || ''}${parsed.unit || 'g'} ${c1.name.toLowerCase()} or ${c2.name.toLowerCase()}?`,
             candidates: canonMatch.candidates.map((c) => ({
               id: c.id,
@@ -392,6 +393,7 @@ export function resolveFoodInputV2(userMessage, options = {}) {
       resolved: false,
       ambiguous: true,
       clarificationNeeded: true,
+      targetName: ambiguities[0].targetName,
       question: ambiguities[0].question,
       candidates: ambiguities[0].candidates,
     };

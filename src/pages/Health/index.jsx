@@ -798,7 +798,7 @@ export default function Health() {
       {/* ─── 2. BODY RHYTHM TIMELINE & METRICS ─── */}
       <div style={{ padding: '16px 20px 0' }}>
         <BodyRhythmVisualizer
-          sleepHours={healthState.sleep?.hours || 5.3}
+          sleepHours={healthState.sleep?.hours ?? 0}
           mealLogs={mealLogs}
           waterLogs={waterLogs}
           moveLogs={moveLogs}
@@ -814,8 +814,8 @@ export default function Health() {
           favoriteFoodNames={favoriteFoodNames}
           onSelectUsual={handleSelectUsual}
           onRepeatYesterday={handleRepeatYesterday}
-          onSeeAll={() => setActivePickerMealType('lunch')}
-          onAddMeal={() => setActivePickerMealType('lunch')}
+          onSeeAll={() => navigate('/food')}
+          onAddMeal={() => navigate('/food')}
           onEditMeal={(log) => setEditingMealLog(log)}
           onDeleteMeal={handleDeleteMealLog}
           onToggleFavorite={handleToggleFavorite}
@@ -931,7 +931,7 @@ export default function Health() {
           <button
             type="button"
             disabled={isSubmitting}
-            onClick={() => setActivePickerMealType('lunch')}
+            onClick={() => navigate('/food')}
             style={{
               padding: '10px 8px',
               borderRadius: '12px',

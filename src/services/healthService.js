@@ -409,13 +409,13 @@ export async function batchLogMeals({ userId, date = todayStr(), mealType = 'lun
     return { success: false, error: 'No meal items provided.' };
   }
 
-  const rows = items.map((item) => ({
+  const baseRows = items.map((item) => ({
     user_id: userId,
     date,
     meal_type: item.meal_type || mealType || 'snack',
-    food_id: item.food_id || null,
-    food_name: (item.food_name || 'Food').trim().slice(0, 150),
-    quantity_g: Math.max(1, Math.min(50000, Number(item.quantity_g) || 100)),
+    food_id: item.food_id || item.foodId || null,
+    food_name: (item.food_name || item.canonicalName || 'Food').trim().slice(0, 150),
+    quantity_g: Math.max(1, Math.min(50000, Number(item.quantity_g ?? item.quantityG) || 100)),
     calories: Math.max(0, Math.min(10000, Number(item.calories) || 0)),
     protein: Math.max(0, Math.min(2000, Number(item.protein) || 0)),
     carbs: Math.max(0, Math.min(2000, Number(item.carbs) || 0)),
@@ -423,16 +423,41 @@ export async function batchLogMeals({ userId, date = todayStr(), mealType = 'lun
     fiber: Math.max(0, Math.min(2000, Number(item.fiber) || 0)),
   }));
 
+  const extendedRows = baseRows.map((base, idx) => {
+    const item = items[idx];
+    return {
+      ...base,
+      ...(item.nutrition_snapshot || item.nutritionSnapshot ? { nutrition_snapshot: item.nutrition_snapshot || item.nutritionSnapshot } : {}),
+      ...(item.source_type || item.sourceType ? { source_type: item.source_type || item.sourceType } : {}),
+      ...(item.preparation_state || item.preparationState ? { preparation_state: item.preparation_state || item.preparationState } : {}),
+      ...(item.confidence !== undefined && item.confidence !== null ? { confidence: item.confidence } : {}),
+    };
+  });
+
   try {
     const { data, error } = await supabase
       .from('meal_logs')
-      .insert(rows)
+      .insert(extendedRows)
       .select();
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!error) {
+      return { success: true, data: data || [] };
     }
-    return { success: true, data: data || [] };
+
+    // Graceful fallback: If extended columns (e.g. confidence, preparation_state) do not exist in remote schema cache
+    if (error.message && (error.message.includes('column') || error.message.includes('schema'))) {
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('meal_logs')
+        .insert(baseRows)
+        .select();
+
+      if (fallbackError) {
+        return { success: false, error: fallbackError.message };
+      }
+      return { success: true, data: fallbackData || [] };
+    }
+
+    return { success: false, error: error.message };
   } catch (err) {
     return { success: false, error: err.message || 'Failed to batch log meals.' };
   }

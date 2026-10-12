@@ -1,86 +1,90 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, {
+  createContext, useContext, useState, useEffect, useCallback, useMemo, useRef,
+} from 'react';
 import supabase from '../lib/supabase/index.js';
 
 const SubscriptionContext = createContext(null);
 
+export const TIERS = ['free', 'premium', 'elite'];
+const normalizeTier = (t) => {
+  const v = String(t ?? '').toLowerCase();
+  return TIERS.includes(v) ? v : 'free';
+};
+
 export function SubscriptionProvider({ children }) {
-  const [tier, setTier] = useState('free'); // 'free' | 'premium' | 'elite'
+  const [tier, setTier] = useState('free');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [userId, setUserId] = useState(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallReason, setPaywallReason] = useState('');
 
+  const reqId = useRef(0);       // ignores out-of-order responses
+  const lastUid = useRef(null);  // skips refetch on TOKEN_REFRESHED etc.
+
   const fetchSubscription = useCallback(async (uid) => {
     if (!uid) return;
+    const id = ++reqId.current;
+    setLoading(true);
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('subscription_tier')
         .eq('id', uid)
         .maybeSingle();
-      
-      if (error) {
-        // Safe default if subscription_tier column does not exist in schema yet
-        const isMissingColumn =
-          error.code === 'PGRST204' ||
-          error.code === 'PGRST205' ||
-          error.message?.includes('subscription_tier');
-
-        if (isMissingColumn) {
-          setTier('free');
-          return;
-        }
-        // Unrelated database or network error: report for diagnostics
-        throw error;
-      }
-      
-      setTier(data?.subscription_tier || 'free');
+      if (id !== reqId.current) return;
+      if (error) throw error;
+      setTier(normalizeTier(data?.subscription_tier));
+      setError(null);
     } catch (e) {
-      console.warn('[Subscription] Error fetching subscription tier:', e.message);
-      setTier('free');
+      if (id !== reqId.current) return;
+      console.warn('[Subscription] fetch failed:', e.message);
+      setError(e); // keep last known tier, don't downgrade on a blip
     } finally {
-      setLoading(false);
+      if (id === reqId.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const uid = session?.user?.id || null;
-      setUserId(uid);
-      if (uid) fetchSubscription(uid);
-      else setLoading(false);
-    });
-
-    // Listen for auth changes
+    // onAuthStateChange fires INITIAL_SESSION itself, so no getSession() needed
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const uid = session?.user?.id || null;
+      const uid = session?.user?.id ?? null;
+      if (uid === lastUid.current) return;
+      lastUid.current = uid;
       setUserId(uid);
-      if (uid) fetchSubscription(uid);
-      else {
-        setTier('free');
-        setLoading(false);
-      }
+      reqId.current++;           // invalidate in-flight fetches
+      setTier('free');           // never show the previous user's tier
+      setError(null);
+      if (!uid) { setLoading(false); return; }
+      setLoading(true);
+      setTimeout(() => fetchSubscription(uid), 0); // avoid awaiting inside auth callback
     });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [fetchSubscription]);
+
+  // Upgrade the UI the moment the webhook updates the row (enable Realtime on profiles)
+  useEffect(() => {
+    if (!userId) return;
+    const ch = supabase
+      .channel(`profile-tier-${userId}`)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
+        (p) => setTier(normalizeTier(p.new?.subscription_tier)))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [userId]);
 
   const triggerPaywall = useCallback((reason = '') => {
     setPaywallReason(reason);
     setShowPaywall(true);
   }, []);
-
   const closePaywall = useCallback(() => {
     setShowPaywall(false);
     setPaywallReason('');
   }, []);
+  const refreshSubscription = useCallback(() => fetchSubscription(userId), [fetchSubscription, userId]);
 
-  // Update subscription in database (server authoritative)
   const updateSubscription = useCallback(async (newTier) => {
     if (!userId) return false;
     try {
@@ -97,8 +101,7 @@ export function SubscriptionProvider({ children }) {
         }
         throw error;
       }
-      
-      setTier(newTier);
+      setTier(normalizeTier(newTier));
       return true;
     } catch (e) {
       console.error('[Subscription] Error updating subscription:', e.message);
@@ -108,33 +111,26 @@ export function SubscriptionProvider({ children }) {
     }
   }, [userId]);
 
-  const isPremium = tier === 'premium' || tier === 'elite';
-  const isElite = tier === 'elite';
+  const value = useMemo(() => ({
+    tier,
+    isPremium: tier === 'premium' || tier === 'elite',
+    isElite: tier === 'elite',
+    loading,
+    error,
+    showPaywall,
+    paywallReason,
+    triggerPaywall,
+    closePaywall,
+    updateSubscription,
+    refreshSubscription,
+  }), [tier, loading, error, showPaywall, paywallReason,
+    triggerPaywall, closePaywall, updateSubscription, refreshSubscription]);
 
-  return (
-    <SubscriptionContext.Provider
-      value={{
-        tier,
-        isPremium,
-        isElite,
-        loading,
-        showPaywall,
-        paywallReason,
-        triggerPaywall,
-        closePaywall,
-        updateSubscription,
-        refreshSubscription: () => fetchSubscription(userId)
-      }}
-    >
-      {children}
-    </SubscriptionContext.Provider>
-  );
+  return <SubscriptionContext.Provider value={value}>{children}</SubscriptionContext.Provider>;
 }
 
 export function useSubscription() {
-  const context = useContext(SubscriptionContext);
-  if (!context) {
-    throw new Error('useSubscription must be used within a SubscriptionProvider');
-  }
-  return context;
+  const ctx = useContext(SubscriptionContext);
+  if (!ctx) throw new Error('useSubscription must be used within a SubscriptionProvider');
+  return ctx;
 }
