@@ -638,10 +638,10 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
         style={{
           width: '100%',
           maxWidth: '520px',
-          background: '#0E0F13',
-          border: '1px solid #26272D',
+          background: '#111A15',
+          border: '1px solid #1A2B23',
           borderRadius: '24px',
-          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.6)',
           display: 'flex',
           flexDirection: 'column',
           maxHeight: '90vh',
@@ -652,29 +652,29 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
         {/* Header */}
         <div
           style={{
-            padding: '12px 18px',
-            borderBottom: '1px solid #26272D',
+            padding: '14px 20px',
+            borderBottom: '1px solid #1A2B23',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: '#111216',
+            background: '#111A15',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 800, color: '#ECE8DF', letterSpacing: '-0.01em' }}>
-              Dex
+            <span style={{ fontSize: '15px', fontWeight: 800, color: '#F1F5F3', letterSpacing: '-0.01em' }}>
+              Dex AI Assistant
             </span>
             <span style={{
               fontSize: '10px',
-              fontWeight: 700,
-              color: '#38BDF8',
-              background: 'rgba(56, 189, 248, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
+              fontWeight: 800,
+              color: '#2DE09A',
+              background: 'rgba(45, 224, 154, 0.12)',
+              border: '1px solid rgba(45, 224, 154, 0.25)',
               borderRadius: '9999px',
-              padding: '1px 7px',
+              padding: '2px 8px',
               letterSpacing: '0.04em',
             }}>
-              COMMAND
+              ONLINE
             </span>
           </div>
 
@@ -687,7 +687,7 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#9A978F',
+                  color: 'var(--text-secondary, #68758A)',
                   cursor: 'pointer',
                   padding: '6px',
                   borderRadius: '6px',
@@ -705,7 +705,7 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#9A978F',
+                color: 'var(--text-secondary, #68758A)',
                 cursor: 'pointer',
                 padding: '6px',
                 borderRadius: '6px',
@@ -800,28 +800,28 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
                   style={{
                     maxWidth: '85%',
                     padding: '10px 14px',
-                    borderRadius: isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
-                    background: isUser ? '#1E232A' : '#171B20',
-                    border: `1px solid ${
-                      isUser
-                        ? '#303844'
-                        : msg.type === 'plan_proposed'
-                        ? 'rgba(31, 163, 111, 0.45)'
-                        : msg.type === 'plan_executed'
-                        ? (msg.status === 'partially_completed' ? 'rgba(245, 158, 11, 0.45)' : 'rgba(31, 163, 111, 0.4)')
-                        : msg.type === 'confirmation'
-                        ? 'rgba(245, 158, 11, 0.4)'
-                        : msg.type === 'error'
-                        ? 'rgba(239, 68, 68, 0.4)'
-                        : msg.type === 'success'
-                        ? 'rgba(31, 163, 111, 0.35)'
-                        : msg.type === 'conversational'
-                        ? 'rgba(31, 163, 111, 0.25)'
-                        : '#2A3039'
-                    }`,
-                    color: '#F5F5F5',
+                    borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                    background: isUser ? '#2DE09A' : '#15221C',
+                    border: isUser
+                      ? 'none'
+                      : msg.type === 'plan_proposed'
+                      ? '1px solid rgba(45, 224, 154, 0.45)'
+                      : msg.type === 'plan_executed'
+                      ? (msg.status === 'partially_completed' ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid rgba(45, 224, 154, 0.4)')
+                      : msg.type === 'confirmation'
+                      ? '1px solid rgba(245, 158, 11, 0.4)'
+                      : msg.type === 'error'
+                      ? '1px solid rgba(239, 68, 68, 0.4)'
+                      : msg.type === 'success'
+                      ? '1px solid rgba(45, 224, 154, 0.35)'
+                      : msg.type === 'conversational'
+                      ? '1px solid rgba(45, 224, 154, 0.25)'
+                      : '1px solid #1A2B23',
+                    color: isUser ? '#060B08' : '#F1F5F3',
+                    fontWeight: isUser ? 700 : 500,
                     fontSize: '13.5px',
                     lineHeight: '1.5',
+                    boxShadow: isUser ? '0 0 14px rgba(45, 224, 154, 0.25)' : '0 4px 16px rgba(0,0,0,0.25)',
                   }}
                 >
                   {!isUser && (
@@ -1106,17 +1106,17 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
           <div
             style={{
               padding: '12px 16px',
-              borderTop: '1px solid #26272D',
-              background: '#111216',
+              borderTop: '1px solid #1A2B23',
+              background: '#111A15',
             }}
           >
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                background: '#181C21',
-                border: '1px solid #2A3039',
-                borderRadius: '10px',
+                background: '#15221C',
+                border: '1px solid #1A2B23',
+                borderRadius: '14px',
                 padding: '4px 8px 4px 12px',
                 gap: '8px',
               }}
@@ -1130,7 +1130,7 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
                 title="Attach screenshot or image"
                 style={{
                   background: 'transparent',
-                  color: '#9CA3AF',
+                  color: '#7E948A',
                   border: 'none',
                   borderRadius: '8px',
                   width: '28px',
@@ -1142,8 +1142,8 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
                   transition: 'color 0.15s ease',
                   padding: 0,
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#38BDF8')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#9CA3AF')}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#2DE09A')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#7E948A')}
               >
                 <Plus size={16} />
               </button>
@@ -1167,7 +1167,7 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
                   flex: 1,
                   background: 'transparent',
                   border: 'none',
-                  color: '#F5F5F5',
+                  color: '#F1F5F3',
                   fontSize: '14px',
                   outline: 'none',
                   padding: '6px 0',
@@ -1185,7 +1185,7 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
                   title="Voice Command (Ctrl+M)"
                   style={{
                     background: 'transparent',
-                    color: '#38BDF8',
+                    color: '#2DE09A',
                     border: 'none',
                     borderRadius: '8px',
                     width: '32px',
@@ -1210,14 +1210,15 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
                   width: '32px',
                   height: '32px',
                   borderRadius: '8px',
-                  background: inputText.trim() && !loading ? '#38BDF8' : 'transparent',
-                  color: inputText.trim() && !loading ? '#0E0F13' : '#4B5563',
+                  background: inputText.trim() && !loading ? '#2DE09A' : '#1A2B23',
+                  color: inputText.trim() && !loading ? '#060B08' : '#7E948A',
                   border: 'none',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: inputText.trim() && !loading ? 'pointer' : 'default',
-                  transition: 'background 0.15s, color 0.15s',
+                  boxShadow: inputText.trim() && !loading ? '0 0 12px rgba(45, 224, 154, 0.35)' : 'none',
+                  transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
                 }}
               >
                 <Send size={15} />
@@ -1231,7 +1232,7 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
                 marginTop: '6px',
                 padding: '0 4px',
                 fontSize: '11px',
-                color: '#6B7280',
+                color: '#7E948A',
               }}
             >
               <span>Enter sends • Shift+Enter newline</span>

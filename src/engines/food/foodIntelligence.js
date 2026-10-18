@@ -145,7 +145,7 @@ export function computeMacroBalanceGuidance(totals = {}, settings = {}) {
   if (!isFinite(rawGoalCal) || rawGoalCal <= 0) return null;
 
   const goalCal = Math.round(rawGoalCal);
-  const rawConsumedCal = Number(totals?.cal);
+  const rawConsumedCal = Number(totals?.calories ?? totals?.cal);
   const consumedCal = isFinite(rawConsumedCal) && rawConsumedCal > 0 ? Math.round(rawConsumedCal) : 0;
 
   const rawConsumedProt = Number(totals?.protein);

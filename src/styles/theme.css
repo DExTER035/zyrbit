@@ -1,5 +1,5 @@
-/* src/styles/theme.css — Zyrbit Brand Tokens v1.1 */
-/* The Personal Operating System Visual Foundation */
+/* src/styles/theme.css — Zyrbit Brand Tokens v3.0 (Dark Forest & Mint OS) */
+/* Approved 6-Screen Figma Visual Direction */
 
 :root {
   /* ── Spacing Tokens ── */
@@ -12,10 +12,10 @@
   --space-32: 32px;
 
   /* ── Radius Tokens ── */
-  --radius-card:   16px;
-  --radius-inner:  12px;
-  --radius-button: 12px;
-  --radius-input:  12px;
+  --radius-card:   20px;
+  --radius-inner:  14px;
+  --radius-button: 14px;
+  --radius-input:  14px;
   --radius-pill:   9999px;
   --radius-badge:  100px;
 
@@ -28,75 +28,86 @@
   --fs-xl:   24px;
   --fs-xxl:  32px;
 
-  /* ── Core Backgrounds (Master Specification) ── */
-  --bg-root:     #0E0F13;
-  --bg-page:     #0E0F13;
-  --bg-card:     #15161B;
-  --bg-surface:  #15161B;
-  --bg-elevated: #1D1E24;
-  --bg-input:    #1A1B22;
-  --bg-nav:      rgba(14, 15, 19, 0.94);
+  /* ── Core Backgrounds (Dark Forest & Deep Charcoal OS) ── */
+  --bg-root:     #080E0B;
+  --bg-page:     #080E0B;
+  --bg-card:     #111A15;
+  --bg-surface:  #111A15;
+  --bg-elevated: #15221C;
+  --bg-input:    #0B120E;
+  --bg-nav:      rgba(11, 18, 14, 0.95);
 
   /* ── Borders & Hairlines ── */
-  --border-primary:   #26272D;
-  --border-secondary: #1F2026;
-  --border-hairline:  #3A3B40;
-  --hairline:         #3A3B40;
+  --border-primary:   #1A2B23;
+  --border-secondary: #22372D;
+  --border-hairline:  #15241D;
+  --hairline:         #1A2B23;
 
   /* ── Typography Colors ── */
-  --text-primary:   #ECE8DF;
-  --text-secondary: #9A978F;
-  --text-muted:     #9A978F;
-  --text-dim:       #6B7280;
-  --text-hint:      #4B5563;
+  --text-primary:   #F1F5F3;
+  --text-secondary: #7E948A;
+  --text-muted:     #7E948A;
+  --text-dim:       #4E6359;
+  --text-hint:      #4E6359;
 
   /* ── Letter-Spacing Tokens ── */
   --ls-tight: -0.02em;
   --ls-body:   0em;
   --ls-caps:   0.08em;
 
-  /* ── Primary Zyrbit Amber & Domain Accents ── */
-  --zyrbit-amber:      #E9B44C;
-  --color-accent:      #E9B44C;
-  --color-accent-dim:  rgba(233, 180, 76, 0.15);
-  --color-accent-glow: rgba(233, 180, 76, 0.25);
+  /* ── Primary Zyrbit Mint & Domain Accents ── */
+  --zyrbit-mint:       #2DE09A;
+  --color-accent:      #2DE09A;
+  --color-accent-dim:  rgba(45, 224, 154, 0.12);
+  --color-accent-glow: rgba(45, 224, 154, 0.25);
 
-  --accent-zenith: #E9B44C;
-  --accent-growth: #E9B44C;
-  --accent-health: #10B981;
-  --accent-wealth: #10B981;
-  --accent-dex:    #06B6D4;
+  --accent-zenith: #2DE09A;
+  --accent-growth: #A78BFA;
+  --accent-health: #2DE09A;
+  --accent-wealth: #38BDF8;
+  --accent-dex:    #2DE09A;
 
-  --color-accent-cyan:      #06B6D4;
-  --color-accent-cyan-dim:  rgba(6, 182, 212, 0.15);
-  --color-accent-cyan-glow: rgba(6, 182, 212, 0.25);
+  --color-accent-cyan:      #38BDF8;
+  --color-accent-cyan-dim:  rgba(56, 189, 248, 0.12);
+  --color-accent-cyan-glow: rgba(56, 189, 248, 0.25);
+
+  --color-accent-coral:     #FF6B6B;
+  --color-accent-violet:    #A78BFA;
+  --color-accent-lime:      #A3E635;
+  --color-accent-amber:     #F59E0B;
 
   /* ── Semantic Colors ── */
-  --color-success:      #10B981;
-  --color-success-dim:  rgba(16, 185, 129, 0.15);
+  --color-success:      #2DE09A;
+  --color-success-dim:  rgba(45, 224, 154, 0.12);
   --color-warning:      #F59E0B;
-  --color-warning-dim:  rgba(245, 158, 11, 0.15);
-  --color-error:        #EF4444;
-  --color-error-dim:    rgba(239, 68, 68, 0.15);
+  --color-warning-dim:  rgba(245, 158, 11, 0.12);
+  --color-error:        #FF6B6B;
+  --color-error-dim:    rgba(255, 107, 107, 0.12);
+
+  /* ── Shadows & Elevation ── */
+  --shadow-sm:       0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-card:     0 4px 20px rgba(0, 0, 0, 0.35);
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.5);
 
   /* ── Logo System ── */
-  --logo-primary:   #ECE8DF;
-  --logo-accent:    #E9B44C;
+  --logo-primary:   #F1F5F3;
+  --logo-accent:    #2DE09A;
 
   /* ── Zone Colors ── */
-  --zone-mind:   #E9B44C;
-  --zone-body:   #10B981;
-  --zone-growth: #E9B44C;
-  --zone-soul:   #8B5CF6;
+  --zone-mind:   #38BDF8;
+  --zone-body:   #2DE09A;
+  --zone-growth: #A78BFA;
+  --zone-soul:   #F59E0B;
 }
 
 /* ── Glassmorphism utility ── */
 .glass {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  background: rgba(21, 22, 27, 0.85);
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 /* ── Subtle ambient utility ── */

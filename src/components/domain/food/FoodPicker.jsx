@@ -265,31 +265,38 @@ export default function FoodPicker({
   const effectiveGrams = useMemo(() => {
     if (!selectedFood) return 0;
     if (isCustomMode && customAmountG) {
-      return parseFloat(customAmountG) || 0;
+      return Math.max(0, parseFloat(customAmountG) || 0);
     }
-    const baseServing = selectedFood.defaultServingG || selectedFood.serving_size_g || 100;
-    return baseServing * portionMultiplier;
+    const rawServing = Number(selectedFood.defaultServingG ?? selectedFood.serving_size_g);
+    const baseServing = isFinite(rawServing) && rawServing > 0 ? rawServing : 100;
+    return Math.max(0, Math.round(baseServing * portionMultiplier));
   }, [selectedFood, isCustomMode, customAmountG, portionMultiplier]);
 
   const nutritionPreview = useMemo(() => {
     if (!selectedFood || effectiveGrams <= 0) return null;
+
+    if (selectedFood.per100g) {
+      const baseFood = {
+        serving_size_g: 100,
+        calories: Number(selectedFood.per100g.cal) || 0,
+        protein: Number(selectedFood.per100g.protein) || 0,
+        carbs: Number(selectedFood.per100g.carbs) || 0,
+        fat: Number(selectedFood.per100g.fat) || 0,
+        fiber: Number(selectedFood.per100g.fiber) || 0,
+      };
+      return calculateScaledNutrition(baseFood, effectiveGrams);
+    }
+
+    const rawServing = Number(selectedFood.serving_size_g ?? selectedFood.defaultServingG);
+    const validServing = isFinite(rawServing) && rawServing > 0 ? rawServing : 100;
+
     const baseFood = {
-      serving_size_g: selectedFood.defaultServingG || selectedFood.serving_size_g || 100,
-      calories: selectedFood.per100g
-        ? (selectedFood.per100g.cal * (selectedFood.defaultServingG || 100)) / 100
-        : (selectedFood.calories || 0),
-      protein: selectedFood.per100g
-        ? (selectedFood.per100g.protein * (selectedFood.defaultServingG || 100)) / 100
-        : (selectedFood.protein || 0),
-      carbs: selectedFood.per100g
-        ? (selectedFood.per100g.carbs * (selectedFood.defaultServingG || 100)) / 100
-        : (selectedFood.carbs || 0),
-      fat: selectedFood.per100g
-        ? (selectedFood.per100g.fat * (selectedFood.defaultServingG || 100)) / 100
-        : (selectedFood.fat || 0),
-      fiber: selectedFood.per100g
-        ? (selectedFood.per100g.fiber * (selectedFood.defaultServingG || 100)) / 100
-        : (selectedFood.fiber || 0),
+      serving_size_g: validServing,
+      calories: Number(selectedFood.calories) || 0,
+      protein: Number(selectedFood.protein) || 0,
+      carbs: Number(selectedFood.carbs) || 0,
+      fat: Number(selectedFood.fat) || 0,
+      fiber: Number(selectedFood.fiber) || 0,
     };
     return calculateScaledNutrition(baseFood, effectiveGrams);
   }, [selectedFood, effectiveGrams]);
@@ -325,21 +332,40 @@ export default function FoodPicker({
   // ── Quick Add Handler (Direct tap on '+' button from list) ───────────────────
   const handleQuickAdd = useCallback((food, e) => {
     if (e) e.stopPropagation();
-    const servingG = food.defaultServingG || food.serving_size_g || 100;
-    const baseCalories = food.per100g
-      ? Math.round((food.per100g.cal * servingG) / 100)
-      : Math.round(food.calories || 0);
+    const rawServing = Number(food.defaultServingG ?? food.serving_size_g);
+    const servingG = isFinite(rawServing) && rawServing > 0 ? rawServing : 100;
+
+    let scaledNutrition;
+    if (food.per100g) {
+      scaledNutrition = calculateScaledNutrition({
+        serving_size_g: 100,
+        calories: Number(food.per100g.cal) || 0,
+        protein: Number(food.per100g.protein) || 0,
+        carbs: Number(food.per100g.carbs) || 0,
+        fat: Number(food.per100g.fat) || 0,
+        fiber: Number(food.per100g.fiber) || 0,
+      }, servingG);
+    } else {
+      scaledNutrition = calculateScaledNutrition({
+        serving_size_g: servingG,
+        calories: Number(food.calories) || 0,
+        protein: Number(food.protein) || 0,
+        carbs: Number(food.carbs) || 0,
+        fat: Number(food.fat) || 0,
+        fiber: Number(food.fiber) || 0,
+      }, servingG);
+    }
 
     onLog({
       food_id: food.id || null,
       food_name: food.name || food.food_name,
       meal_type: targetMealSlot,
       quantity_g: servingG,
-      calories: baseCalories,
-      protein: food.protein || (food.per100g ? Math.round((food.per100g.protein * servingG) / 100) : 0),
-      carbs: food.carbs || (food.per100g ? Math.round((food.per100g.carbs * servingG) / 100) : 0),
-      fat: food.fat || (food.per100g ? Math.round((food.per100g.fat * servingG) / 100) : 0),
-      fiber: food.fiber || (food.per100g ? Math.round((food.per100g.fiber * servingG) / 100) : 0),
+      calories: scaledNutrition.calories,
+      protein: scaledNutrition.protein,
+      carbs: scaledNutrition.carbs,
+      fat: scaledNutrition.fat,
+      fiber: scaledNutrition.fiber,
       preparation_state: food.preparationState || null,
       source_type: food.sourceType || (food.isPersonal ? 'personal_library' : 'canonical_catalog'),
       nutrition_snapshot: food.per100g ? {

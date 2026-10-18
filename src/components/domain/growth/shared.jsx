@@ -4,23 +4,23 @@ import { CheckCircle2, Circle, Flame, X, Play, Lock } from 'lucide-react';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 export const C = {
-  bg:      '#0B0D0F',
-  surface: '#15181B',
-  elev:    '#1B1F23',
-  border:  '#1C1D21',
-  border2: '#26272C',
-  growth:  '#1FA36F', // DexOS green — primary interactive
-  project: '#1FA36F', // DexOS green — unified
-  goal:    '#22C55E',
-  sprint:  '#2979FF',
+  bg:      'var(--bg-page, #F5F8FC)',
+  surface: 'var(--bg-card, #FFFFFF)',
+  elev:    '#F8FAFC',
+  border:  'var(--border-primary, #E4EAF2)',
+  border2: 'var(--border-secondary, #EDF2F7)',
+  growth:  '#08B878', // emerald
+  project: '#08B878',
+  goal:    '#08B878',
+  sprint:  '#3296F4',
   skill:   '#FFB300',
-  focus:   '#7F77DD', // purple — focus data visualization
+  focus:   '#8866E9', // violet
   danger:  '#EF4444',
   warn:    '#F59E0B',
-  text:    '#F5F5F5',
-  sub:     '#9CA3AF',
-  muted:   '#71717A',
-  dim:     '#2A3038',
+  text:    'var(--text-primary, #172033)',
+  sub:     'var(--text-secondary, #68758A)',
+  muted:   '#94A3B8',
+  dim:     '#E2E8F0',
 };
 
 export function fmtTime(secs) {

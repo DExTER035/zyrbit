@@ -562,5 +562,166 @@ describe('Money State V1 — Master Reconciliation Verification Scenario', () =>
     expect(res.flow.grossLifestyleSpend).toBe(780);
     expect(res.flow.netSpending).toBe(680);
   });
+
+  describe('Honest Savings & Asset Derivation (No Phantom Fallbacks)', () => {
+    const TODAY = '2026-10-04';
+
+    it('does not generate phantom 40% savings when liquid cash is above ₹50,000 with no recorded savings', () => {
+      const incomes = [{ id: 'i1', amount: 120000, source: 'Salary', income_date: TODAY }];
+      const expenses = [{ id: 'e1', amount: 20000, category: 'Rent', expense_date: TODAY }];
+      const bills = [];
+
+      const res = computeMoneyState({ incomes, expenses, bills, today: TODAY });
+
+      expect(res.liquidCash).toBe(100000);
+      expect(res.assets.savings).toBe(0);
+      expect(res.assets.cash).toBe(100000);
+      expect(res.assets.total).toBe(100000);
+      expect(res.assets.netAssets).toBe(100000);
+    });
+
+    it('produces zero savings when data is empty or missing', () => {
+      const res = computeMoneyState({ incomes: [], expenses: [], bills: [], today: TODAY });
+
+      expect(res.liquidCash).toBe(0);
+      expect(res.assets.savings).toBe(0);
+      expect(res.assets.cash).toBe(0);
+      expect(res.assets.total).toBe(0);
+      expect(res.safeToSpendDaily).toBe(0);
+      expect(res.safeToSpendStatus).toBe('zero');
+    });
+
+    it('correctly represents explicitly recorded savings and withdrawals', () => {
+      const incomes = [
+        { id: 'i1', amount: 80000, source: 'Salary', income_date: TODAY },
+        { id: 'i2', amount: 5000, source: 'Savings withdrawal', note: 'from savings', income_date: TODAY },
+      ];
+      const expenses = [
+        { id: 'e1', amount: 20000, category: 'Transfer', note: 'to savings', expense_date: TODAY },
+      ];
+
+      const res = computeMoneyState({ incomes, expenses, bills: [], today: TODAY });
+
+      // liquid cash: 85,000 - 20,000 = 65,000
+      expect(res.liquidCash).toBe(65000);
+      // calculated savings: 20,000 - 5,000 = 15,000
+      expect(res.assets.savings).toBe(15000);
+      expect(res.assets.cash).toBe(65000);
+      expect(res.assets.total).toBe(80000); // 65,000 + 15,000
+    });
+
+    it('keeps safe-to-spend and runway consistent when savings are zero', () => {
+      const incomes = [{ id: 'i1', amount: 90000, source: 'Salary', income_date: TODAY }];
+      const expenses = [
+        { id: 'e1', amount: 1000, category: 'Food', expense_date: TODAY },
+        { id: 'e2', amount: 1000, category: 'Food', expense_date: '2026-10-03' },
+        { id: 'e3', amount: 1000, category: 'Food', expense_date: '2026-10-02' },
+      ];
+      const bills = [{ id: 'b1', name: 'Electricity', amount: 5000, due_date: '2026-10-20', status: 'unpaid' }];
+
+      const res = computeMoneyState({ incomes, expenses, bills, today: TODAY });
+
+      expect(res.liquidCash).toBe(87000);
+      expect(res.assets.savings).toBe(0);
+      expect(res.unencumberedCash).toBe(82000); // 87000 - 5000
+      expect(res.safeToSpendDaily).toBe(Math.floor(82000 / res.daysLeft));
+      expect(res.runwayHasData).toBe(true);
+      expect(res.dailyBurnRate).toBe(Math.round(3000 / 30)); // 100/day
+      expect(res.runwayDays).toBe(Math.round(87000 / 100)); // 870 days
+    });
+  });
+
+  describe('Internal Transfer Accounting & Asset Insulation', () => {
+    const TODAY = '2026-10-04';
+
+    it('internal transfers do not count as lifestyle expenses or inflate monthSpend / todaySpend', () => {
+      const incomes = [{ id: 'i1', amount: 50000, source: 'Salary', income_date: TODAY }];
+      const expenses = [
+        { id: 'e1', amount: 15000, category: 'Transfer', note: 'Moved to savings', expense_date: TODAY },
+        { id: 'e2', amount: 500, category: 'Food', note: 'Groceries', expense_date: TODAY },
+      ];
+
+      const res = computeMoneyState({ incomes, expenses, bills: [], today: TODAY });
+
+      // Lifestyle spending is only the ₹500 grocery spend
+      expect(res.monthSpend).toBe(500);
+      expect(res.todaySpend).toBe(500);
+      expect(res.flow.transfers).toBe(15000);
+      expect(res.flow.spent).toBe(500);
+      expect(res.flow.grossLifestyleSpend).toBe(500);
+    });
+
+    it('internal transfers preserve net assets without destruction of net worth', () => {
+      const incomes = [{ id: 'i1', amount: 40000, source: 'Salary', income_date: TODAY }];
+      const expenses = [
+        { id: 'e1', amount: 12000, category: 'Transfer', note: 'Emergency fund transfer', expense_date: TODAY },
+      ];
+
+      const res = computeMoneyState({ incomes, expenses, bills: [], today: TODAY });
+
+      // Cash drops by ₹12,000, savings increases by ₹12,000 -> net assets unchanged at ₹40,000
+      expect(res.liquidCash).toBe(28000);
+      expect(res.assets.cash).toBe(28000);
+      expect(res.assets.savings).toBe(12000);
+      expect(res.assets.total).toBe(40000);
+      expect(res.assets.netAssets).toBe(40000);
+    });
+
+    it('transfers do not inflate 30-day burn rate or artificially truncate runway', () => {
+      const incomes = [{ id: 'i1', amount: 100000, source: 'Salary', income_date: TODAY }];
+      const expenses = [
+        { id: 'e1', amount: 200, category: 'Food', expense_date: TODAY },
+        { id: 'e2', amount: 200, category: 'Transport', expense_date: '2026-10-03' },
+        { id: 'e3', amount: 200, category: 'Food', expense_date: '2026-10-02' },
+        { id: 'e4', amount: 50000, category: 'Transfer', note: 'Big transfer to savings', expense_date: TODAY },
+      ];
+
+      const res = computeMoneyState({ incomes, expenses, bills: [], today: TODAY });
+
+      // Burn rate is based on 200 + 200 + 200 = 600, NOT 50,600!
+      expect(res.dailyBurnRate).toBe(Math.round(600 / 30)); // 20/day
+      expect(res.liquidCash).toBe(49400); // 100,000 - 50,600
+      expect(res.runwayDays).toBe(Math.round(49400 / 20)); // ~2470 days, not collapsed
+    });
+
+    it('classifies genuine investments and gold purchases separately from internal transfers', () => {
+      const incomes = [{ id: 'i1', amount: 100000, source: 'Salary', income_date: TODAY }];
+      const expenses = [
+        { id: 'e1', amount: 10000, category: 'Investment', note: 'Nifty 50 Index Fund', expense_date: TODAY },
+        { id: 'e2', amount: 5000, category: 'Gold', note: 'Sovereign gold bond', expense_date: TODAY },
+        { id: 'e3', amount: 8000, category: 'Transfer', note: 'High yield savings', expense_date: TODAY },
+      ];
+
+      const res = computeMoneyState({ incomes, expenses, bills: [], today: TODAY });
+
+      expect(res.flow.invested).toBe(15000); // 10000 + 5000
+      expect(res.flow.transfers).toBe(8000);
+      expect(res.assets.invested).toBe(10000);
+      expect(res.assets.gold).toBe(5000);
+      expect(res.assets.savings).toBe(8000);
+      // Net assets accurately tracks all three asset categories
+      expect(res.assets.total).toBe(100000);
+    });
+
+    it('inbound transfers from savings to cash increase liquid cash without inflating earned income', () => {
+      const incomes = [
+        { id: 'i1', amount: 60000, source: 'Salary', income_date: TODAY },
+        { id: 'i2', amount: 10000, source: 'Savings withdrawal', note: 'from savings to cash', income_date: TODAY },
+      ];
+      const expenses = [
+        { id: 'e1', amount: 25000, category: 'Transfer', note: 'past transfer to savings', expense_date: TODAY },
+      ];
+
+      const res = computeMoneyState({ incomes, expenses, bills: [], today: TODAY });
+
+      // Total earned income for the month should only be Salary (₹60,000), not ₹70,000
+      expect(res.monthEarned).toBe(60000);
+      expect(res.flow.income).toBe(60000);
+      expect(res.flow.transfersIn).toBe(10000);
+      expect(res.assets.savings).toBe(15000); // 25,000 - 10,000
+      expect(res.liquidCash).toBe(45000); // 70,000 - 25,000
+      expect(res.assets.total).toBe(60000); // 45,000 + 15,000 = total earned
+    });
+  });
 });
 

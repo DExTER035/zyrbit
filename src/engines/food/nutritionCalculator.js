@@ -23,15 +23,17 @@ export function calculateScaledNutrition(baseFood, targetQuantityG) {
 
 /**
  * Calculates total daily calories and macros from an array of logged meals.
+ * Preserves full precision during intermediate summation and rounds cleanly
+ * at the output boundary (calories to nearest integer, macros to 1 decimal place).
  * Handles zero meals, single meals, multiple meals, decimal quantities.
  * 
  * @param {Array} mealLogs - Array of logged meal items
  * @returns {Object} Totals for calories, protein, carbs, fat, fiber
  */
 export function calculateDailyTotals(mealLogs = []) {
-  return (mealLogs || []).reduce(
+  const raw = (mealLogs || []).reduce(
     (acc, meal) => {
-      acc.calories += Math.round(Number(meal?.calories) || 0);
+      acc.calories += Number(meal?.calories) || 0;
       acc.protein += Number(meal?.protein ?? meal?.protein_g) || 0;
       acc.carbs += Number(meal?.carbs ?? meal?.carbs_g) || 0;
       acc.fat += Number(meal?.fat ?? meal?.fat_g) || 0;
@@ -40,5 +42,13 @@ export function calculateDailyTotals(mealLogs = []) {
     },
     { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
   );
+
+  return {
+    calories: Math.round(raw.calories),
+    protein: Math.round((raw.protein + Number.EPSILON) * 10) / 10,
+    carbs: Math.round((raw.carbs + Number.EPSILON) * 10) / 10,
+    fat: Math.round((raw.fat + Number.EPSILON) * 10) / 10,
+    fiber: Math.round((raw.fiber + Number.EPSILON) * 10) / 10,
+  };
 }
 

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Compass, Sparkles, Utensils, Wallet, Activity, User, Plus, MessageSquare, Bell } from 'lucide-react';
 import DexCommandModal from '../common/DexCommandModal.jsx';
 import VoiceCommandOverlay from '../common/VoiceCommandOverlay.jsx';
+import QuickAddSheet from './QuickAddSheet.jsx';
 
 export default function AppLayout({ children, userId }) {
   const location = useLocation();
   const [dexOpen, setDexOpen] = useState(() => (typeof window !== 'undefined' && window.location.search.includes('openDex=true')));
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,6 +39,7 @@ export default function AppLayout({ children, userId }) {
   useEffect(() => {
     const handleVoiceOpen = () => setVoiceOpen(true);
     const handleDexOpen = () => setDexOpen(true);
+    const handleQuickAdd = () => setQuickAddOpen(true);
     const handleNavigate = (e) => {
       if (e.detail?.route) {
         navigate(e.detail.route);
@@ -44,25 +48,207 @@ export default function AppLayout({ children, userId }) {
 
     window.addEventListener('dexos:voice-open', handleVoiceOpen);
     window.addEventListener('dexos:open-dex', handleDexOpen);
+    window.addEventListener('dexos:quick-add', handleQuickAdd);
     window.addEventListener('dexos:navigate', handleNavigate);
 
     return () => {
       window.removeEventListener('dexos:voice-open', handleVoiceOpen);
       window.removeEventListener('dexos:open-dex', handleDexOpen);
+      window.removeEventListener('dexos:quick-add', handleQuickAdd);
       window.removeEventListener('dexos:navigate', handleNavigate);
     };
   }, [navigate]);
 
+  const navLinks = [
+    { to: '/zenith', label: 'Home', icon: Compass },
+    { to: '/growth', label: 'Grow', icon: Sparkles },
+    { to: '/food', label: 'Food', icon: Utensils },
+    { to: '/wealth', label: 'Wealth', icon: Wallet },
+    { to: '/profile', label: 'You', icon: User },
+  ];
+
   return (
     <div className="app-layout" style={{
-      background: 'var(--bg-page)',
+      background: 'var(--bg-root, #080E0B)',
       minHeight: '100vh',
       margin: '0 auto',
       position: 'relative',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
     }}>
-      {children}
+      {/* Desktop Top Navigation Header (visible >= 768px) */}
+      <header className="desktop-header hidden md:flex" style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 80,
+        background: '#0B120E',
+        borderBottom: '1px solid #1A2B23',
+        boxShadow: '0 4px 24px rgba(0, 0, 0, 0.4)',
+        padding: '10px 24px',
+        width: '100%',
+      }}>
+        <div style={{
+          width: '100%',
+          maxWidth: '1280px',
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+        }}>
+          {/* Brand Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+            <Link to="/zenith" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                background: '#2DE09A',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#060B08',
+                fontWeight: 900,
+                fontSize: '17px',
+                boxShadow: '0 0 16px rgba(45, 224, 154, 0.35)',
+              }}>
+                Z
+              </div>
+              <div>
+                <div style={{
+                  fontSize: '16px',
+                  fontWeight: 900,
+                  color: '#F1F5F3',
+                  letterSpacing: '0.04em',
+                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                  lineHeight: 1.1,
+                }}>
+                  ZYRBIT
+                </div>
+                <div style={{
+                  fontSize: '10px',
+                  color: '#7E948A',
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}>
+                  Personal OS
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* Center Nav Links */}
+          <nav style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            flexWrap: 'nowrap',
+            overflowX: 'auto',
+          }}>
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.to;
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '8px 14px',
+                    borderRadius: '12px',
+                    textDecoration: 'none',
+                    fontSize: '13px',
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? '#2DE09A' : '#7E948A',
+                    background: isActive ? 'rgba(45, 224, 154, 0.12)' : 'transparent',
+                    border: isActive ? '1px solid rgba(45, 224, 154, 0.25)' : '1px solid transparent',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Icon size={16} strokeWidth={isActive ? 2.4 : 1.8} />
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Right Actions: Quick Add + Ask Dex */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => setQuickAddOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#2DE09A',
+                color: '#060B08',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 0 16px rgba(45, 224, 154, 0.3)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Plus size={15} strokeWidth={2.6} />
+              <span>Quick Add</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDexOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px',
+                background: '#111A15',
+                color: '#F1F5F3',
+                border: '1px solid #1A2B23',
+                borderRadius: '12px',
+                padding: '8px 14px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <MessageSquare size={14} color="#2DE09A" />
+              <span>Dex AI</span>
+              <kbd style={{
+                fontSize: '9px',
+                background: '#1A2B23',
+                padding: '2px 5px',
+                borderRadius: '4px',
+                color: '#7E948A',
+                fontWeight: 700,
+              }}>⌘K</kbd>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Page Content */}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {children}
+      </main>
+
+      {/* Global Quick Add Sheet Modal */}
+      <QuickAddSheet
+        isOpen={quickAddOpen}
+        onClose={() => setQuickAddOpen(false)}
+        onSelectAction={(act) => {
+          if (act.route) {
+            navigate(act.route);
+          }
+        }}
+      />
 
       {/* Global Voice Command Overlay */}
       {voiceOpen && (

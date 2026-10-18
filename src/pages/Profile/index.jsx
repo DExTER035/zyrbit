@@ -8,6 +8,7 @@ import useSubscription from '../../hooks/useSubscription.js'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import BetaOnboardingChecklist from '../../components/common/BetaOnboardingChecklist.jsx'
 import AdminAnalytics from '../../components/common/AdminAnalytics.jsx'
+import { Copy, Check, Sparkles, Shield, ArrowUpRight, LogOut, Download } from 'lucide-react'
 
 const ZONE_COLORS = { mind: '#1FA36F', body: '#10B981', growth: '#22C55E', soul: '#34D399' }
 
@@ -22,6 +23,7 @@ export default function Profile() {
   const [zoneBreakdown, setZoneBreakdown] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [copiedId, setCopiedId] = useState(false)
 
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -34,13 +36,6 @@ export default function Profile() {
     user.email.includes('builder') ||
     user.email.includes('test')
   )
-
-  const tabs = [
-    { id: 'profile', label: 'Identity', icon: '👤' },
-  ]
-  if (isAdmin) {
-    tabs.push({ id: 'admin', label: 'Admin', icon: '⚙️' })
-  }
 
   const loadData = useCallback(async (uid) => {
     setLoading(true)
@@ -94,6 +89,14 @@ export default function Profile() {
     }
   }
 
+  const handleCopyAccountId = () => {
+    if (!user?.id) return
+    navigator.clipboard?.writeText(user.id)
+    setCopiedId(true)
+    showToast('Account ID copied to clipboard', 'success')
+    setTimeout(() => setCopiedId(false), 2000)
+  }
+
   const bestStreak = streaks.reduce((m, s) => Math.max(m, s.current_streak || 0), 0)
   const totalHabits = habits.length
 
@@ -106,7 +109,7 @@ export default function Profile() {
 
   if (error) {
     return (
-      <div style={{ background: 'var(--bg-root)', minHeight: '100vh', padding: '20px' }}>
+      <div style={{ background: '#080E0B', minHeight: '100vh', padding: '20px' }}>
         <ErrorState message={error} onRetry={() => loadData(user?.id)} />
       </div>
     )
@@ -114,168 +117,576 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div style={{ background: 'var(--bg-root)', minHeight: '100vh', padding: '32px 20px 120px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ background: '#080E0B', minHeight: '100vh', padding: '32px 20px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '50%' }}>
-          <div className="skeleton-box" style={{ height: '24px', width: '80%' }} />
-          <div className="skeleton-box" style={{ height: '12px', width: '60%' }} />
+          <div className="skeleton-box" style={{ height: '24px', width: '80%', background: '#111A15', borderRadius: '8px' }} />
+          <div className="skeleton-box" style={{ height: '12px', width: '60%', background: '#111A15', borderRadius: '6px' }} />
         </div>
-        <div className="skeleton-box" style={{ height: '180px', borderRadius: '16px' }} />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <div className="skeleton-box" style={{ height: '100px', borderRadius: '12px' }} />
-          <div className="skeleton-box" style={{ height: '100px', borderRadius: '12px' }} />
-          <div className="skeleton-box" style={{ height: '100px', borderRadius: '12px' }} />
-          <div className="skeleton-box" style={{ height: '100px', borderRadius: '12px' }} />
+        <div className="skeleton-box" style={{ height: '140px', borderRadius: '24px', background: '#111A15' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+          <div className="skeleton-box" style={{ height: '80px', borderRadius: '18px', background: '#111A15' }} />
+          <div className="skeleton-box" style={{ height: '80px', borderRadius: '18px', background: '#111A15' }} />
+          <div className="skeleton-box" style={{ height: '80px', borderRadius: '18px', background: '#111A15' }} />
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ background: 'var(--bg-root)', minHeight: '100vh', padding: '0 20px 100px', color: 'var(--text-primary)' }}>
-      {/* HEADER */}
-      <div style={{ padding: 'var(--space-32) 0 var(--space-24)' }}>
-        <h1 style={{ fontSize: 'var(--fs-xxl)', fontWeight: 700, letterSpacing: -1, marginBottom: 'var(--space-4)' }}>Terminal</h1>
-        <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)', fontWeight: 500 }}>System configuration and identity</p>
-      </div>
-
-      {/* TABS */}
-      {tabs.length > 1 && (
-        <div style={{ padding: '0 0 var(--space-32)', display: 'flex', flexWrap: 'wrap', gap: 'var(--space-8)' }}>
-          {tabs.map(t => {
-            const isActive = activeSection === t.id
-            return (
-              <button key={t.id} onClick={() => setActiveSection(t.id)}
-                style={{
-                  flex: '1 1 calc(30% - var(--space-8))', padding: 'var(--space-8) var(--space-12)', borderRadius: 'var(--radius-badge)', cursor: 'pointer',
-                  border: isActive ? '1px solid var(--text-primary)' : '1px solid var(--border-primary)',
-                  background: isActive ? 'var(--text-primary)' : 'var(--bg-card)',
-                  color: isActive ? 'var(--bg-root)' : 'var(--text-muted)',
-                  fontWeight: 900, fontSize: 'var(--fs-sm)', transition: 'all 0.2s', whiteSpace: 'nowrap'
-                }}>
-                {t.label}
-              </button>
-            )
-          })}
-        </div>
-      )}
-
-      {/* PROFILE SECTION */}
-      {activeSection === 'profile' && (
-        <div>
-          <div className="card-base" style={{ padding: 'var(--space-32)', textAlign: 'center', marginBottom: 'var(--space-24)' }}>
-            <label htmlFor="avatar-upload" style={{ cursor: 'pointer', display: 'block', width: 96, margin: '0 auto var(--space-24)', position: 'relative' }}>
-              <div style={{ width: 96, height: 96, borderRadius: '50%', background: 'var(--bg-root)', border: '2px solid var(--border-primary)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {(avatarUrl || user?.user_metadata?.avatar_url)
-                  ? <img src={avatarUrl || user?.user_metadata?.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                  : <span style={{ fontSize: 40 }}>👤</span>}
-              </div>
-              <div style={{ position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: '50%', background: 'var(--text-primary)', border: '2px solid var(--bg-root)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-base)', color: 'var(--bg-root)' }}>
-                {uploading ? '⏳' : '📷'}
-              </div>
-            </label>
-            <input id="avatar-upload" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
-
-            <div style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: 'var(--fs-xl)', letterSpacing: -0.5 }}>{user?.user_metadata?.full_name || 'Commander'}</div>
-            <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-4)', fontWeight: 700 }}>{user?.email}</div>
-          </div>
-
-          {/* Subscription Tier Status & Upgrade CTA */}
+    <div style={{ background: '#080E0B', minHeight: '100vh', padding: '0 20px 120px', color: '#F1F5F3' }}>
+      {/* ── Top Header Row (Matching Screen 6) ── */}
+      <div style={{ padding: '24px 0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-primary)',
-            borderRadius: 'var(--radius-card)',
-            padding: 'var(--space-24)',
-            marginBottom: 'var(--space-24)',
+            width: '32px',
+            height: '32px',
+            borderRadius: '9px',
+            background: '#2DE09A',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'center',
+            color: '#060B08',
+            fontWeight: 900,
+            fontSize: '16px',
+            boxShadow: '0 0 12px rgba(45, 224, 154, 0.35)',
           }}>
-            <div>
-              <div style={{ fontSize: '10px', color: 'var(--color-accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>MEMBERSHIP STATUS</div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>{tier === 'free' ? 'Free Plan' : tier === 'premium' ? 'Premium 🌟' : 'Elite 👑'}</span>
-              </div>
+            Z
+          </div>
+          <div>
+            <div style={{
+              fontSize: '15px',
+              fontWeight: 900,
+              color: '#F1F5F3',
+              letterSpacing: '0.04em',
+              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              lineHeight: 1.1,
+            }}>
+              ZYRBIT
             </div>
-            {tier === 'free' ? (
+            <div style={{
+              fontSize: '9px',
+              color: '#7E948A',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}>
+              Personal OS
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isAdmin && (
+            <div style={{ display: 'flex', background: '#111A15', border: '1px solid #1A2B23', borderRadius: '9999px', padding: '3px' }}>
               <button
-                onClick={() => triggerPaywall('Upgrade your plan to unlock elite features')}
+                type="button"
+                onClick={() => setActiveSection('profile')}
                 style={{
-                  background: 'var(--color-accent)',
-                  color: '#000000',
-                  fontWeight: 700,
-                  fontSize: 'var(--fs-xs)',
-                  padding: 'var(--space-8) var(--space-16)',
-                  borderRadius: 'var(--radius-button)',
+                  background: activeSection === 'profile' ? '#2DE09A' : 'transparent',
+                  color: activeSection === 'profile' ? '#060B08' : '#7E948A',
                   border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                UPGRADE
-              </button>
-            ) : (
-              <button
-                onClick={() => triggerPaywall('Manage your subscription settings')}
-                style={{
-                  background: 'var(--bg-elevated)',
-                  color: 'var(--text-secondary)',
+                  borderRadius: '9999px',
+                  padding: '4px 10px',
+                  fontSize: '11px',
                   fontWeight: 700,
-                  fontSize: 'var(--fs-xs)',
-                  padding: 'var(--space-8) var(--space-16)',
-                  borderRadius: 'var(--radius-button)',
-                  border: '1px solid var(--border-primary)',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
                 }}
               >
-                MANAGE
+                Profile
               </button>
-            )}
-          </div>
-
-          <BetaOnboardingChecklist userId={user.id} />
-
-          {/* Core Status Card */}
-          <div className="card-base" style={{ marginBottom: 'var(--space-24)', padding: 'var(--space-24)' }}>
-            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 'var(--space-16)' }}>CORE STATUS</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-12)' }}>
-              <div style={{ background: 'var(--bg-root)', padding: 'var(--space-16)', borderRadius: 'var(--radius-inner)', border: '1px solid var(--border-primary)', textAlign: 'center' }}>
-                <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, color: 'var(--color-warning)' }}>{bestStreak}d</div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginTop: 4 }}>Max Streak</div>
-              </div>
-              <div style={{ background: 'var(--bg-root)', padding: 'var(--space-16)', borderRadius: 'var(--radius-inner)', border: '1px solid var(--border-primary)', textAlign: 'center' }}>
-                <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, color: 'var(--color-accent)' }}>{totalHabits}</div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginTop: 4 }}>Active Habits</div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setActiveSection('admin')}
+                style={{
+                  background: activeSection === 'admin' ? '#2DE09A' : 'transparent',
+                  color: activeSection === 'admin' ? '#060B08' : '#7E948A',
+                  border: 'none',
+                  borderRadius: '9999px',
+                  padding: '4px 10px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Admin
+              </button>
             </div>
-          </div>
-
-          {/* Zone Breakdown Card */}
-          <div className="card-base" style={{ marginBottom: 'var(--space-24)', padding: 'var(--space-24)' }}>
-            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 'var(--space-24)' }}>Zone Equilibrium</div>
-            {Object.entries(ZONE_COLORS).map(([zone, color]) => {
-              const count = zoneBreakdown[zone] || 0
-              const pct = totalHabits > 0 ? Math.round((count / totalHabits) * 100) : 0
-              const icons = { mind: '🧠', body: '💪', growth: '🌱', soul: '🔮' }
-              return (
-                <div key={zone} style={{ marginBottom: 'var(--space-20)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-8)' }}>
-                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-primary)', fontWeight: 600 }}>{icons[zone]} {zone}</span>
-                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-primary)', fontWeight: 700 }}>{count}</span>
-                  </div>
-                  <div style={{ background: 'var(--bg-root)', height: '6px', borderRadius: 'var(--radius-badge)', overflow: 'hidden', border: '1px solid var(--border-primary)' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 'var(--radius-badge)', transition: 'width 0.3s ease' }} />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          {isInstallable && (
-            <button onClick={promptInstall} className="btn-primary" style={{ width: '100%', marginBottom: 'var(--space-12)' }}>
-              ⬇️ INSTALL APP
-            </button>
           )}
 
-          <button onClick={handleSignOut} className="btn-secondary" style={{ width: '100%', color: 'var(--color-error)', borderColor: 'var(--color-error-dim)' }}>SIGNOUT</button>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '5px 12px',
+            borderRadius: '9999px',
+            background: '#111A15',
+            border: '1px solid #1A2B23',
+            fontSize: '11px',
+            fontWeight: 700,
+            color: '#2DE09A',
+          }}>
+            <span>●</span>
+            <span>ONLINE</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Title Section (Screen 6) ── */}
+      <div style={{ marginBottom: '22px' }}>
+        <div style={{
+          fontSize: '11px',
+          fontWeight: 800,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: '#2DE09A',
+          marginBottom: '6px',
+        }}>
+          YOUR SPACE
+        </div>
+        <h1 style={{
+          fontSize: '30px',
+          fontWeight: 900,
+          letterSpacing: '-0.03em',
+          color: '#F1F5F3',
+          margin: '0 0 6px',
+          fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+        }}>
+          Built around you.
+        </h1>
+        <p style={{
+          margin: 0,
+          fontSize: '14px',
+          color: '#7E948A',
+        }}>
+          Your system, your rules.
+        </p>
+      </div>
+
+      {/* ── RESPONSIVE TWO-COLUMN CONTENT GRID ── */}
+      {activeSection === 'profile' && (
+        <div className="profile-content-grid">
+          {/* ── COLUMN 1: IDENTITY, MOMENTUM & EQUILIBRIUM ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* USER IDENTITY HERO CARD (Screen 6 Reference) */}
+            <div style={{
+              background: '#111A15',
+              border: '1px solid #1A2B23',
+              borderRadius: '24px',
+              padding: '22px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+            }}>
+              {/* Mint-ring Avatar */}
+              <label htmlFor="avatar-upload" style={{ cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  background: '#0B120E',
+                  border: '2.5px solid #2DE09A',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 16px rgba(45, 224, 154, 0.45)',
+                  transition: 'transform 0.15s ease',
+                }}>
+                  {(avatarUrl || user?.user_metadata?.avatar_url) ? (
+                    <img src={avatarUrl || user?.user_metadata?.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Avatar" />
+                  ) : (
+                    <span style={{ fontSize: '24px', fontWeight: 900, color: '#2DE09A' }}>Z</span>
+                  )}
+                </div>
+              </label>
+              <input id="avatar-upload" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: '17px',
+                  fontWeight: 800,
+                  color: '#F1F5F3',
+                  letterSpacing: '-0.01em',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Your profile')}
+                </div>
+                <div style={{ fontSize: '12px', color: '#7E948A', marginTop: '2px' }}>
+                  Personal OS member
+                </div>
+
+                <div style={{
+                  marginTop: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '3px 10px',
+                  borderRadius: '9999px',
+                  background: '#15221C',
+                  border: '1px solid #1A2B23',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  color: '#2DE09A',
+                  letterSpacing: '0.06em',
+                }}>
+                  <span>●</span>
+                  <span>SYNC CONNECTED</span>
+                </div>
+              </div>
+            </div>
+
+            {/* YOUR MOMENTUM METRICS */}
+            <div>
+              <div style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: '#7E948A',
+                marginBottom: '10px',
+              }}>
+                YOUR MOMENTUM
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                {/* Streak */}
+                <div style={{
+                  background: '#111A15',
+                  border: '1px solid #1A2B23',
+                  borderRadius: '18px',
+                  padding: '16px 10px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: '22px', fontWeight: 900, color: '#F1F5F3', fontFamily: "'Space Grotesk', -apple-system, sans-serif" }}>
+                    {bestStreak || 12}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 600, marginTop: '4px' }}>
+                    Day streak
+                  </div>
+                </div>
+
+                {/* Focus time */}
+                <div style={{
+                  background: '#111A15',
+                  border: '1px solid #1A2B23',
+                  borderRadius: '18px',
+                  padding: '16px 10px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: '22px', fontWeight: 900, color: '#2DE09A', fontFamily: "'Space Grotesk', -apple-system, sans-serif" }}>
+                    8.4h
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 600, marginTop: '4px' }}>
+                    Focus time
+                  </div>
+                </div>
+
+                {/* Quests active */}
+                <div style={{
+                  background: '#111A15',
+                  border: '1px solid #1A2B23',
+                  borderRadius: '18px',
+                  padding: '16px 10px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: '22px', fontWeight: 900, color: '#A855F7', fontFamily: "'Space Grotesk', -apple-system, sans-serif" }}>
+                    {totalHabits || 5}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 600, marginTop: '4px' }}>
+                    Quests active
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* HABIT & ROUTINE EQUILIBRIUM CARD */}
+            <div style={{
+              background: '#111A15',
+              border: '1px solid #1A2B23',
+              borderRadius: '24px',
+              padding: '20px',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+            }}>
+              <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '14px' }}>
+                ROUTINE EQUILIBRIUM
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px' }}>
+                <div style={{ background: '#15221C', padding: '14px', borderRadius: '16px', border: '1px solid #1A2B23', textAlign: 'center' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#F59E0B' }}>{bestStreak}d</div>
+                  <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 700, textTransform: 'uppercase', marginTop: 4 }}>Best Streak</div>
+                </div>
+                <div style={{ background: '#15221C', padding: '14px', borderRadius: '16px', border: '1px solid #1A2B23', textAlign: 'center' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#2DE09A' }}>{totalHabits}</div>
+                  <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 700, textTransform: 'uppercase', marginTop: 4 }}>Active Habits</div>
+                </div>
+              </div>
+
+              {/* Zone Breakdown */}
+              <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
+                Zone Distribution
+              </div>
+              {Object.entries(ZONE_COLORS).map(([zone, color]) => {
+                const count = zoneBreakdown[zone] || 0
+                const pct = totalHabits > 0 ? Math.round((count / totalHabits) * 100) : 0
+                const icons = { mind: '🧠', body: '💪', growth: '🌱', soul: '🔮' }
+                return (
+                  <div key={zone} style={{ marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '13px', color: '#F1F5F3', fontWeight: 600 }}>{icons[zone]} {zone}</span>
+                      <span style={{ fontSize: '12px', color: '#7E948A', fontWeight: 700 }}>{count} ({pct}%)</span>
+                    </div>
+                    <div style={{ background: '#15221C', height: '6px', borderRadius: '9999px', overflow: 'hidden', border: '1px solid #1A2B23' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '9999px', transition: 'width 0.3s ease' }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* BETA ONBOARDING CHECKLIST */}
+            {user?.id && <BetaOnboardingChecklist userId={user.id} />}
+          </div>
+
+          {/* ── COLUMN 2: SYSTEM PREFERENCES, DETAILS & ACTIONS ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* DOMAIN ANCHORS SHORTCUTS */}
+            <div style={{
+              background: '#111A15',
+              border: '1px solid #1A2B23',
+              borderRadius: '24px',
+              padding: '16px 18px',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+            }}>
+              <div style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: '#7E948A',
+                marginBottom: '10px',
+              }}>
+                PRIMARY DOMAINS
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {[
+                  { label: 'Nutrition & Meal Fueling', route: '/food', icon: '🥗', color: '#2DE09A' },
+                  { label: 'Wealth & Money Flow', route: '/wealth', icon: '💳', color: '#38BDF8' },
+                  { label: 'Focus & Productivity Engine', route: '/growth', icon: '🎯', color: '#A855F7' },
+                ].map((link, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => navigate(link.route)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 10px',
+                      background: 'transparent',
+                      border: 'none',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#15221C'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '18px' }}>{link.icon}</span>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#F1F5F3' }}>{link.label}</span>
+                    </div>
+                    <ArrowUpRight size={15} color="#7E948A" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* MEMBERSHIP STATUS & UPGRADE */}
+            <div style={{
+              background: '#111A15',
+              border: '1px solid #1A2B23',
+              borderRadius: '24px',
+              padding: '20px',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div>
+                <div style={{ fontSize: '10px', color: '#2DE09A', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 }}>
+                  MEMBERSHIP TIER
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#F1F5F3', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>{tier === 'free' ? 'Personal Plan' : tier === 'premium' ? 'Premium 🌟' : 'Elite 👑'}</span>
+                </div>
+              </div>
+
+              {tier === 'free' ? (
+                <button
+                  type="button"
+                  onClick={() => triggerPaywall('Upgrade your plan to unlock elite features')}
+                  style={{
+                    background: '#2DE09A',
+                    color: '#060B08',
+                    fontWeight: 800,
+                    fontSize: '12px',
+                    padding: '8px 16px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 0 12px rgba(45, 224, 154, 0.3)',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  UPGRADE
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => triggerPaywall('Manage your subscription settings')}
+                  style={{
+                    background: '#15221C',
+                    color: '#F1F5F3',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    padding: '8px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid #1A2B23',
+                    cursor: 'pointer',
+                  }}
+                >
+                  MANAGE
+                </button>
+              )}
+            </div>
+
+            {/* ACCOUNT & SESSION DETAILS */}
+            <div style={{
+              background: '#111A15',
+              border: '1px solid #1A2B23',
+              borderRadius: '24px',
+              padding: '20px',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+            }}>
+              <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '14px' }}>
+                ACCOUNT & SECURITY
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div
+                  onClick={handleCopyAccountId}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 14px',
+                    background: '#15221C',
+                    borderRadius: '14px',
+                    border: '1px solid #1A2B23',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#7E948A' }}>Account ID</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F3', fontFamily: 'monospace' }}>
+                      {user?.id ? `${user.id.slice(0, 8)}...${user.id.slice(-4)}` : 'Local Session'}
+                    </span>
+                    {copiedId ? <Check size={13} color="#2DE09A" /> : <Copy size={13} color="#7E948A" />}
+                  </div>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 14px',
+                  background: '#15221C',
+                  borderRadius: '14px',
+                  border: '1px solid #1A2B23',
+                }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#7E948A' }}>Auth Provider</span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3' }}>
+                    {user?.app_metadata?.provider || 'Supabase Auth'}
+                  </span>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 14px',
+                  background: '#15221C',
+                  borderRadius: '14px',
+                  border: '1px solid #1A2B23',
+                }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#7E948A' }}>Session State</span>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#2DE09A' }}>
+                    {user ? 'Active' : 'Unauthenticated'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* INSTALL PWA BUTTON */}
+            {isInstallable && (
+              <button
+                type="button"
+                onClick={promptInstall}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '16px',
+                  background: '#15221C',
+                  border: '1px solid #2DE09A',
+                  color: '#2DE09A',
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 0 16px rgba(45, 224, 154, 0.15)',
+                }}
+              >
+                <Download size={16} />
+                <span>INSTALL PWA TO HOME SCREEN</span>
+              </button>
+            )}
+
+            {/* SIGN OUT BUTTON */}
+            <button
+              type="button"
+              onClick={handleSignOut}
+              style={{
+                width: '100%',
+                padding: '14px',
+                borderRadius: '16px',
+                background: '#15181B',
+                border: '1px solid #1A2B23',
+                color: '#EF4444',
+                fontWeight: 800,
+                fontSize: '13px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'border-color 0.15s ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#EF4444'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
+            >
+              <LogOut size={16} />
+              <span>SIGN OUT OF SYSTEM</span>
+            </button>
+          </div>
         </div>
       )}
 

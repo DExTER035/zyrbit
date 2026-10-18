@@ -71,12 +71,12 @@ html, body, #root {
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-card);
   padding: var(--space-24);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.03);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-card);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .card-base:hover { 
-  border-color: var(--border-secondary); 
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.04); 
+  border-color: #CBD5E1; 
+  box-shadow: var(--shadow-elevated); 
 }
 
 /* Buttons */
@@ -295,28 +295,198 @@ html, body, #root {
 /* Layouts */
 .app-container {
   width: 100%;
+  max-width: 480px;
   margin: 0 auto;
   min-height: 100%;
   position: relative;
-  background: var(--bg-root);
+  background: transparent;
 }
-
 
 .app-layout {
   width: 100%;
+  min-height: 100vh;
 }
 
 @media (min-width: 768px) {
   .app-container {
-    max-width: 430px;
+    max-width: 720px;
   }
   .app-layout {
-    max-width: 430px;
-    border-left: 1px solid #1A1A24;
-    border-right: 1px solid #1A1A24;
-    box-shadow: 0 0 50px rgba(0,255,255,0.03);
+    max-width: 100%;
+    border: none;
+    box-shadow: none;
+  }
+  .bottom-nav-mobile {
+    display: none !important;
   }
 }
+
+@media (min-width: 1024px) {
+  .app-container {
+    max-width: 1080px;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .desktop-two-col {
+    display: grid !important;
+    grid-template-columns: 1.05fr 1fr !important;
+    gap: 32px !important;
+    align-items: start !important;
+  }
+  .desktop-sticky-col {
+    position: sticky !important;
+    top: 80px !important;
+  }
+}
+
+/* ─── Zenith Desktop Two-Column Layout ─── */
+.zenith-content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (min-width: 1024px) {
+  .zenith-content-grid {
+    display: grid !important;
+    grid-template-columns: 1.08fr 1fr !important;
+    column-gap: 32px !important;
+    row-gap: 24px !important;
+    align-items: start !important;
+  }
+  .zenith-col-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .zenith-col-anchors {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+/* ─── Growth Desktop Two-Column Layout ─── */
+.growth-content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (min-width: 1024px) {
+  .growth-content-grid {
+    display: grid !important;
+    grid-template-columns: 1.05fr 1fr !important;
+    column-gap: 32px !important;
+    row-gap: 24px !important;
+    align-items: start !important;
+  }
+}
+
+/* ─── Food Desktop Two-Column Layout ─── */
+.food-content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (min-width: 1024px) {
+  .food-content-grid {
+    display: grid !important;
+    grid-template-columns: 1.08fr 1fr !important;
+    column-gap: 32px !important;
+    row-gap: 24px !important;
+    align-items: start !important;
+  }
+}
+
+/* ─── Wealth Desktop Two-Column Layout ─── */
+.wealth-content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (min-width: 1024px) {
+  .wealth-content-grid {
+    display: grid !important;
+    grid-template-columns: 1.05fr 1fr !important;
+    column-gap: 32px !important;
+    row-gap: 24px !important;
+    align-items: start !important;
+  }
+}
+
+/* ─── Profile Desktop Two-Column Layout ─── */
+.profile-content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (min-width: 1024px) {
+  .profile-content-grid {
+    display: grid !important;
+    grid-template-columns: 1.05fr 1fr !important;
+    column-gap: 32px !important;
+    row-gap: 24px !important;
+    align-items: start !important;
+  }
+}
+
+/* ─── Responsive Modal Architecture (Sheet on mobile, Centered on desktop) ─── */
+.zyrbit-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+
+.zyrbit-modal-sheet {
+  background: #111A15;
+  border-top: 1px solid #1A2B23;
+  border-left: 1px solid #1A2B23;
+  border-right: 1px solid #1A2B23;
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.6);
+  animation: slideUpSheet 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .zyrbit-modal-backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+  .zyrbit-modal-sheet {
+    border: 1px solid #1A2B23;
+    border-radius: 24px;
+    max-height: 85vh;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
+    animation: scaleModal 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes scaleModal {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
 .page-content {
   padding: 0 20px 100px;
 }

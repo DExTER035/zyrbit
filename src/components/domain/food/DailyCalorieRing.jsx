@@ -5,17 +5,21 @@ import { DEFAULT_CALORIE_GOAL, DEFAULT_MACRO_GOALS } from '../../../data/foods/i
 import { computeMacroBalanceGuidance } from '../../../engines/food/index.js';
 
 export default function DailyCalorieRing({ 
-  totals, 
+  totals = {}, 
   goal = DEFAULT_CALORIE_GOAL, 
   macroGoals = DEFAULT_MACRO_GOALS,
   water = 0,
   waterGoal = 3000,
   onAddWater
 }) {
-  const { cal = 0, protein = 0, carbs = 0, fat = 0, fiber = 0 } = totals;
+  const cal = Number(totals?.calories ?? totals?.cal) || 0;
+  const protein = Number(totals?.protein) || 0;
+  const carbs = Number(totals?.carbs) || 0;
+  const fat = Number(totals?.fat) || 0;
+  const fiber = Number(totals?.fiber) || 0;
 
   const remainingCal = Math.max(0, goal - cal);
-  const remainingProtein = Math.max(0, macroGoals.protein - protein);
+  const remainingProtein = Math.max(0, (macroGoals?.protein ?? 0) - protein);
 
   const calColor = cal > goal ? FC.over : FC.food;
   const proteinColor = FC.protein;
@@ -23,13 +27,16 @@ export default function DailyCalorieRing({
 
   // Compute deterministic macro guidance
   const guidance = useMemo(() => {
-    return computeMacroBalanceGuidance(totals, {
-      calorie_goal: goal,
-      protein_goal: macroGoals.protein,
-      carbs_goal: macroGoals.carbs,
-      fat_goal: macroGoals.fat
-    });
-  }, [totals, goal, macroGoals]);
+    return computeMacroBalanceGuidance(
+      { calories: cal, cal, protein, carbs, fat, fiber },
+      {
+        calorie_goal: goal,
+        protein_goal: macroGoals?.protein,
+        carbs_goal: macroGoals?.carbs,
+        fat_goal: macroGoals?.fat
+      }
+    );
+  }, [cal, protein, carbs, fat, fiber, goal, macroGoals]);
 
   return (
     <div style={{

@@ -1299,32 +1299,56 @@ export default function Wealth() {
 
     return (
       <div className="flex flex-col">
-        {/* ── Top Header Row ── */}
-        <div style={{ padding: '36px 20px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1 style={{
-              fontSize: '26px',
-              fontWeight: 800,
-              color: '#ECE8DF',
-              margin: '0 0 2px',
-              letterSpacing: '-0.03em',
+        {/* ── Top Header Row (Matching Screen 4) ── */}
+        <div style={{ padding: '24px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '9px',
+              background: '#2DE09A',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#060B08',
+              fontWeight: 900,
+              fontSize: '16px',
+              boxShadow: '0 0 12px rgba(45, 224, 154, 0.35)',
             }}>
-              Wealth
-            </h1>
-            <div style={{ fontSize: '13px', color: '#9A978F', fontWeight: 400 }}>
-              You're on track.
+              Z
+            </div>
+            <div>
+              <div style={{
+                fontSize: '15px',
+                fontWeight: 900,
+                color: '#F1F5F3',
+                letterSpacing: '0.04em',
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                lineHeight: 1.1,
+              }}>
+                ZYRBIT
+              </div>
+              <div style={{
+                fontSize: '9px',
+                color: '#7E948A',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}>
+                Personal OS
+              </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{
-              background: '#15161B',
-              border: '1px solid #26272D',
+              background: '#111A15',
+              border: '1px solid #1A2B23',
               borderRadius: '9999px',
-              padding: '6px 14px',
-              fontSize: '12px',
+              padding: '5px 12px',
+              fontSize: '11px',
               fontWeight: 600,
-              color: '#ECE8DF',
+              color: '#7E948A',
               cursor: 'pointer',
             }}>
               This month ›
@@ -1334,15 +1358,15 @@ export default function Wealth() {
               type="button"
               onClick={() => setIsConnectMoneyOpen(true)}
               style={{
-                background: '#15161B',
-                border: '1px solid #26272D',
+                background: '#111A15',
+                border: '1px solid #1A2B23',
                 borderRadius: '50%',
-                width: '32px',
-                height: '32px',
+                width: '34px',
+                height: '34px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#10B981',
+                color: '#2DE09A',
                 cursor: 'pointer',
               }}
               title="Connect Money"
@@ -1352,156 +1376,203 @@ export default function Wealth() {
           </div>
         </div>
 
-        <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* ── 1. THE WEALTH FLOW HERO (SAFE-TO-SPEND + WATERFALL) ── */}
-          <WealthFlowHero
-            liquidCash={liquidCash}
-            upcomingBillTotal={committedTotal}
-            unencumberedCash={unencumberedCash}
-            safeToSpendDaily={safeToSpendDaily}
-            daysLeft={moneyState?.daysLeft || 1}
-            onOpenIncome={() => {
-              setEditingTransaction(null);
-              setTransactionModalType('income');
-              setIsTransactionModalOpen(true);
-            }}
-            onOpenExpense={() => {
-              setEditingTransaction(null);
-              setTransactionModalType('expense');
-              setIsTransactionModalOpen(true);
-            }}
-            onOpenBills={() => {
-              setEditingBill(null);
-              setIsBillModalOpen(true);
-            }}
-            onOpenPromises={() => {
-              setEditingPromise(null);
-              setIsPromiseModalOpen(true);
-            }}
-          />
+        {/* ── Title Section (Screen 4) ── */}
+        <div style={{ padding: '0 20px', marginBottom: '20px' }}>
+          <div style={{
+            fontSize: '11px',
+            fontWeight: 800,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: '#2DE09A',
+            marginBottom: '6px',
+          }}>
+            YOUR MONEY, IN MOTION
+          </div>
+          <h1 style={{
+            fontSize: '30px',
+            fontWeight: 900,
+            letterSpacing: '-0.03em',
+            color: '#F1F5F3',
+            margin: '0 0 6px',
+            fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+          }}>
+            Spend with intention.
+          </h1>
+          <p style={{
+            margin: 0,
+            fontSize: '14px',
+            color: '#7E948A',
+          }}>
+            A calmer view of your financial life.
+          </p>
+        </div>
 
-          {/* ── 2. RECENT EVENTS & PROMISES ── */}
-          <WealthRecentEvents
-            expenses={expenses}
-            incomes={incomes}
-            promises={bills}
-            onSeeAll={() => setActiveView('recent')}
-            onTransactionClick={(tx) => {
-              const isIncome = tx.isCredit || tx.txType === 'income' || tx.type === 'INCOME' || !!tx.source || tx.raw?.source;
-              setEditingTransaction(tx.raw || tx);
-              setTransactionModalType(isIncome ? 'income' : 'expense');
-              setIsTransactionModalOpen(true);
-            }}
-          />
+        <div className="wealth-content-grid" style={{ padding: '0 20px 24px' }}>
+          {/* ── COLUMN 1: THE WEALTH FLOW HERO (SAFE-TO-SPEND + MONEY MAP) ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <WealthFlowHero
+              liquidCash={liquidCash}
+              upcomingBillTotal={committedTotal}
+              unencumberedCash={unencumberedCash}
+              safeToSpendDaily={safeToSpendDaily}
+              daysLeft={moneyState?.daysLeft || 1}
+              onOpenIncome={() => {
+                setEditingTransaction(null);
+                setTransactionModalType('income');
+                setIsTransactionModalOpen(true);
+              }}
+              onOpenExpense={() => {
+                setEditingTransaction(null);
+                setTransactionModalType('expense');
+                setIsTransactionModalOpen(true);
+              }}
+              onOpenBills={() => {
+                setEditingBill(null);
+                setIsBillModalOpen(true);
+              }}
+              onOpenPromises={() => {
+                setEditingPromise(null);
+                setIsPromiseModalOpen(true);
+              }}
+            />
+          </div>
 
-          {/* ── SECONDARY DOMAIN DRILL-DOWN & CONNECT MONEY ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '12px' }}>
-            <button
-              type="button"
-              onClick={() => setActiveView('flow')}
-              style={{
-                background: W.surfaceCard,
-                border: `1px solid ${W.border}`,
-                borderRadius: '14px',
-                padding: '14px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                textAlign: 'left',
+          {/* ── COLUMN 2: RECENT STREAM & SECONDARY DRILL-DOWNS ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <WealthRecentEvents
+              expenses={expenses}
+              incomes={incomes}
+              promises={bills}
+              onSeeAll={() => setActiveView('recent')}
+              onTransactionClick={(tx) => {
+                const isIncome = tx.isCredit || tx.txType === 'income' || tx.type === 'INCOME' || !!tx.source || tx.raw?.source;
+                setEditingTransaction(tx.raw || tx);
+                setTransactionModalType(isIncome ? 'income' : 'expense');
+                setIsTransactionModalOpen(true);
               }}
-            >
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#ECE8DF', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>📊</span> Flow & Assets
-                </div>
-                <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
-                  {fmtShort(moneyState.monthSpend || 0)} spent · {fmtShort(liquidCash)} balance
-                </div>
-              </div>
-              <ChevronRight size={14} color="#6B7280" />
-            </button>
+            />
 
-            <button
-              type="button"
-              onClick={() => setActiveView('commitments')}
-              style={{
-                background: W.surfaceCard,
-                border: `1px solid ${W.border}`,
-                borderRadius: '14px',
-                padding: '14px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                textAlign: 'left',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#ECE8DF', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>📅</span> Commitments
+            {/* ── SECONDARY DOMAIN DRILL-DOWN & CONNECT MONEY ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setActiveView('flow')}
+                style={{
+                  background: '#111A15',
+                  border: '1px solid #1A2B23',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'border-color 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2DE09A'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
+              >
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>📊</span> Flow & Assets
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#7E948A', marginTop: '3px' }}>
+                    {fmtShort(moneyState.monthSpend || 0)} spent · {fmtShort(liquidCash)} balance
+                  </div>
                 </div>
-                <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
-                  {activeCommitments.length} upcoming ({fmtShort(committedTotal)})
-                </div>
-              </div>
-              <ChevronRight size={14} color="#6B7280" />
-            </button>
+                <ChevronRight size={14} color="#7E948A" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setPromisesTab('owed_to_me');
-                setActiveView('promises');
-              }}
-              style={{
-                background: W.surfaceCard,
-                border: `1px solid ${W.border}`,
-                borderRadius: '14px',
-                padding: '14px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                textAlign: 'left',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#ECE8DF', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>👥</span> Promises
+              <button
+                type="button"
+                onClick={() => setActiveView('commitments')}
+                style={{
+                  background: '#111A15',
+                  border: '1px solid #1A2B23',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'border-color 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38BDF8'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
+              >
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>📅</span> Commitments
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#7E948A', marginTop: '3px' }}>
+                    {activeCommitments.length} upcoming ({fmtShort(committedTotal)})
+                  </div>
                 </div>
-                <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
-                  {fmtShort(moneyState.assets?.owedToYou || 0)} owed to you
-                </div>
-              </div>
-              <ChevronRight size={14} color="#6B7280" />
-            </button>
+                <ChevronRight size={14} color="#7E948A" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setIsConnectMoneyOpen(true)}
-              style={{
-                background: W.surfaceCard,
-                border: `1px solid ${W.border}`,
-                borderRadius: '14px',
-                padding: '14px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                textAlign: 'left',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#ECE8DF', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>🔗</span> Connect Money
+              <button
+                type="button"
+                onClick={() => {
+                  setPromisesTab('owed_to_me');
+                  setActiveView('promises');
+                }}
+                style={{
+                  background: '#111A15',
+                  border: '1px solid #1A2B23',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'border-color 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#E9B44C'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
+              >
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>👥</span> Promises
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#7E948A', marginTop: '3px' }}>
+                    {fmtShort(moneyState.assets?.owedToYou || 0)} owed to you
+                  </div>
                 </div>
-                <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
-                  Import statement & reconciliation
+                <ChevronRight size={14} color="#7E948A" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsConnectMoneyOpen(true)}
+                style={{
+                  background: '#111A15',
+                  border: '1px solid #1A2B23',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'border-color 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2DE09A'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
+              >
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>🔗</span> Connect Money
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#7E948A', marginTop: '3px' }}>
+                    Import statement & reconciliation
+                  </div>
                 </div>
-              </div>
-              <ChevronRight size={14} color="#6B7280" />
-            </button>
+                <ChevronRight size={14} color="#7E948A" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

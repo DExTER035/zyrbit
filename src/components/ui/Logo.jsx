@@ -28,17 +28,19 @@ export const DexOSMark = ({
       height={size}
       viewBox="0 0 40 32"
       fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+      xmlns="
+      
+      http://www.w3.org/2000/svg"
       aria-label="Zyrbit"
       className={className}
       style={style}
     >
       {/* Bottom-left wedge slash */}
-      <polygon points="15.48,16.23 0,32 8.17,32 15.91,16.23" fill={bodyColor}/>
+      <polygon points="15.48,16.23 0,32 8.17,32 15.91,16.23" fill={bodyColor} />
       {/* Middle small wedge slash */}
-      <polygon points="19.35,9.92 17.2,14.42 21.51,9.92" fill={bodyColor}/>
+      <polygon points="19.35,9.92 17.2,14.42 21.51,9.92" fill={bodyColor} />
       {/* Top-right Z-like shape */}
-      <polygon points="31.83,0 22.37,9.46 27.96,9.92 18.49,22.08 35.7,22.08 37.85,15.32 27.53,14.42 40,0" fill={accentColor}/>
+      <polygon points="31.83,0 22.37,9.46 27.96,9.92 18.49,22.08 35.7,22.08 37.85,15.32 27.53,14.42 40,0" fill={accentColor} />
     </svg>
   );
 };
@@ -49,10 +51,10 @@ export const DexOSMark = ({
  */
 export const DexOSIcon = ({ size = 48 }) => {
   const radius = Math.round(size * 0.215);
-  const markH  = Math.round(size * 0.58);
-  const markW  = Math.round(markH * 1.25);
-  const offY   = Math.round((size - markH) / 2);
-  const offX   = Math.round((size - markW) / 2);
+  const markH = Math.round(size * 0.58);
+  const markW = Math.round(markH * 1.25);
+  const offY = Math.round((size - markH) / 2);
+  const offX = Math.round((size - markW) / 2);
 
   return (
     <svg
@@ -66,26 +68,26 @@ export const DexOSIcon = ({ size = 48 }) => {
       <defs>
         {/* Top-light gradient highlight */}
         <linearGradient id={`toplight-${size}`} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.08"/>
-          <stop offset="30%" stopColor="#FFFFFF" stopOpacity="0.02"/>
-          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0"/>
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.08" />
+          <stop offset="30%" stopColor="#FFFFFF" stopOpacity="0.02" />
+          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
         </linearGradient>
       </defs>
 
       {/* Main Container Fill - Pitch Black background */}
-      <rect width={size} height={size} rx={radius} fill="#121214"/>
-      
+      <rect width={size} height={size} rx={radius} fill="#121214" />
+
       {/* Subtle Toplight Highlight */}
-      <rect width={size} height={size} rx={radius} fill={`url(#toplight-${size})`}/>
+      <rect width={size} height={size} rx={radius} fill={`url(#toplight-${size})`} />
 
       {/* Squircle Border Outline */}
-      <rect 
-        x="0.5" 
-        y="0.5" 
-        width={size - 1} 
-        height={size - 1} 
-        rx={radius - 0.5} 
-        stroke="rgba(255, 255, 255, 0.08)" 
+      <rect
+        x="0.5"
+        y="0.5"
+        width={size - 1}
+        height={size - 1}
+        rx={radius - 0.5}
+        stroke="rgba(255, 255, 255, 0.08)"
         strokeWidth="1.5"
       />
 

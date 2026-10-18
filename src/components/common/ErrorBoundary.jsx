@@ -111,6 +111,29 @@ export default class ErrorBoundary extends React.Component {
               Zyrbit caught an unexpected UI glitch and safely prevented data loss. Your saved data is intact.
             </p>
 
+            {this.state.error && (
+              <pre
+                style={{
+                  fontSize: '11px',
+                  color: '#EF4444',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  maxWidth: '100%',
+                  width: '100%',
+                  overflowX: 'auto',
+                  textAlign: 'left',
+                  margin: '0 0 20px 0',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {this.state.error.message || String(this.state.error)}
+              </pre>
+            )}
+
             <div
               style={{
                 display: 'flex',

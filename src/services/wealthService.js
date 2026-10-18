@@ -5,7 +5,15 @@
  */
 
 import { supabase } from '../lib/supabase/index.js';
-import { computeTotalIncome, computeTotalExpense } from '../engines/wealth/index.js';
+import {
+  computeTotalIncome,
+  computeTotalExpense,
+  isTransferExpense,
+  isTransferIncome,
+  isBorrowIncome,
+  isPrincipalExpense,
+  isRepaymentIncome,
+} from '../engines/wealth/index.js';
 
 export const todayStr = () => {
   const d = new Date();
@@ -24,6 +32,7 @@ export const todayStr = () => {
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
 export async function addExpense({
+  id = null,
   userId,
   amount,
   category = 'Other',
@@ -39,7 +48,7 @@ export async function addExpense({
   }
 
   const payload = {
-    id: crypto.randomUUID(),
+    id: id || crypto.randomUUID(),
     user_id: userId,
     amount: numericAmount,
     category: category || 'Other',
@@ -155,6 +164,25 @@ export async function deleteExpense({ userId, id }) {
       }
     }
 
+    // 3. Clean up associated receivable promise if this was a Lend expense
+    if (exp && (exp.category || '').toLowerCase() === 'lend') {
+      const pName = (exp.note || '').trim();
+      if (pName) {
+        const person = pName.replace(/^lent to\s+/i, '').replace(/^loan to\s+/i, '').trim();
+        const { data: linkedBills } = await supabase
+          .from('wealth_bills')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('status', 'receivable')
+          .ilike('name', `%${person || pName}%`)
+          .limit(1);
+
+        if (linkedBills && linkedBills.length > 0) {
+          await supabase.from('wealth_bills').delete().eq('id', linkedBills[0].id).eq('user_id', userId);
+        }
+      }
+    }
+
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message || 'Failed to delete expense.' };
@@ -172,6 +200,7 @@ export async function deleteExpense({ userId, id }) {
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
 export async function addIncome({
+  id = null,
   userId,
   amount,
   source = 'other',
@@ -187,7 +216,7 @@ export async function addIncome({
   }
 
   const payload = {
-    id: crypto.randomUUID(),
+    id: id || crypto.randomUUID(),
     user_id: userId,
     amount: numericAmount,
     source: source || 'other',
@@ -297,6 +326,7 @@ export async function deleteIncome({ userId, id }) {
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
 export async function addBill({
+  id = null,
   userId,
   name,
   amount,
@@ -320,7 +350,7 @@ export async function addBill({
   }
 
   const payload = {
-    id: crypto.randomUUID(),
+    id: id || crypto.randomUUID(),
     user_id: userId,
     name: cleanName,
     amount: numericAmount,
@@ -477,6 +507,14 @@ export async function deleteBill({ userId, id }) {
   }
 
   try {
+    // 1. Fetch bill first to detect linked loan/borrow obligation
+    const { data: bill } = await supabase
+      .from('wealth_bills')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .maybeSingle();
+
     const { error } = await supabase
       .from('wealth_bills')
       .delete()
@@ -486,6 +524,26 @@ export async function deleteBill({ userId, id }) {
     if (error) {
       return { success: false, error: error.message };
     }
+
+    // 2. Clean up associated expense if this was a receivable promise
+    if (bill && bill.status === 'receivable') {
+      const pName = (bill.name || '').trim();
+      const person = pName.replace(/^owed by\s+/i, '').replace(/\s+owes you$/i, '').trim();
+      if (person) {
+        const { data: linkedExps } = await supabase
+          .from('money_expenses')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('category', 'Lend')
+          .ilike('note', `%${person}%`)
+          .limit(1);
+
+        if (linkedExps && linkedExps.length > 0) {
+          await supabase.from('money_expenses').delete().eq('id', linkedExps[0].id).eq('user_id', userId);
+        }
+      }
+    }
+
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message || 'Failed to delete bill.' };
@@ -712,9 +770,11 @@ export async function getWealthSummary(userId, date = todayStr()) {
     const incomes = incRes.data || [];
     const bills = billRes.data || [];
 
-    const totalExpensesMonth = computeTotalExpense(expenses);
-    const totalIncomeMonth = computeTotalIncome(incomes);
-    const todayExpenses = expenses.filter((e) => e.expense_date === today);
+    const lifestyleExpenses = expenses.filter((e) => !isTransferExpense(e) && !isPrincipalExpense(e));
+    const earnedIncomes = incomes.filter((i) => !isTransferIncome(i) && !isBorrowIncome(i) && !isRepaymentIncome(i));
+    const totalExpensesMonth = computeTotalExpense(lifestyleExpenses);
+    const totalIncomeMonth = computeTotalIncome(earnedIncomes);
+    const todayExpenses = lifestyleExpenses.filter((e) => e.expense_date === today);
     const spentToday = computeTotalExpense(todayExpenses);
 
     const upcomingBills = bills.map((b) => ({
@@ -756,6 +816,8 @@ export async function getWealthSummary(userId, date = todayStr()) {
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
 export async function recordMoneyEvent({
+  id = null,
+  billId = null,
   userId,
   type = 'SPEND',
   amount,
@@ -781,6 +843,16 @@ export async function recordMoneyEvent({
 
   switch (type.toUpperCase()) {
     case 'SPEND': {
+      if (id) {
+        return await updateExpense({
+          userId,
+          id,
+          amount: numericAmount,
+          category: category || 'Other',
+          note: cleanNote,
+          date: eventDate,
+        });
+      }
       return await addExpense({
         userId,
         amount: numericAmount,
@@ -791,6 +863,16 @@ export async function recordMoneyEvent({
     }
 
     case 'INCOME': {
+      if (id) {
+        return await updateIncome({
+          userId,
+          id,
+          amount: numericAmount,
+          source: source || 'Other',
+          note: cleanNote,
+          date: eventDate,
+        });
+      }
       return await addIncome({
         userId,
         amount: numericAmount,
@@ -801,33 +883,134 @@ export async function recordMoneyEvent({
     }
 
     case 'LEND': {
-      // 1. Log outgoing cash movement
-      const expRes = await addExpense({
-        userId,
-        amount: numericAmount,
-        category: 'Lend',
-        note: cleanNote || (person ? `Lent to ${person}` : 'Loan'),
-        date: eventDate,
-      });
+      const stableTxId = id || crypto.randomUUID();
+      const stableBillId = billId || crypto.randomUUID();
+
+      // 0. Attempt atomic database RPC if migration has been applied
+      try {
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('record_loan_atomic', {
+          p_user_id: userId,
+          p_type: 'LEND',
+          p_amount: numericAmount,
+          p_person: person || '',
+          p_note: cleanNote || '',
+          p_date: eventDate,
+          p_due_date: dueDate || eventDate,
+          p_tx_id: stableTxId,
+          p_bill_id: stableBillId,
+        });
+
+        if (!rpcErr && rpcData?.success) {
+          return {
+            success: true,
+            data: {
+              id: rpcData.expense_id,
+              billId: rpcData.bill_id,
+              expenseId: rpcData.expense_id,
+              amount: rpcData.amount,
+              type: rpcData.type,
+            },
+          };
+        }
+
+        const isMissingRpc = rpcErr && (
+          rpcErr.code === 'PGRST202' ||
+          (rpcErr.message && (
+            rpcErr.message.includes('Could not find the function') ||
+            rpcErr.message.includes('does not exist')
+          ))
+        );
+        if (rpcErr && !isMissingRpc) {
+          return { success: false, error: rpcErr.message };
+        }
+      } catch (err) {
+        const isMissingRpc = err && (
+          err.code === 'PGRST202' ||
+          (err.message && (
+            err.message.includes('Could not find the function') ||
+            err.message.includes('does not exist')
+          ))
+        );
+        if (!isMissingRpc) {
+          return { success: false, error: err.message || 'Failed to record loan.' };
+        }
+      }
+
+      // 1. Log or update outgoing cash movement (fallback)
+      const expRes = id
+        ? await updateExpense({
+            userId,
+            id,
+            amount: numericAmount,
+            category: 'Lend',
+            note: cleanNote || (person ? `Lent to ${person}` : 'Loan'),
+            date: eventDate,
+          })
+        : await addExpense({
+            userId,
+            amount: numericAmount,
+            category: 'Lend',
+            note: cleanNote || (person ? `Lent to ${person}` : 'Loan'),
+            date: eventDate,
+          });
       if (!expRes.success) return expRes;
 
-      // 2. Create receivable promise in wealth_bills
+      // 2. Create or update receivable promise in wealth_bills
       const promiseName = person ? `${person} owes you` : (cleanNote || 'Money owed to you');
       const billDue = dueDate || eventDate;
-      const billRes = await addBill({
-        userId,
-        name: promiseName,
-        amount: numericAmount,
-        dueDate: billDue,
-        frequency: 'one_off',
-        status: 'receivable',
-      });
+
+      let existingBillId = billId;
+      if (!existingBillId && id) {
+        const { data: b } = await supabase
+          .from('wealth_bills')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('status', 'receivable')
+          .ilike('name', `%${person || cleanNote || 'owes you'}%`)
+          .limit(1)
+          .maybeSingle();
+        if (b?.id) existingBillId = b.id;
+      }
+
+      let billRes;
+      if (existingBillId) {
+        billRes = await updateBill({
+          userId,
+          id: existingBillId,
+          name: promiseName,
+          amount: numericAmount,
+          dueDate: billDue,
+          frequency: 'one_off',
+          status: 'receivable',
+        });
+      } else {
+        billRes = await addBill({
+          id: billId || null,
+          userId,
+          name: promiseName,
+          amount: numericAmount,
+          dueDate: billDue,
+          frequency: 'one_off',
+          status: 'receivable',
+        });
+      }
+
+      // Rollback newly created expense if bill creation failed (compensation)
+      if (!billRes.success) {
+        if (!id && expRes?.data?.id) {
+          await supabase.from('money_expenses').delete().eq('id', expRes.data.id).eq('user_id', userId);
+        }
+        return {
+          success: false,
+          error: `Failed to record receivable promise: ${billRes.error}. Expense rolled back.`,
+        };
+      }
 
       return {
         success: true,
         data: {
           ...expRes.data,
-          billId: billRes?.data?.id,
+          billId: billRes?.data?.id || existingBillId,
           expenseId: expRes?.data?.id,
           bill: billRes?.data,
           expense: expRes?.data,
@@ -836,33 +1019,133 @@ export async function recordMoneyEvent({
     }
 
     case 'BORROW': {
-      // 1. Log incoming cash (liability)
-      const incRes = await addIncome({
-        userId,
-        amount: numericAmount,
-        source: 'Borrow',
-        note: cleanNote || (person ? `Borrowed from ${person}` : 'Liability'),
-        date: eventDate,
-      });
+      const stableTxId = id || crypto.randomUUID();
+      const stableBillId = billId || crypto.randomUUID();
+
+      // 0. Attempt atomic database RPC if migration has been applied
+      try {
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('record_loan_atomic', {
+          p_user_id: userId,
+          p_type: 'BORROW',
+          p_amount: numericAmount,
+          p_person: person || '',
+          p_note: cleanNote || '',
+          p_date: eventDate,
+          p_due_date: dueDate || eventDate,
+          p_tx_id: stableTxId,
+          p_bill_id: stableBillId,
+        });
+
+        if (!rpcErr && rpcData?.success) {
+          return {
+            success: true,
+            data: {
+              id: rpcData.income_id,
+              billId: rpcData.bill_id,
+              incomeId: rpcData.income_id,
+              amount: rpcData.amount,
+              type: rpcData.type,
+            },
+          };
+        }
+
+        const isMissingRpc = rpcErr && (
+          rpcErr.code === 'PGRST202' ||
+          (rpcErr.message && (
+            rpcErr.message.includes('Could not find the function') ||
+            rpcErr.message.includes('does not exist')
+          ))
+        );
+        if (rpcErr && !isMissingRpc) {
+          return { success: false, error: rpcErr.message };
+        }
+      } catch (err) {
+        const isMissingRpc = err && (
+          err.code === 'PGRST202' ||
+          (err.message && (
+            err.message.includes('Could not find the function') ||
+            err.message.includes('does not exist')
+          ))
+        );
+        if (!isMissingRpc) {
+          return { success: false, error: err.message || 'Failed to record borrowing.' };
+        }
+      }
+
+      // 1. Log or update incoming cash (liability fallback)
+      const incRes = id
+        ? await updateIncome({
+            userId,
+            id,
+            amount: numericAmount,
+            source: 'Borrow',
+            note: cleanNote || (person ? `Borrowed from ${person}` : 'Liability'),
+            date: eventDate,
+          })
+        : await addIncome({
+            userId,
+            amount: numericAmount,
+            source: 'Borrow',
+            note: cleanNote || (person ? `Borrowed from ${person}` : 'Liability'),
+            date: eventDate,
+          });
       if (!incRes.success) return incRes;
 
-      // 2. Create commitment to return it
+      // 2. Create or update commitment to return it
       const commitmentName = person ? `Return to ${person}` : (cleanNote || 'Repay debt');
       const billDue = dueDate || eventDate;
-      const billRes = await addBill({
-        userId,
-        name: commitmentName,
-        amount: numericAmount,
-        dueDate: billDue,
-        frequency: 'one_off',
-        status: 'unpaid',
-      });
+
+      let existingBillId = billId;
+      if (!existingBillId && id) {
+        const { data: b } = await supabase
+          .from('wealth_bills')
+          .select('id')
+          .eq('user_id', userId)
+          .ilike('name', `%${person || cleanNote || 'Return to'}%`)
+          .limit(1)
+          .maybeSingle();
+        if (b?.id) existingBillId = b.id;
+      }
+
+      let billRes;
+      if (existingBillId) {
+        billRes = await updateBill({
+          userId,
+          id: existingBillId,
+          name: commitmentName,
+          amount: numericAmount,
+          dueDate: billDue,
+          frequency: 'one_off',
+          status: 'unpaid',
+        });
+      } else {
+        billRes = await addBill({
+          id: billId || null,
+          userId,
+          name: commitmentName,
+          amount: numericAmount,
+          dueDate: billDue,
+          frequency: 'one_off',
+          status: 'unpaid',
+        });
+      }
+
+      // Rollback newly created income if bill creation failed (compensation)
+      if (!billRes.success) {
+        if (!id && incRes?.data?.id) {
+          await supabase.from('wealth_income').delete().eq('id', incRes.data.id).eq('user_id', userId);
+        }
+        return {
+          success: false,
+          error: `Failed to record borrowing commitment: ${billRes.error}. Income rolled back.`,
+        };
+      }
 
       return {
         success: true,
         data: {
           ...incRes.data,
-          billId: billRes?.data?.id,
+          billId: billRes?.data?.id || existingBillId,
           incomeId: incRes?.data?.id,
           bill: billRes?.data,
           income: incRes?.data,
@@ -871,6 +1154,16 @@ export async function recordMoneyEvent({
     }
 
     case 'COMMITMENT': {
+      if (id) {
+        return await updateBill({
+          userId,
+          id,
+          name: cleanNote || 'Scheduled payment',
+          amount: numericAmount,
+          dueDate: dueDate || eventDate,
+          frequency: frequency || 'monthly',
+        });
+      }
       return await addBill({
         userId,
         name: cleanNote || 'Scheduled payment',
@@ -882,6 +1175,16 @@ export async function recordMoneyEvent({
     }
 
     case 'INVESTMENT': {
+      if (id) {
+        return await updateExpense({
+          userId,
+          id,
+          amount: numericAmount,
+          category: 'Investment',
+          note: cleanNote || 'Investment',
+          date: eventDate,
+        });
+      }
       return await addExpense({
         userId,
         amount: numericAmount,
@@ -892,6 +1195,16 @@ export async function recordMoneyEvent({
     }
 
     case 'TRANSFER': {
+      if (id) {
+        return await updateExpense({
+          userId,
+          id,
+          amount: numericAmount,
+          category: 'Transfer',
+          note: cleanNote || 'Transfer',
+          date: eventDate,
+        });
+      }
       return await addExpense({
         userId,
         amount: numericAmount,
@@ -903,6 +1216,16 @@ export async function recordMoneyEvent({
 
     case 'REFUND':
     case 'REIMBURSEMENT': {
+      if (id) {
+        return await updateIncome({
+          userId,
+          id,
+          amount: numericAmount,
+          source: 'Refund',
+          note: cleanNote || 'Refund/reimbursement',
+          date: eventDate,
+        });
+      }
       return await addIncome({
         userId,
         amount: numericAmount,
@@ -913,6 +1236,16 @@ export async function recordMoneyEvent({
     }
 
     default: {
+      if (id) {
+        return await updateExpense({
+          userId,
+          id,
+          amount: numericAmount,
+          category: category || 'Other',
+          note: cleanNote,
+          date: eventDate,
+        });
+      }
       return await addExpense({
         userId,
         amount: numericAmount,
@@ -975,33 +1308,217 @@ export async function calibrateCashBalance({ userId, targetCash }) {
 }
 
 /**
- * Resolves a money promise when repayment is received.
+ * Resolves a money promise when repayment is received or paid.
+ * Supports partial repayments without destroying the obligation,
+ * settles full repayment, validates against outstanding balance,
+ * and isolates loan principal from earned income and lifestyle spend.
+ *
  * @param {Object} params
- * @param {string} params.userId
- * @param {string} params.billId
- * @param {number} params.amount
- * @param {string} params.person
+ * @param {string} params.userId - Authenticated user UUID
+ * @param {string} params.billId - Obligation UUID in wealth_bills
+ * @param {number} params.amount - Repayment amount (must be > 0 and <= outstanding)
+ * @param {string} [params.person=''] - Contact person
+ * @param {string} [params.note=''] - Optional note
+ * @param {string} [params.date=todayStr()] - Repayment date
+ * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export async function resolveMoneyPromise({ userId, billId, amount, person = '' }) {
-  if (!userId || !billId) return { success: false, error: 'IDs are required.' };
+export async function resolveMoneyPromise({
+  userId,
+  billId,
+  amount,
+  person = '',
+  note = '',
+  date = todayStr(),
+  repaymentId = null,
+}) {
+  if (!userId || !billId) {
+    return { success: false, error: 'User ID and Promise/Bill ID are required.' };
+  }
+  const numericAmount = Number(amount);
+  if (!isFinite(numericAmount) || isNaN(numericAmount) || numericAmount <= 0) {
+    return { success: false, error: 'Repayment amount must be a positive number.' };
+  }
+
+  const stableRepaymentId = repaymentId || crypto.randomUUID();
+
+  // 0. Attempt atomic database RPC if migration has been applied
+  try {
+    const { data: rpcData, error: rpcErr } = await supabase.rpc('resolve_loan_repayment_atomic', {
+      p_user_id: userId,
+      p_bill_id: billId,
+      p_amount: numericAmount,
+      p_person: person || '',
+      p_note: note || '',
+      p_date: date || todayStr(),
+      p_repayment_id: stableRepaymentId,
+    });
+
+    if (!rpcErr && rpcData?.success) {
+      return {
+        success: true,
+        data: {
+          billId: rpcData.bill_id,
+          repaidAmount: rpcData.repaid_amount,
+          remainingBalance: rpcData.remaining_balance,
+          status: rpcData.status,
+          isFullRepayment: rpcData.is_full_repayment,
+          cashTxId: rpcData.cash_tx_id,
+          idempotentReplay: !!rpcData.idempotent_replay,
+        },
+      };
+    }
+
+    const isMissingRpc = rpcErr && (
+      rpcErr.code === 'PGRST202' ||
+      (rpcErr.message && (
+        rpcErr.message.includes('Could not find the function') ||
+        rpcErr.message.includes('does not exist')
+      ))
+    );
+    if (rpcErr && !isMissingRpc) {
+      return { success: false, error: rpcErr.message };
+    }
+  } catch (err) {
+    const isMissingRpc = err && (
+      err.code === 'PGRST202' ||
+      (err.message && (
+        err.message.includes('Could not find the function') ||
+        err.message.includes('does not exist')
+      ))
+    );
+    if (!isMissingRpc) {
+      return { success: false, error: err.message || 'Failed to resolve loan repayment.' };
+    }
+  }
 
   try {
-    // 1. Mark bill as paid
-    const toggleRes = await toggleBillStatus({ userId, billId, status: 'paid' });
-    if (!toggleRes.success) return toggleRes;
+    // 1. Fetch current obligation
+    const { data: bill, error: fetchErr } = await supabase
+      .from('wealth_bills')
+      .select('*')
+      .eq('id', billId)
+      .eq('user_id', userId)
+      .maybeSingle();
 
-    // 2. Add income as repayment/reimbursement
-    if (amount > 0) {
-      await addIncome({
+    if (fetchErr) {
+      return { success: false, error: fetchErr.message };
+    }
+    if (!bill) {
+      return { success: false, error: 'Obligation record not found.' };
+    }
+    if (bill.status === 'paid') {
+      return { success: false, error: 'Obligation is already fully settled.' };
+    }
+
+    const currentOutstanding = Number(bill.amount);
+    if (!isFinite(currentOutstanding) || currentOutstanding <= 0) {
+      return { success: false, error: 'Obligation has no outstanding balance.' };
+    }
+
+    // 2. Validate repayment amount against outstanding balance
+    if (numericAmount > currentOutstanding) {
+      return {
+        success: false,
+        error: `Repayment amount (₹${numericAmount}) cannot exceed outstanding balance of ₹${currentOutstanding}.`,
+      };
+    }
+
+    const remainingBalance = Math.round((currentOutstanding - numericAmount) * 100) / 100;
+    const isFullRepayment = remainingBalance <= 0;
+    const eventDate = date || todayStr();
+    const contactPerson = (person || bill.name || '')
+      .replace(/^Owed by\s+/i, '')
+      .replace(/\s+owes you$/i, '')
+      .replace(/^Return to\s+/i, '')
+      .replace(/^Borrowed from\s+/i, '')
+      .trim();
+
+    // 3. Update obligation in wealth_bills
+    const updatedStatus = isFullRepayment ? 'paid' : bill.status;
+    const { data: updatedBill, error: billUpdateErr } = await supabase
+      .from('wealth_bills')
+      .update({
+        amount: isFullRepayment ? 0 : remainingBalance,
+        status: updatedStatus,
+      })
+      .eq('id', billId)
+      .eq('user_id', userId)
+      .select()
+      .maybeSingle();
+
+    if (billUpdateErr) {
+      return { success: false, error: billUpdateErr.message };
+    }
+
+    // 4. Log repayment cash movement without inflating earned income or lifestyle spend
+    const isReceivable = bill.status === 'receivable' || (bill.name || '').toLowerCase().includes('owes you');
+    let cashTxRes = null;
+
+    if (isReceivable) {
+      // Repayment of money lent to someone (cash received)
+      cashTxRes = await addIncome({
         userId,
-        amount: Number(amount),
-        source: 'Reimbursement',
-        note: person ? `Repaid by ${person}` : 'Loan repayment received',
-        date: todayStr(),
+        amount: numericAmount,
+        source: 'Loan Repayment',
+        note: (note || (contactPerson ? `Repaid by ${contactPerson}` : 'Loan repayment received')).trim(),
+        date: eventDate,
+      });
+    } else {
+      // Repayment of borrowed debt paid back (cash outflow)
+      cashTxRes = await addExpense({
+        userId,
+        amount: numericAmount,
+        category: 'Debt Repayment',
+        note: (note || (contactPerson ? `Repaid to ${contactPerson}` : 'Debt repayment paid')).trim(),
+        date: eventDate,
       });
     }
 
-    return { success: true };
+    // 5. Compensation: if cash movement fails, restore the bill
+    if (!cashTxRes.success) {
+      await supabase
+        .from('wealth_bills')
+        .update({
+          amount: currentOutstanding,
+          status: bill.status,
+        })
+        .eq('id', billId)
+        .eq('user_id', userId);
+
+      return {
+        success: false,
+        error: `Failed to record repayment cash transaction: ${cashTxRes.error}. Obligation restored.`,
+      };
+    }
+
+    // 6. Record installment history in money_promise_repayments if table available
+    try {
+      await supabase
+        .from('money_promise_repayments')
+        .insert([{
+          id: stableRepaymentId,
+          user_id: userId,
+          promise_id: billId,
+          amount: numericAmount,
+          repayment_date: eventDate,
+          note: note || `Repayment of ₹${numericAmount}`,
+        }]);
+    } catch {
+      // Non-fatal if money_promises FK does not match this bill ID
+    }
+
+    return {
+      success: true,
+      data: {
+        billId,
+        repaidAmount: numericAmount,
+        remainingBalance: isFullRepayment ? 0 : remainingBalance,
+        status: updatedStatus,
+        isFullRepayment,
+        cashTxId: cashTxRes?.data?.id,
+        bill: updatedBill,
+      },
+    };
   } catch (err) {
     return { success: false, error: err.message || 'Failed to resolve promise.' };
   }

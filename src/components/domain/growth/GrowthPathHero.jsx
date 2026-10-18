@@ -1,272 +1,356 @@
-/**
- * GrowthPathHero — The Visual Execution Path
- * Metaphor: PATH ("Where am I going, and what is moving?")
- * Renders the Curving Milestone Roadbed, Goal Card, and Today's 3 Milestones.
- */
 import React from 'react';
-import { Target, Check, Play, AlertCircle, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronRight, Check } from 'lucide-react';
 
 export default function GrowthPathHero({
   goals = [],
   tasks = [],
+  streak = { current_streak: 0 },
   onCompleteTask,
+  onStartFocus,
 }) {
   // Active goal (or fallback default)
   const activeGoal = goals[0] || {
-    name: 'Crack DSA Exam',
+    name: 'Crack DSA',
     target_date: '2026-10-15',
     progress: 22,
   };
 
-  // Top 3 Milestones for Today
+  // Top uncompleted tasks + completed tracking
   const uncompleted = tasks.filter(t => t.status !== 'done');
 
-  const milestones = [
+  const moves = [
     {
       id: uncompleted[0]?.id || 'm-1',
+      num: '01',
       title: uncompleted[0]?.name || 'Trees revision',
-      time: '45 min',
-      isDone: false,
-      priority: 1,
+      time: '35 min',
+      color: '#2DE09A',
+      realTask: uncompleted[0] || null,
     },
     {
       id: uncompleted[1]?.id || 'm-2',
-      title: uncompleted[1]?.name || 'Read 20 pages',
-      time: '30 min',
-      isDone: false,
-      priority: 2,
+      num: '02',
+      title: uncompleted[1]?.name || 'Solve 3 graph problems',
+      time: '45 min',
+      color: '#F97316',
+      realTask: uncompleted[1] || null,
     },
     {
       id: uncompleted[2]?.id || 'm-3',
-      title: uncompleted[2]?.name || '200 pushups + squats',
+      num: '03',
+      title: uncompleted[2]?.name || 'Read 20 pages',
       time: '20 min',
-      isDone: false,
-      priority: 3,
+      color: '#A855F7',
+      realTask: uncompleted[2] || null,
     },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* ── GOAL HERO CARD ── */}
-      <div style={{
-        background: '#15161B',
-        border: '1px solid #26272D',
-        borderRadius: '20px',
-        padding: '18px 20px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <div className="growth-content-grid">
+      {/* ── LEFT / TOP: CURRENT QUEST HERO & READY FOR DEEP WORK ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {/* Current Quest Card */}
+        <div style={{
+          background: '#111A15',
+          border: '1px solid #1A2B23',
+          borderRadius: '24px',
+          padding: '24px 22px',
+          position: 'relative',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            marginBottom: '14px',
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: '#2DE09A',
+                }}>
+                  CURRENT QUEST
+                </span>
+                {streak?.current_streak > 0 && (
+                  <span style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    background: 'rgba(249, 115, 22, 0.15)',
+                    color: '#F97316',
+                    border: '1px solid rgba(249, 115, 22, 0.3)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                  }}>
+                    🔥 {streak.current_streak}d streak
+                  </span>
+                )}
+              </div>
+              <h2 style={{
+                margin: '0 0 4px',
+                fontSize: '24px',
+                fontWeight: 900,
+                color: '#F1F5F3',
+                letterSpacing: '-0.02em',
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              }}>
+                {activeGoal.name}
+              </h2>
+              <div style={{ fontSize: '13px', color: '#7E948A' }}>
+                Arrays & Trees · {activeGoal.progress || 22}% complete
+              </div>
+            </div>
+
+            {/* Top-Right Mint Action Button (Launches Focus for Quest) */}
+            <button
+              type="button"
+              onClick={() => {
+                if (onStartFocus) {
+                  onStartFocus('timed', 25, activeGoal.name);
+                } else {
+                  window.dispatchEvent(new CustomEvent('dexos:start-focus', { detail: { duration: 25, mode: 'timed' } }));
+                }
+              }}
+              aria-label="Start Quest Sprint"
+              title="Launch 25-minute sprint for this quest"
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: '#2DE09A',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#060B08',
+                cursor: 'pointer',
+                boxShadow: '0 0 16px rgba(45, 224, 154, 0.4)',
+                transition: 'transform 0.15s ease',
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            >
+              <ArrowRight size={20} strokeWidth={2.6} style={{ transform: 'rotate(-45deg)' }} />
+            </button>
+          </div>
+
+          {/* Quest Progress Bar */}
+          <div style={{
+            width: '100%',
+            height: '6px',
+            borderRadius: '9999px',
+            background: '#1A2B23',
+            overflow: 'hidden',
+            marginTop: '16px',
+          }}>
             <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              background: 'rgba(233, 180, 76, 0.15)',
+              width: `${Math.max(10, activeGoal.progress || 22)}%`,
+              height: '100%',
+              borderRadius: '9999px',
+              background: 'linear-gradient(90deg, #10B981 0%, #2DE09A 100%)',
+              boxShadow: '0 0 10px rgba(45, 224, 154, 0.4)',
+              transition: 'width 0.3s ease',
+            }} />
+          </div>
+        </div>
+
+        {/* Ready for Deep Work Launcher */}
+        <div style={{
+          background: '#111A15',
+          border: '1px solid #1A2B23',
+          borderRadius: '22px',
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+        }}>
+          <div>
+            <div style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: '#2DE09A',
+              marginBottom: '4px',
+            }}>
+              READY FOR DEEP WORK?
+            </div>
+            <div style={{ fontSize: '14px', color: '#F1F5F3', fontWeight: 600 }}>
+              One clean 25-minute sprint
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (onStartFocus) {
+                onStartFocus('timed', 25, activeGoal.name || 'Deep Work Sprint');
+              } else {
+                window.dispatchEvent(new CustomEvent('dexos:start-focus', { detail: { duration: 25, mode: 'timed' } }));
+              }
+            }}
+            style={{
+              width: '100%',
+              background: '#2DE09A',
+              border: 'none',
+              borderRadius: '14px',
+              padding: '14px',
+              color: '#060B08',
+              fontSize: '14px',
+              fontWeight: 800,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#E9B44C',
-            }}>
-              <Target size={18} />
-            </div>
-            <div>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ECE8DF', letterSpacing: '-0.01em' }}>
-                {activeGoal.name}
-              </div>
-              <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>🎯 {activeGoal.progress || 22}%</span>
-                <span>•</span>
-                <span>Target Oct 15</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Progress Ring / Target Badge */}
-          <div style={{
-            fontSize: '11px',
-            fontWeight: 600,
-            color: '#9A978F',
-            textAlign: 'right',
-          }}>
-            <div>Target</div>
-            <div style={{ color: '#ECE8DF', fontWeight: 700 }}>Oct 15</div>
-          </div>
-        </div>
-
-        {/* ── THE CURVING PATH VISUALIZATION (SVG) ── */}
-        <div style={{ marginTop: '20px', position: 'relative', paddingLeft: '8px' }}>
-          <div style={{ display: 'flex', gap: '16px' }}>
-            {/* SVG Path Ribbon on the Left */}
-            <div style={{ width: '28px', position: 'relative', flexShrink: 0 }}>
-              <svg viewBox="0 0 28 200" style={{ width: '100%', height: '200px', overflow: 'visible' }}>
-                {/* Continuous S-Curve Path Line */}
-                <path
-                  d="M 14 10 C 26 50, 2 80, 14 110 C 26 140, 2 170, 14 190"
-                  fill="none"
-                  stroke="#E9B44C"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-                {/* Waypoint 1: Moving */}
-                <circle cx="14" cy="18" r="6" fill="#15161B" stroke="#E9B44C" strokeWidth="2.5" />
-                <circle cx="14" cy="18" r="3" fill="#10B981" />
-
-                {/* Waypoint 2: Stuck Blocker */}
-                <circle cx="14" cy="110" r="6" fill="#15161B" stroke="#EF4444" strokeWidth="2.5" />
-
-                {/* Waypoint 3: Upcoming */}
-                <circle cx="14" cy="185" r="5" fill="#15161B" stroke="#6B7280" strokeWidth="2" />
-              </svg>
-            </div>
-
-            {/* Waypoint Content Blocks */}
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '200px', flex: 1, padding: '4px 0' }}>
-              {/* Node 1 */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#ECE8DF' }}>
-                    Arrays & Trees
-                  </div>
-                  <div style={{
-                    display: 'inline-block',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    color: '#10B981',
-                    background: 'rgba(16, 185, 129, 0.12)',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    marginTop: '2px',
-                  }}>
-                    Moving
-                  </div>
-                </div>
-                <ChevronRight size={16} color="#6B7280" />
-              </div>
-
-              {/* Node 2: Blocker */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#ECE8DF' }}>
-                    Graphs
-                  </div>
-                  <div style={{
-                    display: 'inline-block',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    color: '#EF4444',
-                    background: 'rgba(239, 68, 68, 0.12)',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    marginTop: '2px',
-                  }}>
-                    Stuck 6 days
-                  </div>
-                </div>
-                <ChevronRight size={16} color="#6B7280" />
-              </div>
-
-              {/* Node 3 */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#ECE8DF' }}>
-                    Mock Tests
-                  </div>
-                  <div style={{
-                    display: 'inline-block',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    color: '#9A978F',
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    marginTop: '2px',
-                  }}>
-                    Upcoming
-                  </div>
-                </div>
-                <ChevronRight size={16} color="#6B7280" />
-              </div>
-            </div>
-          </div>
+              gap: '8px',
+              cursor: 'pointer',
+              boxShadow: '0 0 20px rgba(45, 224, 154, 0.35)',
+              letterSpacing: '0.04em',
+              transition: 'opacity 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+          >
+            <span>START FOCUS</span>
+            <ArrowRight size={16} strokeWidth={2.8} />
+          </button>
         </div>
       </div>
 
-      {/* ── TODAY'S 3 MILESTONES ── */}
+      {/* ── RIGHT / SECOND COLUMN: TODAY'S MOVES ── */}
       <div>
         <div style={{
-          fontSize: '15px',
-          fontWeight: 700,
-          color: '#ECE8DF',
-          letterSpacing: '-0.01em',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           marginBottom: '12px',
         }}>
-          Today's 3 milestones
+          <div style={{
+            fontSize: '11px',
+            fontWeight: 800,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: '#7E948A',
+          }}>
+            TODAY'S MOVES
+          </div>
+          <span style={{
+            color: '#2DE09A',
+            fontSize: '11px',
+            fontWeight: 800,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+          }}>
+            {uncompleted.length} REMAINING
+          </span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {milestones.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => onCompleteTask && onCompleteTask(item.id)}
-              style={{
-                background: '#15161B',
-                border: '1px solid #26272D',
-                borderRadius: '16px',
-                padding: '14px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#3A3B40';
-                e.currentTarget.style.background = '#181920';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#26272D';
-                e.currentTarget.style.background = '#15161B';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                {/* Priority Bead */}
-                <div style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  border: item.priority === 1 ? '1.5px solid #10B981' : '1.5px solid #E9B44C',
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {moves.map((item) => {
+            const fullTask = tasks.find(t => t.id === item.id) || item.realTask;
+            const isDone = fullTask?.status === 'done';
+
+            return (
+              <div
+                key={item.id}
+                style={{
+                  background: '#111A15',
+                  border: `1px solid ${isDone ? '#2DE09A33' : '#1A2B23'}`,
+                  borderRadius: '18px',
+                  padding: '14px 16px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: item.priority === 1 ? '#10B981' : '#E9B44C',
-                  background: item.priority === 1 ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-                }}>
-                  {item.priority === 1 ? <Check size={14} /> : item.priority}
-                </div>
-
-                <div>
+                  justifyContent: 'space-between',
+                  transition: 'all 0.15s ease',
+                  opacity: isDone ? 0.65 : 1,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                  {/* Numbered circular badge */}
                   <div style={{
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: item.priority === 1 ? '#ECE8DF' : '#ECE8DF',
-                    letterSpacing: '-0.01em',
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '50%',
+                    background: `${item.color}18`,
+                    border: `1.5px solid ${item.color}60`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    color: item.color,
+                    flexShrink: 0,
                   }}>
-                    {item.title}
+                    {item.num}
                   </div>
-                  {item.time && (
-                    <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
+
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      color: isDone ? '#7E948A' : '#F1F5F3',
+                      letterSpacing: '-0.01em',
+                      textDecoration: isDone ? 'line-through' : 'none',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {item.title}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#7E948A', marginTop: '2px' }}>
                       {item.time}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
 
-              <ChevronRight size={16} color="#6B7280" />
-            </div>
-          ))}
+                {/* Interactive Checkbox Action */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (fullTask && onCompleteTask) {
+                      onCompleteTask(fullTask);
+                    }
+                  }}
+                  aria-label={`Complete ${item.title}`}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: isDone ? '#2DE09A' : 'rgba(26, 43, 35, 0.6)',
+                    border: `1.5px solid ${isDone ? '#2DE09A' : '#2DE09A55'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: isDone ? '#060B08' : '#2DE09A',
+                    transition: 'all 0.15s ease',
+                    marginLeft: '12px',
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isDone) {
+                      e.currentTarget.style.background = 'rgba(45, 224, 154, 0.2)';
+                      e.currentTarget.style.borderColor = '#2DE09A';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isDone) {
+                      e.currentTarget.style.background = 'rgba(26, 43, 35, 0.6)';
+                      e.currentTarget.style.borderColor = '#2DE09A55';
+                    }
+                  }}
+                >
+                  <Check size={16} strokeWidth={isDone ? 3 : 2.2} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

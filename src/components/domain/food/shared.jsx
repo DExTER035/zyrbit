@@ -5,29 +5,29 @@ import { X } from 'lucide-react';
 // ─── Food Module Design Tokens ────────────────────────────────────────────────
 // Inherits from DexOS design system. Food accent = amber/warm.
 export const FC = {
-  bg:      '#0B0D0F',
-  surface: '#15181B',
-  elev:    '#1B1F23',
-  border:  '#1C1D21',
-  border2: '#26272C',
-  text:    '#F5F5F5',
-  sub:     '#9CA3AF',
-  muted:   '#71717A',
-  dim:     '#2A3038',
+  bg:      'var(--bg-page, #F5F8FC)',
+  surface: 'var(--bg-card, #FFFFFF)',
+  elev:    'var(--bg-page, #F5F8FC)',
+  border:  'var(--border-primary, #E4EAF2)',
+  border2: 'var(--border-primary, #E4EAF2)',
+  text:    'var(--text-primary, #172033)',
+  sub:     'var(--text-secondary, #68758A)',
+  muted:   '#94A3B8',
+  dim:     '#E2E8F0',
 
-  // Food pillar accent — amber
-  food:    '#F59E0B',
-  foodDim: 'rgba(245,158,11,0.12)',
+  // Food pillar accent — emerald / warm
+  food:    '#08B878',
+  foodDim: 'rgba(8, 184, 120, 0.12)',
 
   // Macro colors
-  protein: '#14B8A6',  // teal
-  carbs:   '#F59E0B',  // amber
-  fat:     '#818CF8',  // indigo
-  fiber:   '#34D399',  // emerald
+  protein: '#08B878',  // emerald
+  carbs:   '#D97706',  // amber
+  fat:     '#8866E9',  // violet
+  fiber:   '#3296F4',  // blue
 
   // Status
-  optimal:  '#22C55E',
-  moderate: '#F59E0B',
+  optimal:  '#08B878',
+  moderate: '#D97706',
   over:     '#EF4444',
 };
 

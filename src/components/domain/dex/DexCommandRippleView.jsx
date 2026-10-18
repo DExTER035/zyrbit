@@ -74,69 +74,184 @@ export default function DexCommandRippleView({
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      padding: '24px 20px',
-      color: '#ECE8DF',
+      padding: '10px 16px 20px',
+      color: '#F1F5F3',
       position: 'relative',
       width: '100%',
       maxWidth: '480px',
       margin: '0 auto',
     }}>
-      {/* ── TOP LUMINOUS DEX ORB ── */}
-      <div style={{ position: 'relative', marginBottom: '14px' }}>
-        {/* Ambient Outer Halo */}
+      {/* ── HEADER (Screen 5 Reference) ── */}
+      <div style={{ width: '100%', marginBottom: '20px', textAlign: 'left' }}>
         <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '110px',
-          height: '110px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(56, 189, 248, 0.3) 0%, rgba(2, 132, 199, 0.1) 50%, transparent 70%)',
-          filter: 'blur(8px)',
-          pointerEvents: 'none',
-        }} />
-
-        {/* The Spherical Glass Orb */}
-        <div style={{
-          width: '68px',
-          height: '68px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle at 35% 30%, #BAE6FD 0%, #38BDF8 30%, #0284C7 65%, #0B192C 100%)',
-          boxShadow: '0 0 24px rgba(56, 189, 248, 0.5), inset 0 0 12px rgba(255, 255, 255, 0.6)',
-          border: '1.5px solid rgba(255, 255, 255, 0.4)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          animation: 'pulse 3s infinite ease-in-out',
+          fontSize: '11px',
+          fontWeight: 800,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: '#2DE09A',
+          marginBottom: '6px',
         }}>
-          {/* Inner Light Core */}
-          <div style={{
-            width: '24px',
-            height: '24px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%)',
-            opacity: 0.8,
-          }} />
+          ZYRBIT INTELLIGENCE
+        </div>
+        <h2 style={{
+          fontSize: '28px',
+          fontWeight: 900,
+          color: '#F1F5F3',
+          letterSpacing: '-0.03em',
+          margin: '0 0 4px',
+          fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+        }}>
+          Think out loud.
+        </h2>
+        <div style={{
+          fontSize: '13px',
+          color: '#7E948A',
+        }}>
+          One assistant. Your whole system.
         </div>
       </div>
 
-      {/* ── TITLE & SUBTITLE ── */}
-      <h2 style={{
-        fontSize: '22px',
-        fontWeight: 800,
-        color: '#ECE8DF',
-        letterSpacing: '-0.02em',
-        margin: '0 0 4px',
-      }}>
-        Dex
-      </h2>
+      {/* ── CONCENTRIC GLOWING MINT RADAR CORE ── */}
       <div style={{
-        fontSize: '13px',
-        color: '#9A978F',
+        position: 'relative',
+        width: '140px',
+        height: '140px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        margin: '10px auto 24px',
+      }}>
+        {/* Outer Ring */}
+        <div style={{
+          position: 'absolute',
+          width: '136px',
+          height: '136px',
+          borderRadius: '50%',
+          border: '1.5px solid rgba(45, 224, 154, 0.18)',
+        }} />
+        {/* Middle Ring */}
+        <div style={{
+          position: 'absolute',
+          width: '96px',
+          height: '96px',
+          borderRadius: '50%',
+          border: '2px solid rgba(45, 224, 154, 0.35)',
+        }} />
+        {/* Inner Ring */}
+        <div style={{
+          position: 'absolute',
+          width: '60px',
+          height: '60px',
+          borderRadius: '50%',
+          border: '2.5px solid rgba(45, 224, 154, 0.6)',
+        }} />
+        {/* Center Glowing Core */}
+        <div style={{
+          width: '26px',
+          height: '26px',
+          borderRadius: '50%',
+          background: '#2DE09A',
+          boxShadow: '0 0 24px rgba(45, 224, 154, 0.9), 0 0 12px #2DE09A',
+        }} />
+      </div>
+
+      {/* ── PROMPT HEADLINE ── */}
+      <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+        <div style={{
+          fontSize: '11px',
+          fontWeight: 800,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: '#2DE09A',
+          marginBottom: '4px',
+        }}>
+          WHAT SHOULD WE DO NEXT?
+        </div>
+        <div style={{ fontSize: '15px', fontWeight: 800, color: '#F1F5F3', letterSpacing: '-0.01em' }}>
+          Ask. Reflect. Take action.
+        </div>
+      </div>
+
+      {/* ── 4 QUICK ACTION CARDS (Screen 5 Reference) ── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '10px',
+        width: '100%',
         marginBottom: '20px',
       }}>
-        Tell me what's going on.
+        {[
+          { label: 'Plan my day', cmd: 'Plan my day', icon: '▶', color: '#2DE09A' },
+          { label: 'Analyze my meal', cmd: 'Analyze my meal', icon: '🥣', color: '#F97316' },
+          { label: 'Review spending', cmd: 'Review my spending this month', icon: '₹', color: '#38BDF8' },
+          { label: 'Check my habits', cmd: 'Check my habit streak', icon: '✓', color: '#A855F7' },
+        ].map((card, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onCommandSubmit(card.cmd)}
+            style={{
+              background: '#111A15',
+              border: '1px solid #1A2B23',
+              borderRadius: '16px',
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              cursor: 'pointer',
+              textAlign: 'left',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = card.color;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#1A2B23';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <div style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: `${card.color}18`,
+              color: card.color,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 800,
+              flexShrink: 0,
+            }}>
+              {card.icon}
+            </div>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3', lineHeight: 1.2 }}>
+              {card.label}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* ── CONTEXT READY PILL (Screen 5 Reference) ── */}
+      <div style={{
+        background: '#111A15',
+        border: '1px solid #1A2B23',
+        borderRadius: '14px',
+        padding: '10px 14px',
+        width: '100%',
+        boxSizing: 'border-box',
+        marginBottom: '20px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2DE09A' }} />
+          <span style={{ fontSize: '10px', fontWeight: 800, color: '#2DE09A', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+            CONTEXT READY
+          </span>
+        </div>
+        <div style={{ fontSize: '12px', color: '#7E948A' }}>
+          Habits · Meals · Goals · Ledger
+        </div>
       </div>
 
       {/* ── MULTI-DOMAIN PROPOSAL CARD (When Plan is Proposed) ── */}
@@ -355,20 +470,20 @@ export default function DexCommandRippleView({
           </button>
         </div>
       ) : (
-        /* ── LARGE COMMAND INPUT PILL ── */
+        /* ── LARGE COMMAND INPUT PILL (Screen 5 Reference) ── */
         <form
           onSubmit={handleSubmit}
           style={{
             width: '100%',
-            background: '#15161B',
-            border: '1px solid #3A3B40',
+            background: '#111A15',
+            border: '1px solid #1A2B23',
             borderRadius: '9999px',
             padding: '6px 8px 6px 14px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             marginBottom: '20px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            boxSizing: 'border-box',
           }}
         >
           <button
@@ -380,7 +495,7 @@ export default function DexCommandRippleView({
             title="Attach screenshot or image"
             style={{
               background: 'transparent',
-              color: '#9CA3AF',
+              color: '#7E948A',
               border: 'none',
               borderRadius: '50%',
               width: '28px',
@@ -389,11 +504,10 @@ export default function DexCommandRippleView({
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              transition: 'color 0.15s ease',
               padding: 0,
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#38BDF8')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#9CA3AF')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#2DE09A')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#7E948A')}
           >
             <Plus size={16} />
           </button>
@@ -408,13 +522,13 @@ export default function DexCommandRippleView({
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="I ate poha for ₹30"
+            placeholder="Ask Dex anything..."
             disabled={loading}
             style={{
               flex: 1,
               background: 'transparent',
               border: 'none',
-              color: '#ECE8DF',
+              color: '#F1F5F3',
               fontSize: '14px',
               outline: 'none',
               fontWeight: 500,
@@ -431,7 +545,7 @@ export default function DexCommandRippleView({
             title="Voice Command"
             style={{
               background: 'transparent',
-              color: '#38BDF8',
+              color: '#2DE09A',
               border: 'none',
               borderRadius: '50%',
               width: '32px',
@@ -452,17 +566,18 @@ export default function DexCommandRippleView({
               width: '36px',
               height: '36px',
               borderRadius: '50%',
-              background: inputText.trim() ? '#ECE8DF' : '#26272D',
-              color: '#0E0F13',
+              background: inputText.trim() ? '#2DE09A' : '#15221C',
+              color: inputText.trim() ? '#060B08' : '#7E948A',
               border: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: inputText.trim() ? 'pointer' : 'default',
+              boxShadow: inputText.trim() ? '0 0 14px rgba(45, 224, 154, 0.4)' : 'none',
               transition: 'all 0.15s ease',
             }}
           >
-            <Send size={15} color={inputText.trim() ? '#0E0F13' : '#6B7280'} />
+            <Send size={15} color={inputText.trim() ? '#060B08' : '#7E948A'} />
           </button>
         </form>
       )}
@@ -473,7 +588,7 @@ export default function DexCommandRippleView({
         flexDirection: 'column',
         gap: '8px',
         width: '100%',
-        marginBottom: '24px',
+        marginBottom: '20px',
       }}>
         {suggestions.map((s, idx) => (
           <button
@@ -482,27 +597,32 @@ export default function DexCommandRippleView({
             onClick={() => onCommandSubmit(s)}
             style={{
               width: '100%',
-              padding: '11px 16px',
-              background: '#15161B',
-              border: '1px solid #26272D',
+              padding: '12px 16px',
+              background: 'var(--bg-card, #FFFFFF)',
+              border: '1px solid var(--border-primary, #E4EAF2)',
               borderRadius: '14px',
-              color: '#ECE8DF',
+              color: 'var(--text-primary, #172033)',
               fontSize: '13px',
-              fontWeight: 500,
+              fontWeight: 600,
               textAlign: 'left',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#3A3B40';
-              e.currentTarget.style.background = '#1A1B22';
+              e.currentTarget.style.borderColor = 'var(--color-accent, #08B878)';
+              e.currentTarget.style.background = 'rgba(8, 184, 120, 0.04)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#26272D';
-              e.currentTarget.style.background = '#15161B';
+              e.currentTarget.style.borderColor = 'var(--border-primary, #E4EAF2)';
+              e.currentTarget.style.background = 'var(--bg-card, #FFFFFF)';
             }}
           >
-            {s}
+            <span>{s}</span>
+            <span style={{ color: 'var(--color-accent, #08B878)', fontSize: '12px' }}>↗</span>
           </button>
         ))}
       </div>
@@ -510,11 +630,11 @@ export default function DexCommandRippleView({
       {/* ── FOOTER NOTE ── */}
       <div style={{
         fontSize: '11px',
-        color: '#6B7280',
+        color: 'var(--text-secondary, #68758A)',
         textAlign: 'center',
         lineHeight: 1.4,
       }}>
-        Commands and queries run without AI. AI is used only for advice.
+        Commands and queries run deterministically. AI is used for advice and planning.
       </div>
     </div>
   );

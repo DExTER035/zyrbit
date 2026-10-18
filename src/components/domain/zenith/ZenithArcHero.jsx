@@ -67,13 +67,13 @@ export default function ZenithArcHero({
 
   return (
     <div style={{
-      background: 'linear-gradient(180deg, #15161B 0%, #0E0F13 100%)',
+      background: 'var(--bg-card, #FFFFFF)',
       borderRadius: '24px',
-      border: '1px solid #26272D',
+      border: '1px solid var(--border-primary, #E4EAF2)',
       padding: '24px 20px 20px',
       position: 'relative',
       overflow: 'hidden',
-      boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
+      boxShadow: 'var(--shadow-card, 0 4px 16px rgba(15, 23, 42, 0.05))',
     }}>
       {/* Ambient background glow from sun position */}
       <div style={{
@@ -199,12 +199,12 @@ export default function ZenithArcHero({
       <div style={{
         marginTop: '16px',
         paddingTop: '16px',
-        borderTop: '1px solid #26272D',
+        borderTop: '1px solid var(--border-primary, #E4EAF2)',
       }}>
         <div style={{
-          fontSize: '16px',
+          fontSize: '15px',
           fontWeight: 700,
-          color: '#E9B44C',
+          color: 'var(--text-primary, #172033)',
           letterSpacing: '-0.01em',
           marginBottom: '4px',
           display: 'flex',
@@ -215,7 +215,7 @@ export default function ZenithArcHero({
         </div>
         <div style={{
           fontSize: '13px',
-          color: '#9A978F',
+          color: 'var(--text-secondary, #68758A)',
           lineHeight: 1.45,
           fontWeight: 400,
         }}>

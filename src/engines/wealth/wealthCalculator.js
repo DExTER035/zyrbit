@@ -31,12 +31,21 @@ export function computeNetBalance(incomes = [], expenses = []) {
 }
 
 /**
- * Computes expenses for a specific YYYY-MM month string.
+ * Computes expenses for a specific YYYY-MM month string (excluding internal transfers).
  */
 export function computeMonthExpenses(expenses = [], currentMonthYMD = '') {
   if (!currentMonthYMD) return 0;
   return (expenses || []).reduce((sum, item) => {
     if (item?.expense_date && item.expense_date.startsWith(currentMonthYMD)) {
+      const cat = (item?.category || '').toLowerCase();
+      const note = (item?.note || '').toLowerCase();
+      if (
+        cat.includes('transfer') || cat.includes('saving') || note.includes('to savings') || note.includes('transfer to') ||
+        cat.includes('lend') || cat.includes('loan') || note.includes('lent to') ||
+        cat.includes('debt') || cat.includes('repay') || note.includes('repay')
+      ) {
+        return sum;
+      }
       const amt = Number(item.amount);
       return sum + (isFinite(amt) && amt > 0 ? amt : 0);
     }
@@ -45,11 +54,20 @@ export function computeMonthExpenses(expenses = [], currentMonthYMD = '') {
 }
 
 /**
- * Computes 30-day burn rate and estimated runway days.
+ * Computes 30-day burn rate and estimated runway days (excluding internal transfers and principal movements).
  */
 export function computeBurnRateAndRunway(expenses = [], liquidCash = 0, thirtyDaysAgoYMD = '') {
   const burnLast30 = (expenses || []).reduce((sum, item) => {
     if (thirtyDaysAgoYMD && item?.expense_date && item.expense_date >= thirtyDaysAgoYMD) {
+      const cat = (item?.category || '').toLowerCase();
+      const note = (item?.note || '').toLowerCase();
+      if (
+        cat.includes('transfer') || cat.includes('saving') || note.includes('to savings') || note.includes('transfer to') ||
+        cat.includes('lend') || cat.includes('loan') || note.includes('lent to') ||
+        cat.includes('debt') || cat.includes('repay') || note.includes('repay')
+      ) {
+        return sum;
+      }
       const amt = Number(item.amount);
       return sum + (isFinite(amt) && amt > 0 ? amt : 0);
     }

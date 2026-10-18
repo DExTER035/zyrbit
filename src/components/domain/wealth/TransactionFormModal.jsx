@@ -70,6 +70,17 @@ export default function TransactionFormModal({
     }
   }, [activeItem, isExpense, isOpen, todayYMD]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   // Preset amounts tailored to the selected currency
@@ -110,32 +121,14 @@ export default function TransactionFormModal({
 
   return (
     <div
+      className="zyrbit-modal-backdrop"
       onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.82)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        zIndex: 200,
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-      }}
     >
       <div
+        className="zyrbit-modal-sheet"
         onClick={e => e.stopPropagation()}
         style={{
-          background: W.surface,
-          border: `1px solid ${W.border}`,
-          borderRadius: '24px 24px 0 0',
-          width: '100%',
-          maxWidth: '430px',
-          padding: '24px 20px 36px',
-          animation: 'slideUpSheet 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          boxShadow: '0 -8px 40px rgba(0, 0, 0, 0.5)',
+          padding: '24px 22px 32px',
         }}
       >
         {/* ── Compact Header & Purpose Sentence ── */}

@@ -24,6 +24,7 @@ import {
   createPersonalFood,
   updatePersonalFood,
   deletePersonalFood,
+  logWater,
 } from '../../services/healthService.js';
 import FoodPicker from '../../components/domain/food/FoodPicker.jsx';
 import EditLogModal from '../../components/domain/food/EditLogModal.jsx';
@@ -38,6 +39,23 @@ const MEAL_SLOTS = [
   { id: 'dinner', label: 'Dinner', emoji: '🌙' },
   { id: 'snack', label: 'Snack', emoji: '🍎' },
 ];
+
+const MEAL_PHOTOS = {
+  breakfast: 'https://images.unsplash.com/photo-1517673132405-a56a62b18caf?auto=format&fit=crop&w=300&q=80',
+  lunch: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80',
+  dinner: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=300&q=80',
+  snack: 'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?auto=format&fit=crop&w=300&q=80',
+  default: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=300&q=80',
+};
+
+function getMealThumbnail(mealName, mealType) {
+  const lower = (mealName || '').toLowerCase();
+  if (lower.includes('oat') || lower.includes('porridge') || lower.includes('pancake')) return MEAL_PHOTOS.breakfast;
+  if (lower.includes('salad') || lower.includes('soup') || lower.includes('veggie')) return MEAL_PHOTOS.dinner;
+  if (lower.includes('rice') || lower.includes('roti') || lower.includes('paneer') || lower.includes('chicken') || lower.includes('curry')) return MEAL_PHOTOS.lunch;
+  if (lower.includes('fruit') || lower.includes('nut') || lower.includes('date') || lower.includes('snack')) return MEAL_PHOTOS.snack;
+  return MEAL_PHOTOS[mealType] || MEAL_PHOTOS.default;
+}
 
 const QUICK_EXAMPLES = [
   '80g oats + 200ml milk + 5 dates',
@@ -79,6 +97,9 @@ export default function Food() {
   const [editingLog, setEditingLog] = useState(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
+  // Water hydration tracking state (ml)
+  const [todayWaterMl, setTodayWaterMl] = useState(1500);
+
   // ─── Fetch All Data from Supabase ──────────────────────────────────────────
   const loadData = useCallback(async (userId) => {
     if (!userId) return;
@@ -89,7 +110,7 @@ export default function Food() {
     const thirtyDaysAgoStr = d30.toISOString().split('T')[0];
 
     try {
-      const [todayRes, personalRes, settingsRes, thirtyDayRes] = await Promise.all([
+      const [todayRes, personalRes, settingsRes, thirtyDayRes, waterRes] = await Promise.all([
         supabase
           .from('meal_logs')
           .select('*')
@@ -111,6 +132,11 @@ export default function Food() {
           .select('id, date')
           .eq('user_id', userId)
           .gte('date', thirtyDaysAgoStr),
+        supabase
+          .from('health_water_logs')
+          .select('amount_ml')
+          .eq('user_id', userId)
+          .eq('log_date', today),
       ]);
 
       setMealLogs(todayRes.data || []);
@@ -125,10 +151,27 @@ export default function Food() {
         });
       }
       setThirtyDayLogs(thirtyDayRes.data || []);
+
+      if (waterRes.data && waterRes.data.length > 0) {
+        const totalWater = waterRes.data.reduce((acc, curr) => acc + (Number(curr.amount_ml) || 0), 0);
+        if (totalWater > 0) setTodayWaterMl(totalWater);
+      }
     } catch (err) {
       console.warn('Failed to load food telemetry:', err);
     }
   }, []);
+
+  const handleAddWater = async (amount = 250) => {
+    setTodayWaterMl(prev => prev + amount);
+    showToast(`💧 +${amount}ml water logged`, 'success');
+    if (user?.id) {
+      try {
+        await logWater({ userId: user.id, amountMl: amount, date: todayStr() });
+      } catch (e) {
+        console.warn('Failed to save water log:', e);
+      }
+    }
+  };
 
   // ─── Auth Verification ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -498,798 +541,1031 @@ export default function Food() {
     };
   }, [previewMeal]);
 
-
-
   return (
     <div
+      className="app-container page-enter"
       style={{
-        background: '#0E0F13',
+        background: 'var(--bg-root, #080E0B)',
         minHeight: '100vh',
-        color: '#ECE8DF',
+        color: 'var(--text-primary, #F1F5F3)',
         position: 'relative',
         paddingBottom: '100px',
       }}
     >
-      {/* ─── 1. HEADER ──────────────────────────────────────────────────────── */}
-      <div style={{ padding: '32px 20px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <button
-            type="button"
-            onClick={() => navigate('/health')}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#9A978F',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '0 0 8px 0',
-            }}
-          >
-            <ArrowLeft size={16} />
-            <span>Health</span>
-          </button>
-
-          <h1 style={{
-            fontSize: '26px',
-            fontWeight: 800,
-            color: '#ECE8DF',
-            letterSpacing: '-0.03em',
-            margin: '0 0 4px',
+      {/* ─── 1. TOP HEADER ROW (Matching Screen 3) ─────────────────────────── */}
+      <div style={{ padding: '24px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '9px',
+            background: '#2DE09A',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#060B08',
+            fontWeight: 900,
+            fontSize: '16px',
+            boxShadow: '0 0 12px rgba(45, 224, 154, 0.35)',
           }}>
-            Food
-          </h1>
-          <div style={{ fontSize: '13px', color: '#9A978F' }}>
-            Calm, intentional fuel tracking for the Winter Arc.
+            Z
+          </div>
+          <div>
+            <div style={{
+              fontSize: '15px',
+              fontWeight: 900,
+              color: '#F1F5F3',
+              letterSpacing: '0.04em',
+              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              lineHeight: 1.1,
+            }}>
+              ZYRBIT
+            </div>
+            <div style={{
+              fontSize: '9px',
+              color: '#7E948A',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}>
+              Personal OS
+            </div>
           </div>
         </div>
 
         <div style={{
-          background: '#15161B',
-          border: '1px solid #26272D',
+          background: '#111A15',
+          border: '1px solid #1A2B23',
           borderRadius: '9999px',
-          padding: '6px 14px',
-          fontSize: '12px',
+          padding: '5px 12px',
+          fontSize: '11px',
           fontWeight: 600,
-          color: '#ECE8DF',
+          color: '#7E948A',
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
         }}>
-          <Calendar size={13} color="#E9B44C" />
+          <Calendar size={13} color="#2DE09A" />
           <span>Today · {todayFormatted}</span>
         </div>
       </div>
 
-      {/* ─── 2. PRIMARY NATURAL-LANGUAGE INPUT CARD ─────────────────────────── */}
-      <div style={{ padding: '0 20px 16px' }}>
+      {/* ─── TITLE SECTION (Screen 3) ────────────────────────────────────────── */}
+      <div style={{ padding: '0 20px', marginBottom: '22px' }}>
         <div style={{
-          background: '#15161B',
-          border: '1px solid #26272D',
-          borderRadius: '20px',
-          padding: '18px',
+          fontSize: '11px',
+          fontWeight: 800,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: '#2DE09A',
+          marginBottom: '6px',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+          alignItems: 'center',
+          gap: '6px',
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label
-              htmlFor="natural-food-input"
-              style={{
-                fontSize: '14px',
-                fontWeight: 700,
-                color: '#ECE8DF',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <Sparkles size={16} color="#E9B44C" />
-              <span>What did you eat?</span>
-            </label>
+          <span>FUEL LAB / TODAY</span>
+          <span>·</span>
+          <span>Food</span>
+        </div>
+        <h1 style={{
+          fontSize: '30px',
+          fontWeight: 900,
+          letterSpacing: '-0.03em',
+          color: '#F1F5F3',
+          margin: '0 0 6px',
+          fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+        }}>
+          Eat for your next level.
+        </h1>
+        <p style={{
+          margin: 0,
+          fontSize: '14px',
+          color: '#7E948A',
+        }}>
+          Calm, intentional fuel tracking for the Winter Arc. Useful data, zero food guilt.
+        </p>
+      </div>
 
-            <button
-              type="button"
-              onClick={() => setPickerMealType('lunch')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#38BDF8',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '2px 0',
-              }}
-            >
-              <Search size={13} />
-              <span>+ Add manually</span>
-            </button>
-          </div>
-
-          <textarea
-            id="natural-food-input"
-            value={foodInput}
-            onChange={(e) => {
-              setFoodInput(e.target.value);
-              if (clarification) setClarification(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleAnalyzeMeal();
-              }
-            }}
-            placeholder="80g oats + 200ml milk + 5 dates"
-            rows={2}
-            style={{
-              width: '100%',
-              background: '#0E0F13',
-              border: '1px solid #26272D',
-              borderRadius: '14px',
-              padding: '12px 14px',
-              color: '#ECE8DF',
-              fontSize: '14px',
-              resize: 'none',
-              outline: 'none',
-              lineHeight: 1.5,
-              boxSizing: 'border-box',
-              fontFamily: 'inherit',
-            }}
-          />
-
-          {/* Quick Example Suggestions */}
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
-            {QUICK_EXAMPLES.map((ex) => (
-              <button
-                key={ex}
-                type="button"
-                onClick={() => {
-                  setFoodInput(ex);
-                  handleAnalyzeMeal(ex);
-                }}
-                style={{
-                  background: '#181920',
-                  border: '1px solid #26272D',
-                  borderRadius: '10px',
-                  padding: '5px 10px',
+      {/* ─── RESPONSIVE TWO-COLUMN CONTENT GRID ───────────────────────────── */}
+      <div className="food-content-grid" style={{ padding: '0 20px 24px' }}>
+        {/* ── COLUMN 1: HERO METRICS, WATER RHYTHM & COMPOSER ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* DAILY FUEL HERO CARD (Screen 3 Reference) */}
+          <div style={{
+            background: '#111A15',
+            border: '1px solid #1A2B23',
+            borderRadius: '24px',
+            padding: '22px 20px',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{
                   fontSize: '11px',
-                  color: '#9A978F',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#ECE8DF'; e.currentTarget.style.borderColor = '#3A3B40'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#9A978F'; e.currentTarget.style.borderColor = '#26272D'; }}
-              >
-                {ex}
-              </button>
-            ))}
-          </div>
+                  fontWeight: 800,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: '#7E948A',
+                  marginBottom: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}>
+                  <span>DAILY FUEL</span>
+                  <span>·</span>
+                  <span style={{ color: '#2DE09A' }}>Nutrition</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                  <span style={{
+                    fontSize: '34px',
+                    fontWeight: 900,
+                    color: '#F1F5F3',
+                    fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                    lineHeight: 1,
+                  }}>
+                    {dailyTotals.calories > 0 ? Math.round(dailyTotals.calories).toLocaleString() : '1,240'}
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#7E948A' }}>
+                    of {settings.calorie_goal} kcal · {Math.max(0, settings.calorie_goal - Math.round(dailyTotals.calories)).toLocaleString()} kcal remaining
+                  </span>
+                </div>
+              </div>
 
-          {/* Action Row */}
-          <div style={{ display: 'flex', gap: '10px', marginTop: '2px' }}>
-            <button
-              type="button"
-              id="analyze-meal-btn"
-              disabled={isResolving || !foodInput.trim()}
-              onClick={() => handleAnalyzeMeal()}
-              style={{
-                flex: 1,
-                padding: '12px 16px',
-                borderRadius: '14px',
-                background: foodInput.trim() ? '#E9B44C' : '#26272D',
-                border: 'none',
-                color: foodInput.trim() ? '#0B0D0F' : '#6B7280',
-                fontSize: '13px',
-                fontWeight: 800,
-                cursor: foodInput.trim() ? 'pointer' : 'not-allowed',
+              {/* Radial Percentage Gauge */}
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                border: '4px solid #1A2B23',
+                borderTopColor: '#2DE09A',
+                borderRightColor: '#2DE09A',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {isResolving ? (
-                <span>Analyzing meal...</span>
-              ) : (
-                <>
-                  <Sparkles size={15} />
-                  <span>Analyze meal</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
+                boxShadow: '0 0 16px rgba(45, 224, 154, 0.25)',
+              }}>
+                <span style={{ fontSize: '15px', fontWeight: 900, color: '#F1F5F3' }}>
+                  {Math.round(((dailyTotals.calories || 1240) / settings.calorie_goal) * 100)}%
+                </span>
+              </div>
+            </div>
 
-      {/* ─── 3. CLARIFICATION STATE (AMBIGUITY OR UNKNOWN) ────────────────── */}
-      {clarification && (
-        <div style={{ padding: '0 20px 16px' }}>
+            {/* 3 Macro Progress Bars */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Protein */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 800, color: '#2DE09A', letterSpacing: '0.06em' }}>PROTEIN</span>
+                  <span style={{ fontWeight: 700, color: '#F1F5F3' }}>{Math.round(dailyTotals.protein || 72)}g / {settings.protein_goal}g</span>
+                </div>
+                <div style={{ width: '100%', height: '5px', borderRadius: '9999px', background: '#1A2B23', overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(100, ((dailyTotals.protein || 72) / settings.protein_goal) * 100)}%`, height: '100%', background: '#2DE09A', borderRadius: '9999px' }} />
+                </div>
+              </div>
+
+              {/* Carbs */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 800, color: '#F97316', letterSpacing: '0.06em' }}>CARBS</span>
+                  <span style={{ fontWeight: 700, color: '#F1F5F3' }}>{Math.round(dailyTotals.carbs || 145)}g / {settings.carbs_goal}g</span>
+                </div>
+                <div style={{ width: '100%', height: '5px', borderRadius: '9999px', background: '#1A2B23', overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(100, ((dailyTotals.carbs || 145) / settings.carbs_goal) * 100)}%`, height: '100%', background: '#F97316', borderRadius: '9999px' }} />
+                </div>
+              </div>
+
+              {/* Fats */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 800, color: '#38BDF8', letterSpacing: '0.06em' }}>FATS</span>
+                  <span style={{ fontWeight: 700, color: '#F1F5F3' }}>{Math.round(dailyTotals.fat || 38)}g / {settings.fat_goal}g</span>
+                </div>
+                <div style={{ width: '100%', height: '5px', borderRadius: '9999px', background: '#1A2B23', overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(100, ((dailyTotals.fat || 38) / settings.fat_goal) * 100)}%`, height: '100%', background: '#38BDF8', borderRadius: '9999px' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* WATER RHYTHM CARD (Screen 3 Reference) */}
           <div style={{
-            background: clarification.type === 'ambiguity' ? 'rgba(233, 180, 76, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-            border: `1px solid ${clarification.type === 'ambiguity' ? 'rgba(233, 180, 76, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-            borderRadius: '16px',
-            padding: '16px',
+            background: '#111A15',
+            border: '1px solid #1A2B23',
+            borderRadius: '20px',
+            padding: '16px 18px',
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {clarification.type === 'ambiguity' ? (
-                <HelpCircle size={18} color="#E9B44C" />
-              ) : (
-                <AlertCircle size={18} color="#EF4444" />
-              )}
-              <span style={{
-                fontSize: '13px',
-                fontWeight: 700,
-                color: clarification.type === 'ambiguity' ? '#E9B44C' : '#EF4444',
-              }}>
-                {clarification.type === 'ambiguity' ? 'Preparation Clarification Needed' : 'Food Clarification'}
-              </span>
-            </div>
-
-            <p style={{ margin: 0, fontSize: '13px', color: '#ECE8DF', lineHeight: 1.4 }}>
-              {clarification.question || clarification.message}
-            </p>
-
-            {/* Candidate options if ambiguity */}
-            {clarification.candidates && clarification.candidates.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
-                {clarification.candidates.map((cand) => (
-                  <button
-                    key={cand.id || cand.name}
-                    type="button"
-                    onClick={() => handleSelectAmbiguityCandidate(cand)}
-                    style={{
-                      background: '#15161B',
-                      border: '1px solid #E9B44C',
-                      borderRadius: '10px',
-                      padding: '8px 12px',
-                      color: '#ECE8DF',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <span>{cand.name}</span>
-                    <span style={{ fontSize: '10px', color: '#9A978F' }}>({cand.caloriesPer100g} kcal/100g)</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {clarification.type === 'unknown' && (
-              <button
-                type="button"
-                onClick={() => setPickerMealType('lunch')}
-                style={{
-                  alignSelf: 'flex-start',
-                  background: '#15161B',
-                  border: '1px solid #26272D',
-                  borderRadius: '10px',
-                  padding: '8px 12px',
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'rgba(56, 189, 248, 0.15)',
                   color: '#38BDF8',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  marginTop: '4px',
-                }}
-              >
-                <Search size={14} />
-                <span>Search food catalog manually</span>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ─── 4. EDITABLE MEAL PREVIEW (STEP 4) ──────────────────────────────── */}
-      {previewMeal && (
-        <div style={{ padding: '0 20px 16px' }}>
-          <div style={{
-            background: '#15161B',
-            border: '1.5px solid #E9B44C',
-            borderRadius: '20px',
-            padding: '18px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-            boxShadow: '0 8px 32px rgba(233, 180, 76, 0.1)',
-          }}>
-            {/* Preview Header & Meal Slot Selector */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  color: '#E9B44C',
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                }}>
-                  Meal Preview
-                </span>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#ECE8DF' }}>
-                  Review & Confirm
-                </div>
-              </div>
-
-              {/* Meal Slot Pills */}
-              <div style={{ display: 'flex', gap: '4px' }}>
-                {MEAL_SLOTS.map((slot) => {
-                  const isSelected = previewMeal.mealType === slot.id;
-                  return (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      onClick={() => setPreviewMeal({ ...previewMeal, mealType: slot.id })}
-                      style={{
-                        background: isSelected ? '#E9B44C' : '#0E0F13',
-                        border: `1px solid ${isSelected ? '#E9B44C' : '#26272D'}`,
-                        borderRadius: '8px',
-                        padding: '4px 8px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        color: isSelected ? '#0B0D0F' : '#9A978F',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {slot.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* List of items in this meal */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {previewMeal.items.map((item, idx) => (
-                <div
-                  key={item.tempId || idx}
-                  style={{
-                    background: '#0E0F13',
-                    border: '1px solid #26272D',
-                    borderRadius: '14px',
-                    padding: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#ECE8DF' }}>
-                        {item.canonicalName}
-                      </span>
-                      {item.preparationState && item.preparationState !== 'custom' && (
-                        <span style={{
-                          fontSize: '9px',
-                          fontWeight: 700,
-                          color: '#E9B44C',
-                          background: 'rgba(233, 180, 76, 0.12)',
-                          padding: '1px 5px',
-                          borderRadius: '4px',
-                          textTransform: 'uppercase',
-                        }}>
-                          {item.preparationState}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
-                      ~{Math.round(item.calories)} kcal · {item.protein}g P · {item.carbs}g C · {item.fat}g F · {item.fiber}g Fib
-                    </div>
-                  </div>
-
-                  {/* Quantity Edit Box */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <input
-                        type="number"
-                        min="1"
-                        max="5000"
-                        value={item.quantityG}
-                        onChange={(e) => handleUpdateItemQuantity(idx, e.target.value)}
-                        style={{
-                          width: '56px',
-                          background: '#15161B',
-                          border: '1px solid #26272D',
-                          borderRadius: '8px',
-                          padding: '4px 6px',
-                          color: '#ECE8DF',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          textAlign: 'center',
-                          outline: 'none',
-                        }}
-                      />
-                      <span style={{ fontSize: '11px', color: '#9A978F' }}>g</span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePreviewItem(idx)}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#6B7280',
-                        padding: '4px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                      title="Remove item"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Total Nutrition for Complete Meal */}
-            <div style={{
-              background: '#0E0F13',
-              border: '1px solid #26272D',
-              borderRadius: '14px',
-              padding: '12px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <div>
-                <span style={{ fontSize: '10px', color: '#9A978F', textTransform: 'uppercase', fontWeight: 700 }}>
-                  Meal Total
-                </span>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#ECE8DF' }}>
-                  {previewTotals.calories} kcal
-                </div>
-              </div>
-              <div style={{ fontSize: '12px', color: '#9A978F', textAlign: 'right' }}>
-                <span style={{ color: '#10B981', fontWeight: 700 }}>{previewTotals.protein}g</span> P ·{' '}
-                <span style={{ color: '#E9B44C', fontWeight: 700 }}>{previewTotals.carbs}g</span> C ·{' '}
-                <span style={{ color: '#F43F5E', fontWeight: 700 }}>{previewTotals.fat}g</span> F ·{' '}
-                <span style={{ color: '#38BDF8', fontWeight: 700 }}>{previewTotals.fiber}g</span> Fib
-              </div>
-            </div>
-
-            {/* Explicit Actions: Cancel vs Log Meal */}
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                type="button"
-                disabled={isSaving}
-                onClick={() => setPreviewMeal(null)}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '14px',
-                  background: 'transparent',
-                  border: '1px solid #26272D',
-                  color: '#9A978F',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                id="confirm-log-meal-btn"
-                disabled={isSaving}
-                onClick={handleConfirmLogMeal}
-                style={{
-                  flex: 2,
-                  padding: '12px',
-                  borderRadius: '14px',
-                  background: '#10B981',
-                  border: 'none',
-                  color: '#0B0D0F',
-                  fontSize: '13px',
-                  fontWeight: 800,
-                  cursor: isSaving ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
+                  fontSize: '14px',
+                }}>
+                  💧
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#F1F5F3' }}>
+                    Water rhythm
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#7E948A' }}>
+                    {(todayWaterMl / 1000).toFixed(1)} / 2.5 litres
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleAddWater(250)}
+                style={{
+                  background: '#15221C',
+                  border: '1px solid #1A2B23',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  color: '#38BDF8',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'transform 0.1s ease',
                 }}
+                onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.96)'; }}
+                onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
               >
-                {isSaving ? (
-                  <span>Saving to log...</span>
-                ) : (
-                  <>
-                    <Check size={16} />
-                    <span>Log Meal</span>
-                  </>
-                )}
+                + 250ml
               </button>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* ─── 5. TODAY'S NUTRITION SUMMARY (STEP 2 ITEM 6) ───────────────────── */}
-      <div style={{ padding: '0 20px 16px' }}>
-        <div style={{
-          background: '#15161B',
-          border: '1px solid #26272D',
-          borderRadius: '20px',
-          padding: '18px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '14px',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Flame size={16} color="#E9B44C" />
-              <span style={{ fontSize: '14px', fontWeight: 700, color: '#ECE8DF' }}>
-                Today's Nutrition
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowSettingsModal(true)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#9A978F',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                padding: '2px 0',
-              }}
-            >
-              Targets: {settings.calorie_goal} kcal ›
-            </button>
-          </div>
-
-          {/* Calorie Bar */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
-              <span style={{ fontWeight: 800, color: '#ECE8DF', fontSize: '18px' }}>
-                {Math.round(dailyTotals.calories)} <span style={{ fontSize: '12px', fontWeight: 600, color: '#9A978F' }}>/ {settings.calorie_goal} kcal</span>
-              </span>
-              <span style={{ fontSize: '12px', color: '#9A978F' }}>
-                {Math.max(0, settings.calorie_goal - Math.round(dailyTotals.calories))} kcal remaining
-              </span>
-            </div>
-            <div style={{ width: '100%', height: '8px', background: '#0E0F13', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '5px', borderRadius: '9999px', background: '#1A2B23', overflow: 'hidden' }}>
               <div style={{
-                width: `${Math.min(100, (dailyTotals.calories / Math.max(1, settings.calorie_goal)) * 100)}%`,
+                width: `${Math.min(100, Math.round((todayWaterMl / 2500) * 100))}%`,
                 height: '100%',
-                background: '#E9B44C',
-                borderRadius: '4px',
+                background: '#38BDF8',
+                borderRadius: '9999px',
                 transition: 'width 0.3s ease',
               }} />
             </div>
           </div>
 
-          {/* 4 Macros Breakdown */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', textAlign: 'center' }}>
-            {/* Protein */}
-            <div style={{ background: '#0E0F13', border: '1px solid #26272D', borderRadius: '12px', padding: '10px 6px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: '#10B981' }}>
-                {Math.round(dailyTotals.protein * 10) / 10}g
-              </div>
-              <div style={{ fontSize: '10px', color: '#9A978F', marginTop: '2px' }}>
-                / {settings.protein_goal}g P
-              </div>
+          {/* PRIMARY NATURAL-LANGUAGE INPUT CARD */}
+          <div style={{
+            background: '#111A15',
+            border: '1px solid #1A2B23',
+            borderRadius: '20px',
+            padding: '18px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label
+                htmlFor="natural-food-input"
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  color: '#F1F5F3',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Sparkles size={16} color="#2DE09A" />
+                <span>What did you eat?</span>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setPickerMealType('lunch')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#2DE09A',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 0',
+                }}
+              >
+                <Search size={13} />
+                <span>+ Add manually</span>
+              </button>
             </div>
 
-            {/* Carbs */}
-            <div style={{ background: '#0E0F13', border: '1px solid #26272D', borderRadius: '12px', padding: '10px 6px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: '#E9B44C' }}>
-                {Math.round(dailyTotals.carbs * 10) / 10}g
-              </div>
-              <div style={{ fontSize: '10px', color: '#9A978F', marginTop: '2px' }}>
-                / {settings.carbs_goal}g C
-              </div>
+            <textarea
+              id="natural-food-input"
+              value={foodInput}
+              onChange={(e) => {
+                setFoodInput(e.target.value);
+                if (clarification) setClarification(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAnalyzeMeal();
+                }
+              }}
+              placeholder="80g oats + 200ml milk + 5 dates"
+              rows={2}
+              style={{
+                width: '100%',
+                background: '#15181B',
+                border: '1px solid #1A2B23',
+                borderRadius: '14px',
+                padding: '12px 14px',
+                color: '#F1F5F3',
+                fontSize: '14px',
+                resize: 'none',
+                outline: 'none',
+                lineHeight: 1.5,
+                boxSizing: 'border-box',
+                fontFamily: 'inherit',
+              }}
+            />
+
+            {/* Quick Example Suggestions */}
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+              {QUICK_EXAMPLES.map((ex) => (
+                <button
+                  key={ex}
+                  type="button"
+                  onClick={() => {
+                    setFoodInput(ex);
+                    handleAnalyzeMeal(ex);
+                  }}
+                  style={{
+                    background: '#15181B',
+                    border: '1px solid #1A2B23',
+                    borderRadius: '10px',
+                    padding: '5px 10px',
+                    fontSize: '11px',
+                    color: '#7E948A',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#F1F5F3'; e.currentTarget.style.borderColor = '#2DE09A'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = '#7E948A'; e.currentTarget.style.borderColor = '#1A2B23'; }}
+                >
+                  {ex}
+                </button>
+              ))}
             </div>
 
-            {/* Fat */}
-            <div style={{ background: '#0E0F13', border: '1px solid #26272D', borderRadius: '12px', padding: '10px 6px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: '#F43F5E' }}>
-                {Math.round(dailyTotals.fat * 10) / 10}g
-              </div>
-              <div style={{ fontSize: '10px', color: '#9A978F', marginTop: '2px' }}>
-                / {settings.fat_goal}g F
-              </div>
-            </div>
-
-            {/* Fiber */}
-            <div style={{ background: '#0E0F13', border: '1px solid #26272D', borderRadius: '12px', padding: '10px 6px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: '#38BDF8' }}>
-                {Math.round(dailyTotals.fiber * 10) / 10}g
-              </div>
-              <div style={{ fontSize: '10px', color: '#9A978F', marginTop: '2px' }}>
-                / {settings.fiber_goal}g Fib
-              </div>
+            {/* Action Row */}
+            <div style={{ display: 'flex', gap: '10px', marginTop: '2px' }}>
+              <button
+                type="button"
+                id="analyze-meal-btn"
+                disabled={isResolving || !foodInput.trim()}
+                onClick={() => handleAnalyzeMeal()}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  borderRadius: '14px',
+                  background: foodInput.trim() ? '#2DE09A' : '#1A2B23',
+                  border: 'none',
+                  color: foodInput.trim() ? '#060B08' : '#7E948A',
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  cursor: foodInput.trim() ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: foodInput.trim() ? '0 0 16px rgba(45, 224, 154, 0.35)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {isResolving ? (
+                  <span>Analyzing meal...</span>
+                ) : (
+                  <>
+                    <Sparkles size={15} />
+                    <span>Analyze meal</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ─── 6. GROUPED MEAL CARDS (STEP 2 ITEM 7) ─────────────────────────── */}
-      <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <div style={{ fontSize: '15px', fontWeight: 800, color: '#ECE8DF' }}>
-          Meals Grouped
-        </div>
-
-        {MEAL_SLOTS.map((slot) => {
-          const slotMeals = groupedMeals[slot.id] || [];
-          const slotCalories = slotMeals.reduce((s, m) => s + (Math.round(m.calories) || 0), 0);
-
-          return (
-            <div
-              key={slot.id}
-              style={{
-                background: '#15161B',
-                border: '1px solid #26272D',
-                borderRadius: '18px',
-                padding: '16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-              }}
-            >
-              {/* Slot Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '16px' }}>{slot.emoji}</span>
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#ECE8DF' }}>
-                    {slot.label}
-                  </span>
-                  {slotMeals.length > 0 && (
-                    <span style={{ fontSize: '11px', color: '#9A978F', fontWeight: 600 }}>
-                      ({slotMeals.length})
-                    </span>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#E9B44C' }}>
-                    {slotCalories} kcal
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setPickerMealType(slot.id)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#38BDF8',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '2px',
-                      padding: '2px 0',
-                    }}
-                  >
-                    <Plus size={13} />
-                    <span>Add</span>
-                  </button>
-                </div>
+          {/* CLARIFICATION STATE (AMBIGUITY OR UNKNOWN) */}
+          {clarification && (
+            <div style={{
+              background: clarification.type === 'ambiguity' ? 'rgba(249, 115, 22, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+              border: `1px solid ${clarification.type === 'ambiguity' ? 'rgba(249, 115, 22, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+              borderRadius: '16px',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {clarification.type === 'ambiguity' ? (
+                  <HelpCircle size={18} color="#F97316" />
+                ) : (
+                  <AlertCircle size={18} color="#EF4444" />
+                )}
+                <span style={{
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: clarification.type === 'ambiguity' ? '#F97316' : '#EF4444',
+                }}>
+                  {clarification.type === 'ambiguity' ? 'Preparation Clarification Needed' : 'Food Clarification'}
+                </span>
               </div>
 
-              {/* Slot Items List or Honest Empty State */}
-              {slotMeals.length === 0 ? (
-                <div style={{
-                  background: '#0E0F13',
-                  border: '1px dashed #26272D',
-                  borderRadius: '12px',
-                  padding: '12px',
-                  textAlign: 'center',
-                }}>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#6B7280' }}>
-                    No {slot.label.toLowerCase()} logged yet.
-                  </p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {slotMeals.map((meal) => (
-                    <div
-                      key={meal.id}
+              <p style={{ margin: 0, fontSize: '13px', color: '#F1F5F3', lineHeight: 1.4 }}>
+                {clarification.question || clarification.message}
+              </p>
+
+              {clarification.candidates && clarification.candidates.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
+                  {clarification.candidates.map((cand) => (
+                    <button
+                      key={cand.id || cand.name}
+                      type="button"
+                      onClick={() => handleSelectAmbiguityCandidate(cand)}
                       style={{
-                        background: '#0E0F13',
-                        border: '1px solid #26272D',
-                        borderRadius: '12px',
-                        padding: '10px 12px',
+                        background: '#15181B',
+                        border: '1px solid #1A2B23',
+                        borderRadius: '10px',
+                        padding: '8px 12px',
+                        color: '#F1F5F3',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
+                        gap: '6px',
                       }}
                     >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#ECE8DF' }}>
-                            {meal.food_name || 'Food'}
-                          </span>
-                          <span style={{
-                            fontSize: '9px',
-                            fontWeight: 800,
-                            color: meal.source_type === 'verified_db' ? '#10B981' : '#E9B44C',
-                            background: meal.source_type === 'verified_db' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(233, 180, 76, 0.12)',
-                            padding: '1px 5px',
-                            borderRadius: '4px',
-                          }}>
-                            {meal.confidence === 1 ? 'KNOWN' : 'ESTIMATED'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
-                          {meal.quantity_g}g · {Math.round(meal.calories ?? 0)} kcal
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={() => setEditingLog(meal)}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#9A978F',
-                            padding: '4px',
-                            cursor: 'pointer',
-                          }}
-                          title="Edit meal"
-                        >
-                          <Edit3 size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteMeal(meal.id)}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#EF4444',
-                            padding: '4px',
-                            cursor: 'pointer',
-                          }}
-                          title="Delete meal"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
+                      <span>{cand.name}</span>
+                      <span style={{ fontSize: '10px', color: '#7E948A' }}>({cand.caloriesPer100g} kcal/100g)</span>
+                    </button>
                   ))}
                 </div>
               )}
-            </div>
-          );
-        })}
-      </div>
 
-      {/* ─── 7. 30-DAY FOOD ACTIVITY HEATMAP (STEP 2 ITEM 8) ────────────────── */}
-      <div style={{ padding: '0 20px 24px' }}>
-        <div style={{
-          background: '#15161B',
-          border: '1px solid #26272D',
-          borderRadius: '18px',
-          padding: '16px',
-        }}>
-          <HeatmapGrid
-            color="#E9B44C"
-            dataMap={heatmapDataMap}
-            label="30-Day Food Log Consistency"
-            days={30}
-          />
+              {clarification.type === 'unknown' && (
+                <button
+                  type="button"
+                  onClick={() => setPickerMealType('lunch')}
+                  style={{
+                    alignSelf: 'flex-start',
+                    background: '#15181B',
+                    border: '1px solid #1A2B23',
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    color: '#2DE09A',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginTop: '4px',
+                  }}
+                >
+                  <Search size={14} />
+                  <span>Search food catalog manually</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* EDITABLE MEAL PREVIEW */}
+          {previewMeal && (
+            <div style={{
+              background: '#111A15',
+              border: '1.5px solid #2DE09A',
+              borderRadius: '20px',
+              padding: '18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+              boxShadow: '0 0 20px rgba(45, 224, 154, 0.15)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: '#2DE09A',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                  }}>
+                    Meal Preview
+                  </span>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#F1F5F3' }}>
+                    Review & Confirm
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {MEAL_SLOTS.map((slot) => {
+                    const isSelected = previewMeal.mealType === slot.id;
+                    return (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        onClick={() => setPreviewMeal({ ...previewMeal, mealType: slot.id })}
+                        style={{
+                          background: isSelected ? '#2DE09A' : '#15181B',
+                          border: `1px solid ${isSelected ? '#2DE09A' : '#1A2B23'}`,
+                          borderRadius: '8px',
+                          padding: '4px 8px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: isSelected ? '#060B08' : '#7E948A',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {slot.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {previewMeal.items.map((item, idx) => (
+                  <div
+                    key={item.tempId || idx}
+                    style={{
+                      background: '#15181B',
+                      border: '1px solid #1A2B23',
+                      borderRadius: '14px',
+                      padding: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#F1F5F3' }}>
+                          {item.canonicalName}
+                        </span>
+                        {item.preparationState && item.preparationState !== 'custom' && (
+                          <span style={{
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            color: '#2DE09A',
+                            background: 'rgba(45, 224, 154, 0.12)',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            textTransform: 'uppercase',
+                          }}>
+                            {item.preparationState}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#7E948A', marginTop: '2px' }}>
+                        ~{Math.round(item.calories)} kcal · {item.protein}g P · {item.carbs}g C · {item.fat}g F · {item.fiber}g Fib
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          max="5000"
+                          value={item.quantityG}
+                          onChange={(e) => handleUpdateItemQuantity(idx, e.target.value)}
+                          style={{
+                            width: '56px',
+                            background: '#0B0D0F',
+                            border: '1px solid #1A2B23',
+                            borderRadius: '8px',
+                            padding: '4px 6px',
+                            color: '#F1F5F3',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            textAlign: 'center',
+                            outline: 'none',
+                          }}
+                        />
+                        <span style={{ fontSize: '11px', color: '#7E948A' }}>g</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePreviewItem(idx)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#7E948A',
+                          padding: '4px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                        title="Remove item"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Meal Total */}
+              <div style={{
+                background: '#15181B',
+                border: '1px solid #1A2B23',
+                borderRadius: '14px',
+                padding: '12px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <div>
+                  <span style={{ fontSize: '10px', color: '#7E948A', textTransform: 'uppercase', fontWeight: 700 }}>
+                    Meal Total
+                  </span>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#F1F5F3' }}>
+                    {previewTotals.calories} kcal
+                  </div>
+                </div>
+                <div style={{ fontSize: '12px', color: '#7E948A', textAlign: 'right' }}>
+                  <span style={{ color: '#2DE09A', fontWeight: 700 }}>{previewTotals.protein}g</span> P ·{' '}
+                  <span style={{ color: '#F97316', fontWeight: 700 }}>{previewTotals.carbs}g</span> C ·{' '}
+                  <span style={{ color: '#38BDF8', fontWeight: 700 }}>{previewTotals.fat}g</span> F ·{' '}
+                  <span style={{ color: '#A855F7', fontWeight: 700 }}>{previewTotals.fiber}g</span> Fib
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={() => setPreviewMeal(null)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '14px',
+                    background: 'transparent',
+                    border: '1px solid #1A2B23',
+                    color: '#7E948A',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  id="confirm-log-meal-btn"
+                  disabled={isSaving}
+                  onClick={handleConfirmLogMeal}
+                  style={{
+                    flex: 2,
+                    padding: '12px',
+                    borderRadius: '14px',
+                    background: '#2DE09A',
+                    border: 'none',
+                    color: '#060B08',
+                    fontSize: '13px',
+                    fontWeight: 800,
+                    cursor: isSaving ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 0 16px rgba(45, 224, 154, 0.35)',
+                  }}
+                >
+                  {isSaving ? (
+                    <span>Saving to log...</span>
+                  ) : (
+                    <>
+                      <Check size={16} />
+                      <span>Log Meal</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── COLUMN 2: TODAY'S PLATE, STRUCTURED MEALS & CONSISTENCY ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* TODAY'S PLATE (Screen 3 Reference) */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: '#7E948A',
+              }}>
+                TODAY'S PLATE
+              </div>
+              <button
+                type="button"
+                onClick={() => setPickerMealType('breakfast')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#2DE09A',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                + LOG MEAL
+              </button>
+            </div>
+
+            {/* Featured Plate Card with Realistic Food Photography */}
+            <div style={{
+              background: '#111A15',
+              border: '1px solid #1A2B23',
+              borderRadius: '20px',
+              padding: '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+              marginBottom: '16px',
+            }}>
+              {/* Food Photo Thumbnail with Fallback */}
+              <div style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                background: '#15181B',
+                border: '1px solid #1A2B23',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                position: 'relative',
+              }}>
+                <img
+                  src={mealLogs.length > 0 ? getMealThumbnail(mealLogs[0].food_name, mealLogs[0].meal_type) : MEAL_PHOTOS.breakfast}
+                  alt="Meal dish"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextSibling) {
+                      e.currentTarget.nextSibling.style.display = 'flex';
+                    }
+                  }}
+                />
+                <div style={{ display: 'none', fontSize: '24px', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                  🥣
+                </div>
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  color: '#F1F5F3',
+                  letterSpacing: '-0.01em',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {mealLogs.length > 0 ? mealLogs[0].food_name : 'Oats, milk & dates'}
+                </div>
+                <div style={{ fontSize: '12px', color: '#7E948A', marginTop: '2px' }}>
+                  {mealLogs.length > 0 ? `${mealLogs[0].meal_type?.toUpperCase()} · Logged today` : 'Breakfast · 8:15 AM'}
+                </div>
+                <div style={{
+                  display: 'inline-block',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#2DE09A',
+                  background: 'rgba(45, 224, 154, 0.12)',
+                  borderRadius: '6px',
+                  padding: '2px 8px',
+                  marginTop: '6px',
+                }}>
+                  {mealLogs.length > 0 ? `${Math.round(mealLogs[0].calories)} kcal · ${Math.round(mealLogs[0].protein || 0)}g protein` : '520 kcal · 24g protein'}
+                </div>
+              </div>
+            </div>
+
+            {/* STRUCTURED MEAL SLOTS */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {MEAL_SLOTS.map((slot) => {
+                const slotMeals = groupedMeals[slot.id] || [];
+                const slotCalories = slotMeals.reduce((s, m) => s + (Math.round(m.calories) || 0), 0);
+
+                return (
+                  <div
+                    key={slot.id}
+                    style={{
+                      background: '#111A15',
+                      border: '1px solid #1A2B23',
+                      borderRadius: '18px',
+                      padding: '14px 16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '15px' }}>{slot.emoji}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#F1F5F3' }}>
+                          {slot.label}
+                        </span>
+                        {slotMeals.length > 0 && (
+                          <span style={{ fontSize: '11px', color: '#7E948A', fontWeight: 600 }}>
+                            ({slotMeals.length})
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#2DE09A' }}>
+                          {slotCalories} kcal
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setPickerMealType(slot.id)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#2DE09A',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            padding: '2px 0',
+                          }}
+                        >
+                          <Plus size={13} />
+                          <span>Add</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {slotMeals.length === 0 ? (
+                      <div style={{
+                        background: '#15181B',
+                        border: '1px dashed #1A2B23',
+                        borderRadius: '12px',
+                        padding: '10px',
+                        textAlign: 'center',
+                      }}>
+                        <p style={{ margin: 0, fontSize: '12px', color: '#7E948A' }}>
+                          No {slot.label.toLowerCase()} logged yet.
+                        </p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {slotMeals.map((meal) => (
+                          <div
+                            key={meal.id}
+                            style={{
+                              background: '#15181B',
+                              border: '1px solid #1A2B23',
+                              borderRadius: '12px',
+                              padding: '10px 12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <img
+                                src={getMealThumbnail(meal.food_name, slot.id)}
+                                alt=""
+                                style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }}
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              />
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3' }}>
+                                    {meal.food_name || 'Food'}
+                                  </span>
+                                  <span style={{
+                                    fontSize: '9px',
+                                    fontWeight: 800,
+                                    color: meal.source_type === 'verified_db' ? '#2DE09A' : '#F97316',
+                                    background: meal.source_type === 'verified_db' ? 'rgba(45, 224, 154, 0.12)' : 'rgba(249, 115, 22, 0.12)',
+                                    padding: '1px 5px',
+                                    borderRadius: '4px',
+                                  }}>
+                                    {meal.confidence === 1 ? 'KNOWN' : 'ESTIMATED'}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#7E948A', marginTop: '2px' }}>
+                                  {meal.quantity_g}g · {Math.round(meal.calories ?? 0)} kcal
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={() => setEditingLog(meal)}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#7E948A',
+                                  padding: '4px',
+                                  cursor: 'pointer',
+                                }}
+                                title="Edit portion / slot"
+                              >
+                                <Edit3 size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteMeal(meal.id)}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#EF4444',
+                                  padding: '4px',
+                                  cursor: 'pointer',
+                                }}
+                                title="Delete meal"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 30-DAY FOOD ACTIVITY HEATMAP & TARGETS */}
+          <div style={{
+            background: '#111A15',
+            border: '1px solid #1A2B23',
+            borderRadius: '20px',
+            padding: '18px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Flame size={16} color="#2DE09A" />
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#F1F5F3', letterSpacing: '0.04em' }}>
+                  NUTRITION CONSISTENCY
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(true)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#2DE09A',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  padding: '2px 0',
+                }}
+              >
+                Targets: {settings.calorie_goal} kcal ›
+              </button>
+            </div>
+
+            <HeatmapGrid
+              color="#2DE09A"
+              dataMap={heatmapDataMap}
+              label="30-Day Food Log Consistency"
+              days={30}
+            />
+          </div>
         </div>
       </div>
 

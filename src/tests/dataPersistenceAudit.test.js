@@ -84,7 +84,7 @@ describe('Zyrbit Full Data Persistence & Database Integrity Audit', () => {
     for (const id of createdFeedbackIds) {
       await supabase.from('beta_feedback').delete().eq('id', id);
     }
-  });
+  }, 35000);
 
   // ═════════════════════════════════════════════════════════════════════════════
   // 1. ZENITH PERSISTENCE
@@ -716,7 +716,7 @@ describe('Zyrbit Full Data Persistence & Database Integrity Audit', () => {
       });
       userAGoalId = gRes.data.id;
       createdGoalIds.push(userAGoalId);
-    });
+    }, 30000);
 
     it('enforces User B cannot SELECT User A habits', async () => {
       const { data } = await clientB

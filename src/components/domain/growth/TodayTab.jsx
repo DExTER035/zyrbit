@@ -5,6 +5,8 @@ import { getAvailableTasks, getBlockedTasks } from '../../../engines/growth/inde
 import GrowthPathHero from './GrowthPathHero.jsx';
 
 export default function TodayTab({
+  goals = [],
+  streak = { current_streak: 0 },
   todayFocusMin = 0,
   setTab,
   completeTask,
@@ -61,6 +63,8 @@ export default function TodayTab({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', fontFamily: 'Inter, sans-serif' }}>
       {/* ── THE VISUAL PATH HERO ── */}
       <GrowthPathHero
+        goals={goals}
+        streak={streak}
         tasks={tasks}
         projects={projects}
         onCompleteTask={completeTask}

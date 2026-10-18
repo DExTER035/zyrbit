@@ -2,8 +2,9 @@
  * WealthRecentEvents — Recent Outflows and Inflows with Cross-Domain Badges
  * Shows real persisted transactions from Supabase (expenses, incomes, promises).
  * Single Source of Truth: Derived strictly from database records. Zero mock data.
+ * Updated to Zenith Dark Forest Design System.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Utensils,
   ShoppingBag,
@@ -13,7 +14,6 @@ import {
   CreditCard,
   FileText,
   Car,
-  Sparkles,
   HeartPulse,
 } from 'lucide-react';
 
@@ -66,13 +66,15 @@ export default function WealthRecentEvents({
   onSeeAll,
   onTransactionClick,
 }) {
+  const [filter, setFilter] = useState('all'); // 'all' | 'expense' | 'income'
+
   // Merge and sort real persisted transactions descending by date/timestamp
-  const recentTransactions = [
+  const allTransactions = [
     ...expenses.map((e) => {
       const cat = (e.category || '').toLowerCase();
       let icon = CreditCard;
-      let iconColor = '#ECE8DF';
-      let iconBg = 'rgba(255, 255, 255, 0.1)';
+      let iconColor = '#F1F5F3';
+      let iconBg = 'rgba(255, 255, 255, 0.08)';
 
       if (cat.includes('food') || cat.includes('swiggy') || cat.includes('zomato') || cat.includes('dinner') || cat.includes('lunch') || cat.includes('cafe')) {
         icon = Utensils;
@@ -120,8 +122,8 @@ export default function WealthRecentEvents({
         createdAt: i.created_at,
         time: formatEventDate(i.income_date, i.created_at),
         icon: ArrowDownLeft,
-        iconBg: 'rgba(16, 185, 129, 0.15)',
-        iconColor: '#10B981',
+        iconBg: 'rgba(45, 224, 154, 0.15)',
+        iconColor: '#2DE09A',
         isCredit: true,
         txType: 'income',
         raw: i,
@@ -132,8 +134,13 @@ export default function WealthRecentEvents({
       const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a.rawDate ? new Date(a.rawDate + 'T00:00:00').getTime() : 0);
       const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b.rawDate ? new Date(b.rawDate + 'T00:00:00').getTime() : 0);
       return timeB - timeA;
-    })
-    .slice(0, 5);
+    });
+
+  const filteredTransactions = allTransactions.filter((tx) => {
+    if (filter === 'expense') return tx.txType === 'expense';
+    if (filter === 'income') return tx.txType === 'income';
+    return true;
+  }).slice(0, 6);
 
   // Active money promises owed to user
   const owedItems = (promises || []).filter(
@@ -141,56 +148,113 @@ export default function WealthRecentEvents({
   );
 
   return (
-    <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* ── RECENT EVENTS ── */}
-      <div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* ── RECENT TRANSACTIONS STREAM ── */}
+      <div style={{
+        background: '#111A15',
+        border: '1px solid #1A2B23',
+        borderRadius: '24px',
+        padding: '20px',
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+      }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '12px',
         }}>
-          <span style={{
-            fontSize: '15px',
-            fontWeight: 700,
-            color: '#ECE8DF',
-            letterSpacing: '-0.01em',
-          }}>
-            Recent events
-          </span>
-          {recentTransactions.length > 0 && (
+          <div>
+            <div style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: '#7E948A',
+              marginBottom: '2px',
+            }}>
+              TRANSACTION STREAM
+            </div>
+            <div style={{
+              fontSize: '16px',
+              fontWeight: 800,
+              color: '#F1F5F3',
+              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+            }}>
+              Recent Activity
+            </div>
+          </div>
+
+          {allTransactions.length > 0 && (
             <button
+              type="button"
               onClick={onSeeAll}
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#38BDF8',
+                color: '#2DE09A',
                 fontSize: '12px',
-                fontWeight: 600,
+                fontWeight: 700,
                 cursor: 'pointer',
-                padding: '2px 0',
+                padding: '4px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
               }}
             >
-              See all
+              <span>See all</span>
+              <ChevronRight size={14} />
             </button>
           )}
         </div>
 
-        {recentTransactions.length === 0 ? (
+        {/* Filter Chips: All | Outflows | Inflows */}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {[
+            { id: 'all', label: 'All' },
+            { id: 'expense', label: 'Outflows' },
+            { id: 'income', label: 'Inflows' },
+          ].map((tab) => {
+            const active = filter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilter(tab.id)}
+                style={{
+                  background: active ? '#2DE09A' : '#15221C',
+                  border: `1px solid ${active ? '#2DE09A' : '#1A2B23'}`,
+                  borderRadius: '9999px',
+                  padding: '4px 12px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: active ? '#060B08' : '#7E948A',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {filteredTransactions.length === 0 ? (
           <div style={{
-            background: '#15161B',
-            border: '1px dashed #26272D',
+            background: '#15221C',
+            border: '1px dashed #1A2B23',
             borderRadius: '16px',
             padding: '24px 16px',
             textAlign: 'center',
-            color: '#9A978F',
+            color: '#7E948A',
             fontSize: '13px',
           }}>
             No financial events recorded yet.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {recentTransactions.map((item) => {
+            {filteredTransactions.map((item) => {
               const Icon = item.icon;
               const isPositive = item.amount > 0;
               return (
@@ -198,18 +262,18 @@ export default function WealthRecentEvents({
                   key={item.id}
                   onClick={() => onTransactionClick && onTransactionClick(item)}
                   style={{
-                    background: '#15161B',
-                    border: '1px solid #26272D',
+                    background: '#15221C',
+                    border: '1px solid #1A2B23',
                     borderRadius: '16px',
-                    padding: '14px 16px',
+                    padding: '12px 14px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3A3B40'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#26272D'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2DE09A'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
@@ -226,10 +290,10 @@ export default function WealthRecentEvents({
                       <Icon size={16} />
                     </div>
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#ECE8DF' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3' }}>
                         {item.title}
                       </div>
-                      <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
+                      <div style={{ fontSize: '11px', color: '#7E948A', marginTop: '2px' }}>
                         {item.time}
                       </div>
                     </div>
@@ -237,8 +301,9 @@ export default function WealthRecentEvents({
 
                   <div style={{
                     fontSize: '14px',
-                    fontWeight: 700,
-                    color: isPositive ? '#10B981' : '#ECE8DF',
+                    fontWeight: 800,
+                    color: isPositive ? '#2DE09A' : '#F1F5F3',
+                    fontFamily: "'Space Grotesk', -apple-system, sans-serif",
                   }}>
                     {isPositive ? `+₹${item.amount.toLocaleString()}` : `−₹${Math.abs(item.amount).toLocaleString()}`}
                   </div>
@@ -251,12 +316,28 @@ export default function WealthRecentEvents({
 
       {/* ── OWED TO YOU / PROMISES (Derived from persisted wealth_bills) ── */}
       {owedItems.length > 0 && (
-        <div>
+        <div style={{
+          background: '#111A15',
+          border: '1px solid #1A2B23',
+          borderRadius: '24px',
+          padding: '20px',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+        }}>
           <div style={{
-            fontSize: '15px',
-            fontWeight: 700,
-            color: '#ECE8DF',
-            letterSpacing: '-0.01em',
+            fontSize: '11px',
+            fontWeight: 800,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: '#7E948A',
+            marginBottom: '4px',
+          }}>
+            COMMITTED INFLOWS
+          </div>
+          <div style={{
+            fontSize: '16px',
+            fontWeight: 800,
+            color: '#F1F5F3',
+            fontFamily: "'Space Grotesk', -apple-system, sans-serif",
             marginBottom: '12px',
           }}>
             Owed to you
@@ -273,10 +354,10 @@ export default function WealthRecentEvents({
                 <div
                   key={promise.id}
                   style={{
-                    background: '#15161B',
-                    border: '1px solid #26272D',
+                    background: '#15221C',
+                    border: '1px solid #1A2B23',
                     borderRadius: '16px',
-                    padding: '14px 16px',
+                    padding: '12px 14px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -296,16 +377,21 @@ export default function WealthRecentEvents({
                       <User size={16} />
                     </div>
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#ECE8DF' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3' }}>
                         {personName}
                       </div>
-                      <div style={{ fontSize: '11px', color: '#9A978F', marginTop: '2px' }}>
+                      <div style={{ fontSize: '11px', color: '#7E948A', marginTop: '2px' }}>
                         {promise.due_date ? `Due ${formatEventDate(promise.due_date, null)}` : 'Due soon'}
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#38BDF8' }}>
+                  <div style={{
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: '#38BDF8',
+                    fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                  }}>
                     ₹{Number(promise.amount || 0).toLocaleString()}
                   </div>
                 </div>

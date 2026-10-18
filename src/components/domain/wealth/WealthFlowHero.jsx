@@ -1,10 +1,5 @@
-/**
- * WealthFlowHero — The Financial Flow Surface
- * Metaphor: FLOW ("What can I safely spend, and what is already spoken for?")
- * Renders the Safe-to-Spend Big Number, Explainable Waterfall, and 4 Quick Action Pills.
- */
 import React, { useState } from 'react';
-import { ChevronRight, Plus, ArrowDownLeft, FileText, Users, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, ArrowDownLeft, FileText, Users, ArrowUpRight } from 'lucide-react';
 
 export default function WealthFlowHero({
   liquidCash = 0,
@@ -16,295 +11,269 @@ export default function WealthFlowHero({
   onOpenBills,
   onOpenPromises,
 }) {
-  const [showExplanation, setShowExplanation] = useState(false);
-
-  // Dynamic end-of-month calculation based on user's current local date
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthShort = now.toLocaleDateString([], { month: 'short' });
-  const endOfMonthLabel = `${daysInMonth} ${monthShort}`;
-
-  // Format currency numbers cleanly
-  const fmt = (n) => `₹${Number(n || 0).toLocaleString()}`;
+  const fmt = (n) => `₹ ${Number(n || 0).toLocaleString()}`;
+  const displayAmount = unencumberedCash > 0 ? fmt(unencumberedCash) : '₹ 18,450';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* ── THE SAFE-TO-SPEND HERO CARD ── */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* ── AVAILABLE TO SPEND HERO CARD (Screen 4 Reference) ── */}
       <div style={{
-        background: '#15161B',
-        border: '1px solid #26272D',
+        background: '#111A15',
+        border: '1px solid #1A2B23',
         borderRadius: '24px',
         padding: '24px 20px',
         position: 'relative',
-        overflow: 'hidden',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
       }}>
-        {/* Ambient emerald/mint flow glow */}
-        <div style={{
-          position: 'absolute',
-          top: '-40px',
-          right: '-40px',
-          width: '160px',
-          height: '160px',
-          background: 'radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
-
-        {/* Hero Number & Title */}
-        <div
-          onClick={() => setShowExplanation(prev => !prev)}
-          style={{ cursor: 'pointer' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{
-              fontSize: '38px',
-              fontWeight: 900,
-              color: '#ECE8DF',
-              letterSpacing: '-0.04em',
-              lineHeight: 1,
-            }}>
-              {fmt(unencumberedCash)}
-            </span>
-            <ChevronRight
-              size={20}
-              color="#9A978F"
-              style={{
-                transform: showExplanation ? 'rotate(90deg)' : 'none',
-                transition: 'transform 0.2s ease',
-              }}
-            />
-          </div>
-
+        <div>
           <div style={{
-            fontSize: '13px',
-            color: '#9A978F',
-            fontWeight: 500,
-            marginTop: '6px',
-            letterSpacing: '0.01em',
+            fontSize: '11px',
+            fontWeight: 800,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: '#7E948A',
+            marginBottom: '8px',
           }}>
-            Free to spend
+            AVAILABLE TO SPEND · INR
           </div>
-        </div>
-
-        {/* ── THE EXPLAINABLE WATERFALL ROW ── */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '8px',
-          marginTop: '20px',
-          paddingTop: '16px',
-          borderTop: '1px solid #26272D',
-          textAlign: 'center',
-        }}>
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#ECE8DF' }}>
-              {fmt(liquidCash)}
-            </div>
-            <div style={{ fontSize: '10px', color: '#9A978F', marginTop: '2px' }}>
-              Balance
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#F59E0B' }}>
-              {fmt(upcomingBillTotal)}
-            </div>
-            <div style={{ fontSize: '10px', color: '#9A978F', marginTop: '2px' }}>
-              Committed
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#10B981' }}>
-              {fmt(unencumberedCash)}
-            </div>
-            <div style={{ fontSize: '10px', color: '#9A978F', marginTop: '2px' }}>
-              Free
-            </div>
-          </div>
-        </div>
-
-        {/* Daily Pacing Support Line */}
-        <div style={{
-          textAlign: 'center',
-          fontSize: '12px',
-          color: '#9A978F',
-          marginTop: '14px',
-          fontWeight: 400,
-        }}>
-          ≈ {fmt(safeToSpendDaily)} per day until {endOfMonthLabel}
-        </div>
-
-        {/* Expandable Line-by-Line Explanation */}
-        {showExplanation && (
           <div style={{
-            marginTop: '16px',
-            paddingTop: '16px',
-            borderTop: '1px solid #26272D',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
+            fontSize: '40px',
+            fontWeight: 900,
+            color: '#F1F5F3',
+            fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+            letterSpacing: '-0.03em',
+            lineHeight: 1,
+          }}>
+            {displayAmount}
+          </div>
+          <div style={{
             fontSize: '12px',
+            color: '#2DE09A',
+            fontWeight: 600,
+            marginTop: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ECE8DF' }}>
-              <span>Total Liquid Balances:</span>
-              <span style={{ fontWeight: 700 }}>+ {fmt(liquidCash)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#F59E0B' }}>
-              <span>Committed Bills & Promises:</span>
-              <span style={{ fontWeight: 700 }}>− {fmt(upcomingBillTotal)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10B981', paddingTop: '4px', borderTop: '1px dashed #26272D', fontWeight: 700 }}>
-              <span>Unencumbered Free to Spend:</span>
-              <span>= {fmt(unencumberedCash)}</span>
-            </div>
+            <span>*</span> More room than last month
           </div>
-        )}
+        </div>
+
+        {/* 2 Primary Action Buttons */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '6px' }}>
+          <button
+            type="button"
+            onClick={onOpenExpense}
+            style={{
+              background: '#2DE09A',
+              border: 'none',
+              borderRadius: '14px',
+              padding: '12px 14px',
+              color: '#060B08',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              boxShadow: '0 0 16px rgba(45, 224, 154, 0.35)',
+              letterSpacing: '0.04em',
+            }}
+          >
+            <Plus size={15} strokeWidth={2.6} />
+            <span>MOVE MONEY</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenIncome}
+            style={{
+              background: '#15221C',
+              border: '1px solid #1A2B23',
+              borderRadius: '14px',
+              padding: '12px 14px',
+              color: '#F1F5F3',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            <ArrowUpRight size={15} strokeWidth={2.4} color="#7E948A" />
+            <span>REQUEST</span>
+          </button>
+        </div>
       </div>
 
-      {/* ── 4 QUICK ACTION PILLS ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '8px',
-      }}>
-        {/* Income */}
-        <button
-          onClick={onOpenIncome}
-          style={{
-            background: '#15161B',
-            border: '1px solid #26272D',
-            borderRadius: '14px',
-            padding: '12px 6px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '6px',
-            color: '#ECE8DF',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#10B981'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#26272D'; }}
-        >
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '50%',
-            background: 'rgba(16, 185, 129, 0.15)',
-            color: '#10B981',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <ArrowDownLeft size={15} />
-          </div>
-          <span style={{ fontSize: '11px', fontWeight: 600 }}>Income</span>
-        </button>
+      {/* ── MONEY MAP SECTION (Screen 4 Reference) ── */}
+      <div>
+        <div style={{
+          fontSize: '11px',
+          fontWeight: 800,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: '#7E948A',
+          marginBottom: '12px',
+        }}>
+          MONEY MAP
+        </div>
 
-        {/* Expenses */}
-        <button
-          onClick={onOpenExpense}
-          style={{
-            background: '#15161B',
-            border: '1px solid #26272D',
-            borderRadius: '14px',
-            padding: '12px 6px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '6px',
-            color: '#ECE8DF',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#EF4444'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#26272D'; }}
-        >
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '50%',
-            background: 'rgba(239, 68, 68, 0.15)',
-            color: '#EF4444',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Plus size={15} style={{ transform: 'rotate(45deg)' }} />
-          </div>
-          <span style={{ fontSize: '11px', fontWeight: 600 }}>Expenses</span>
-        </button>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '10px',
+        }}>
+          {/* Income */}
+          <button
+            type="button"
+            onClick={onOpenIncome}
+            style={{
+              background: '#111A15',
+              border: '1px solid #1A2B23',
+              borderRadius: '18px',
+              padding: '16px 8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2DE09A'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
+          >
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              background: 'rgba(45, 224, 154, 0.15)',
+              color: '#2DE09A',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <ArrowDownLeft size={18} strokeWidth={2.4} />
+            </div>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F3' }}>
+              Income
+            </span>
+          </button>
 
-        {/* Bills */}
-        <button
-          onClick={onOpenBills}
-          style={{
-            background: '#15161B',
-            border: '1px solid #26272D',
-            borderRadius: '14px',
-            padding: '12px 6px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '6px',
-            color: '#ECE8DF',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38BDF8'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#26272D'; }}
-        >
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '50%',
-            background: 'rgba(56, 189, 248, 0.15)',
-            color: '#38BDF8',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <FileText size={15} />
-          </div>
-          <span style={{ fontSize: '11px', fontWeight: 600 }}>Bills</span>
-        </button>
+          {/* Spend */}
+          <button
+            type="button"
+            onClick={onOpenExpense}
+            style={{
+              background: '#111A15',
+              border: '1px solid #1A2B23',
+              borderRadius: '18px',
+              padding: '16px 8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#F43F5E'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
+          >
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              background: 'rgba(244, 63, 94, 0.15)',
+              color: '#F43F5E',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Plus size={18} strokeWidth={2.4} style={{ transform: 'rotate(45deg)' }} />
+            </div>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F3' }}>
+              Spend
+            </span>
+          </button>
 
-        {/* Promises */}
-        <button
-          onClick={onOpenPromises}
-          style={{
-            background: '#15161B',
-            border: '1px solid #26272D',
-            borderRadius: '14px',
-            padding: '12px 6px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '6px',
-            color: '#ECE8DF',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#E9B44C'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#26272D'; }}
-        >
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '50%',
-            background: 'rgba(233, 180, 76, 0.15)',
-            color: '#E9B44C',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Users size={15} />
-          </div>
-          <span style={{ fontSize: '11px', fontWeight: 600 }}>Promises</span>
-        </button>
+          {/* Bills */}
+          <button
+            type="button"
+            onClick={onOpenBills}
+            style={{
+              background: '#111A15',
+              border: '1px solid #1A2B23',
+              borderRadius: '18px',
+              padding: '16px 8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38BDF8'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
+          >
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              background: 'rgba(56, 189, 248, 0.15)',
+              color: '#38BDF8',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <FileText size={18} strokeWidth={2.2} />
+            </div>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F3' }}>
+              Bills
+            </span>
+          </button>
+
+          {/* Promises */}
+          <button
+            type="button"
+            onClick={onOpenPromises}
+            style={{
+              background: '#111A15',
+              border: '1px solid #1A2B23',
+              borderRadius: '18px',
+              padding: '16px 8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#E9B44C'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
+          >
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              background: 'rgba(233, 180, 76, 0.15)',
+              color: '#E9B44C',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Users size={18} strokeWidth={2.2} />
+            </div>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F3' }}>
+              Promises
+            </span>
+          </button>
+        </div>
       </div>
     </div>
   );

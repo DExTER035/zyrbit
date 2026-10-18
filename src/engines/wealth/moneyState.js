@@ -53,6 +53,71 @@ const toNum = (val) => {
   return isFinite(n) && n > 0 ? n : 0;
 };
 
+/**
+ * Checks whether an expense is an internal transfer or savings allocation
+ * rather than ordinary lifestyle consumption.
+ */
+export const isTransferExpense = (e) => {
+  const cat = (e?.category || '').toLowerCase();
+  const note = (e?.note || '').toLowerCase();
+  return cat.includes('transfer') || cat.includes('saving') || note.includes('transfer to') || note.includes('to savings');
+};
+
+/**
+ * Checks whether an expense is lending capital or debt repayment
+ * rather than ordinary lifestyle consumption.
+ */
+export const isPrincipalExpense = (e) => {
+  const cat = (e?.category || '').toLowerCase();
+  const note = (e?.note || '').toLowerCase();
+  return (
+    cat.includes('lend') ||
+    cat.includes('loan') ||
+    cat.includes('debt') ||
+    cat.includes('repay') ||
+    note.includes('lent to') ||
+    note.includes('loan to') ||
+    note.includes('repaid to')
+  );
+};
+
+/**
+ * Checks whether an income is an internal transfer or savings withdrawal
+ * rather than external earned income.
+ */
+export const isTransferIncome = (i) => {
+  const src = (i?.source || '').toLowerCase();
+  const note = (i?.note || '').toLowerCase();
+  return src.includes('transfer') || src.includes('saving') || note.includes('from savings') || note.includes('transfer from');
+};
+
+/**
+ * Checks whether an income is repayment of a previously lent loan
+ * rather than new external earned income.
+ */
+export const isRepaymentIncome = (i) => {
+  const src = (i?.source || '').toLowerCase();
+  const note = (i?.note || '').toLowerCase();
+  return (
+    src.includes('repay') ||
+    src.includes('reimburse') ||
+    note.includes('repaid by') ||
+    note.includes('repayment') ||
+    note.includes('reimburs')
+  );
+};
+
+/**
+ * Checks whether an income is borrowed money (a loan/liability)
+ * rather than external earned income.
+ */
+export const isBorrowIncome = (i) => {
+  const src = (i?.source || '').toLowerCase();
+  const note = (i?.note || '').toLowerCase();
+  if (isRepaymentIncome(i)) return false;
+  return src.includes('borrow') || note.includes('borrowed') || (src.includes('loan') && !src.includes('repay'));
+};
+
 // ─── computeMoneyState ─────────────────────────────────────────────────────────
 
 /**
@@ -86,15 +151,17 @@ export function computeMoneyState({
   const totalExpense = expenses.reduce((s, e) => s + toNum(e.amount), 0);
   const liquidCash   = totalIncome - totalExpense;
 
-  // ── Current-month figures ─────────────────────────────────────────────────
+  // ── Current-month figures (transfers, lending & debt isolated from lifestyle spend & earned income) ──
   const monthExpenses = expenses.filter(e => e.expense_date?.startsWith(curMonth));
   const monthIncomes  = incomes.filter(i => i.income_date?.startsWith(curMonth));
-  const monthSpend    = monthExpenses.reduce((s, e) => s + toNum(e.amount), 0);
-  const monthEarned   = monthIncomes.reduce((s, i) => s + toNum(i.amount), 0);
+  const lifestyleMonthExpenses = monthExpenses.filter(e => !isTransferExpense(e) && !isPrincipalExpense(e));
+  const monthSpend    = lifestyleMonthExpenses.reduce((s, e) => s + toNum(e.amount), 0);
+  const earnedMonthIncomes = monthIncomes.filter(i => !isTransferIncome(i) && !isBorrowIncome(i) && !isRepaymentIncome(i));
+  const monthEarned   = earnedMonthIncomes.reduce((s, i) => s + toNum(i.amount), 0);
 
-  // ── Today ─────────────────────────────────────────────────────────────────
+  // ── Today (excluding internal transfers and principal movements) ─────────
   const todaySpend = expenses
-    .filter(e => e.expense_date === today)
+    .filter(e => e.expense_date === today && !isTransferExpense(e) && !isPrincipalExpense(e))
     .reduce((s, e) => s + toNum(e.amount), 0);
 
   // ── Budget ────────────────────────────────────────────────────────────────
@@ -107,9 +174,9 @@ export function computeMoneyState({
     ? Math.max(0, monthlyBudget - monthSpend)
     : null;
 
-  // ── Bills (unpaid, sorted by due date) ───────────────────────────────────
+  // ── Bills (unpaid payable obligations, sorted by due date) ──────────────
   const unpaidBills = bills
-    .filter(b => b.status !== 'paid' && toNum(b.amount) > 0)
+    .filter(b => b.status !== 'paid' && b.status !== 'receivable' && toNum(b.amount) > 0)
     .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
     .map(b => {
       const due       = new Date(b.due_date + 'T00:00:00');
@@ -144,13 +211,13 @@ export function computeMoneyState({
     safeToSpendDaily = Math.max(0, Math.floor(effectiveLiquidity / daysLeft));
   }
 
-  // ── Burn rate & Runway (honest — needs minimum 3 expense records) ─────────
+  // ── Burn rate & Runway (honest — needs minimum 3 expense records, excluding transfers & principal) ─
   const thirtyDaysAgo    = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoStr = localYMD(thirtyDaysAgo);
 
   const recentExpenses = expenses.filter(e =>
-    e.expense_date && e.expense_date >= thirtyDaysAgoStr
+    e.expense_date && e.expense_date >= thirtyDaysAgoStr && !isTransferExpense(e) && !isPrincipalExpense(e)
   );
   const burnLast30    = recentExpenses.reduce((s, e) => s + toNum(e.amount), 0);
   const hasRunwayData = recentExpenses.length >= 3 && burnLast30 > 0;
@@ -187,9 +254,9 @@ export function computeMoneyState({
     }
   }
 
-  // ── Zone breakdown (current month) ────────────────────────────────────────
+  // ── Zone breakdown (current month, lifestyle expenses only) ───────────────
   const zoneAmounts = {};
-  monthExpenses.forEach(e => {
+  lifestyleMonthExpenses.forEach(e => {
     const zone = ZONE_MAP[e.category] || 'routine';
     zoneAmounts[zone] = (zoneAmounts[zone] || 0) + toNum(e.amount);
   });
@@ -217,6 +284,7 @@ export function computeMoneyState({
   let flowLent = 0;
   let flowBorrowed = 0;
   let flowTransfers = 0;
+  let flowTransfersIn = 0;
   let flowInvested = 0;
   let flowRefunds = 0;
   let flowDebtRepaid = 0;
@@ -226,7 +294,7 @@ export function computeMoneyState({
     const note = (e.note || '').toLowerCase();
     const amt = toNum(e.amount);
 
-    if (cat.includes('transfer')) {
+    if (isTransferExpense(e)) {
       flowTransfers += amt;
     } else if (cat.includes('invest') || cat.includes('sip') || cat.includes('gold')) {
       flowInvested += amt;
@@ -244,10 +312,14 @@ export function computeMoneyState({
     const note = (i.note || '').toLowerCase();
     const amt = toNum(i.amount);
 
-    if (src.includes('borrow') || src.includes('loan') || note.includes('borrowed')) {
+    if (isRepaymentIncome(i)) {
+      flowRefunds += amt;
+    } else if (isBorrowIncome(i)) {
       flowBorrowed += amt;
     } else if (src.includes('refund') || src.includes('reimburse') || note.includes('refund')) {
       flowRefunds += amt;
+    } else if (isTransferIncome(i)) {
+      flowTransfersIn += amt;
     } else {
       flowIncome += amt;
     }
@@ -259,6 +331,7 @@ export function computeMoneyState({
     lent: flowLent,
     borrowed: flowBorrowed,
     transfers: flowTransfers,
+    transfersIn: flowTransfersIn,
     invested: flowInvested,
     refunds: flowRefunds,
     debtRepaid: flowDebtRepaid,
@@ -291,16 +364,28 @@ export function computeMoneyState({
       };
     });
 
-  // Also check if any recent 'Lend' expense isn't yet marked returned
-  const lendExpenses = expenses.filter(e => {
-    const cat = (e.category || '').toLowerCase();
-    const note = (e.note || '').toLowerCase();
-    return cat.includes('lend') || cat.includes('loan') || note.includes('lent');
-  });
+  // Check if loan/promise records are tracked in bills (active or settled)
+  const hasTrackedReceivableBills = bills.some(b =>
+    b.status === 'receivable' ||
+    (b.name || '').toLowerCase().includes('owes you') ||
+    (b.name || '').toLowerCase().startsWith('owed by')
+  );
 
-  // Total owed to you
-  const totalReceivables = explicitReceivables.reduce((s, r) => s + r.amount, 0) +
-    (explicitReceivables.length === 0 ? lendExpenses.reduce((s, e) => s + toNum(e.amount), 0) : 0);
+  let totalReceivables = 0;
+  if (hasTrackedReceivableBills) {
+    // Authoritative source: explicit receivables in wealth_bills
+    totalReceivables = explicitReceivables.reduce((s, r) => s + r.amount, 0);
+  } else {
+    // Fallback for legacy expenses logged with category 'Lend' without wealth_bills
+    const lendExpenses = expenses.filter(e => {
+      const cat = (e.category || '').toLowerCase();
+      const note = (e.note || '').toLowerCase();
+      return cat.includes('lend') || cat.includes('loan') || note.includes('lent');
+    });
+    const totalLent = lendExpenses.reduce((s, e) => s + toNum(e.amount), 0);
+    const allTimeRepaid = incomes.filter(i => isRepaymentIncome(i)).reduce((s, i) => s + toNum(i.amount), 0);
+    totalReceivables = Math.max(0, totalLent - allTimeRepaid);
+  }
 
   // ── Money State V1: Assets ────────────────────────────────────────────────
   const allTimeInvested = expenses
@@ -315,19 +400,11 @@ export function computeMoneyState({
     .reduce((s, e) => s + toNum(e.amount), 0);
 
   const allTimeTransfers = expenses
-    .filter(e => {
-      const c = (e.category || '').toLowerCase();
-      const n = (e.note || '').toLowerCase();
-      return c.includes('transfer') || c.includes('saving') || n.includes('saving');
-    })
+    .filter(e => isTransferExpense(e))
     .reduce((s, e) => s + toNum(e.amount), 0);
 
   const allTimeSavingsWithdraw = incomes
-    .filter(i => {
-      const s = (i.source || '').toLowerCase();
-      const n = (i.note || '').toLowerCase();
-      return s.includes('saving') || n.includes('saving');
-    })
+    .filter(i => isTransferIncome(i))
     .reduce((s, i) => s + toNum(i.amount), 0);
 
   const calculatedSavings = Math.max(0, allTimeTransfers - allTimeSavingsWithdraw);
@@ -358,7 +435,7 @@ export function computeMoneyState({
     iOweTotal,
   };
 
-  const currentSavings = calculatedSavings > 0 ? calculatedSavings : (liquidCash > 50000 ? Math.round(liquidCash * 0.4) : 0);
+  const currentSavings = calculatedSavings;
   const assets = {
     cash: Math.max(0, liquidCash),
     savings: currentSavings,
@@ -404,6 +481,7 @@ export function computeMoneyState({
       let type = 'INCOME';
       if (src.includes('editing') || src.includes('freelance') || src.includes('code')) emoji = '💻';
       else if (src.includes('salary')) emoji = '🏦';
+      else if (isRepaymentIncome(i)) { emoji = '🤝'; type = 'REPAYMENT'; }
       else if (src.includes('refund') || src.includes('reimburse')) { emoji = '🔄'; type = 'REFUND'; }
       else if (src.includes('borrow')) { emoji = '📥'; type = 'BORROW'; }
 

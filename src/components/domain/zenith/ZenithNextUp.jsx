@@ -55,7 +55,7 @@ export default function ZenithNextUp({ onViewAll }) {
         <span style={{
           fontSize: '15px',
           fontWeight: 700,
-          color: '#ECE8DF',
+          color: 'var(--text-primary, #172033)',
           letterSpacing: '-0.01em',
         }}>
           Next up
@@ -65,9 +65,9 @@ export default function ZenithNextUp({ onViewAll }) {
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#38BDF8',
-            fontSize: '12px',
-            fontWeight: 600,
+            color: '#08B878',
+            fontSize: '13px',
+            fontWeight: 700,
             cursor: 'pointer',
             padding: '2px 0',
           }}
@@ -85,49 +85,50 @@ export default function ZenithNextUp({ onViewAll }) {
               key={item.id}
               onClick={item.action}
               style={{
-                background: '#15161B',
-                border: '1px solid #26272D',
+                background: 'var(--bg-card, #FFFFFF)',
+                border: '1px solid var(--border-primary, #E4EAF2)',
                 borderRadius: '16px',
                 padding: '14px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
+                boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(15, 23, 42, 0.04))',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#3A3B40';
-                e.currentTarget.style.background = '#181920';
+                e.currentTarget.style.borderColor = '#CBD5E1';
+                e.currentTarget.style.background = '#F8FAFC';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#26272D';
-                e.currentTarget.style.background = '#15161B';
+                e.currentTarget.style.borderColor = 'var(--border-primary, #E4EAF2)';
+                e.currentTarget.style.background = 'var(--bg-card, #FFFFFF)';
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
                   background: item.iconBg,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <Icon size={15} color={item.iconColor} />
+                  <Icon size={16} color={item.iconColor} />
                 </div>
                 <div>
                   <div style={{
                     fontSize: '14px',
-                    fontWeight: 600,
-                    color: '#ECE8DF',
+                    fontWeight: 700,
+                    color: 'var(--text-primary, #172033)',
                     letterSpacing: '-0.01em',
                   }}>
                     {item.title}
                   </div>
                   <div style={{
-                    fontSize: '11px',
-                    color: '#9A978F',
+                    fontSize: '12px',
+                    color: 'var(--text-secondary, #68758A)',
                     marginTop: '2px',
                   }}>
                     {item.time}
