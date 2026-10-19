@@ -11,34 +11,15 @@ import {
   validateWeightLog,
 } from '../engines/health/index.js';
 
-/**
- * Returns local YYYY-MM-DD date string.
- */
-export const getLocalTodayStr = () => {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().split('T')[0];
-};
+import {
+  getLocalTodayStr,
+  todayStr,
+  isValidDateStr,
+  getYesterdayStr,
+  getTomorrowStr,
+} from '../lib/dateUtils.js';
 
-/**
- * Validates YYYY-MM-DD date format and calendar validity.
- * @param {string} str
- * @returns {boolean}
- */
-export function isValidDateStr(str) {
-  if (typeof str !== 'string') return false;
-  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return false;
-  const year = Number(match[1]);
-  const month = Number(match[2]) - 1;
-  const day = Number(match[3]);
-  const d = new Date(year, month, day);
-  return (
-    d.getFullYear() === year &&
-    d.getMonth() === month &&
-    d.getDate() === day
-  );
-}
+export { getLocalTodayStr, todayStr, isValidDateStr };
 
 /**
  * Normalizes relative date keywords ('today', 'yesterday', 'tomorrow') or explicit YYYY-MM-DD dates.
@@ -56,17 +37,13 @@ export function normalizeActionDate(val, { defaultToToday = true } = {}) {
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
 
   if (lower === 'today' || lower === 'this morning' || lower === 'tonight') {
-    return now.toISOString().split('T')[0];
+    return todayStr();
   }
   if (lower === 'yesterday' || lower === 'last night') {
-    const d = new Date(now);
-    d.setDate(d.getDate() - 1);
-    return d.toISOString().split('T')[0];
+    return getYesterdayStr();
   }
   if (lower === 'tomorrow') {
-    const d = new Date(now);
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
+    return getTomorrowStr();
   }
   if (lower === 'last week') {
     const d = new Date(now);

@@ -307,6 +307,25 @@ html, body, #root {
   min-height: 100vh;
 }
 
+.bottom-nav-mobile {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-around !important;
+  box-sizing: border-box !important;
+}
+
+.dex-quick-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 440px) {
+  .dex-quick-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (min-width: 768px) {
   .app-container {
     max-width: 720px;
@@ -493,11 +512,11 @@ html, body, #root {
 
 /* ─── Page Enter Transition ─── */
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .page-enter {
-  animation: pageEnter 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation: pageEnter 0.22s ease-out;
 }
 .offline-banner {
   background: var(--color-zone-growth);

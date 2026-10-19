@@ -11,7 +11,10 @@ export default function InstallBanner() {
     );
   });
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('zyrbit_pwa_banner_dismissed') === 'true';
+  });
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -27,7 +30,14 @@ export default function InstallBanner() {
     };
   }, []);
 
-  if (isStandalone || dismissed) return null;
+  if (isStandalone || dismissed || (!deferredPrompt && !showIOSInstructions)) return null;
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    try {
+      localStorage.setItem('zyrbit_pwa_banner_dismissed', 'true');
+    } catch (_) {}
+  };
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -35,6 +45,7 @@ export default function InstallBanner() {
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
+        handleDismiss();
       }
     } else {
       // fallback for iOS or if beforeinstallprompt hasn't fired
@@ -49,56 +60,53 @@ export default function InstallBanner() {
 
   return (
     <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      background: '#0a1a1e',
-      borderBottom: '2px solid #00FFFF',
-      color: '#FFF',
-      padding: '12px 20px',
-      zIndex: 99999,
+      position: 'relative',
+      background: 'var(--brand-petrol, #174A55)',
+      color: '#FFFFFF',
+      padding: '10px 16px',
+      zIndex: 50,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      boxShadow: '0 4px 20px rgba(0,255,255,0.1)',
+      borderBottom: '1px solid rgba(255,255,255,0.12)',
       fontFamily: "'Inter', sans-serif"
     }}>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontWeight: 900, fontSize: 14, letterSpacing: -0.5 }}>Install Zyrbit App</span>
+        <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: -0.2 }}>Install Zyrbit App</span>
         {showIOSInstructions ? (
-          <span style={{ fontSize: 11, color: '#A0A0A0', marginTop: 4 }}>
-            Tap the <b>Share</b> icon below, then select <b>"Add to Home Screen"</b>.
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
+            Tap <b>Share</b> then <b>Add to Home Screen</b>.
           </span>
         ) : (
-          <span style={{ fontSize: 11, color: '#A0A0A0', marginTop: 4 }}>
-            Install for the full native experience.
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
+            Install for full native experience.
           </span>
         )}
       </div>
       
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         {!showIOSInstructions && (
           <button 
             onClick={handleInstallClick}
             style={{
-              background: '#00FFFF',
-              color: '#000',
+              background: '#FFFFFF',
+              color: 'var(--brand-petrol, #174A55)',
               border: 'none',
               padding: '6px 14px',
               borderRadius: 8,
-              fontWeight: 900,
+              fontWeight: 700,
               fontSize: 11,
               cursor: 'pointer',
-              letterSpacing: 0.5
+              letterSpacing: 0.2
             }}
           >
             INSTALL
           </button>
         )}
         <button 
-          onClick={() => setDismissed(true)}
-          style={{ background: 'transparent', border: 'none', color: '#666', fontSize: 18, cursor: 'pointer', padding: '0 4px' }}
+          onClick={handleDismiss}
+          style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: 18, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}
+          aria-label="Dismiss banner"
         >
           ✕
         </button>

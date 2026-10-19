@@ -1,6 +1,7 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import SplashScreen from './screens/SplashScreen.jsx'
+import WelcomeScreen from './screens/WelcomeScreen.jsx'
 import LoginScreen from './screens/LoginScreen.jsx'
 import WelcomeAnimation from './screens/WelcomeAnimation.jsx'
 import supabase from './lib/supabase/index.js'
@@ -140,7 +141,8 @@ const OfflineBanner = () => (
 )
 
 export default function App() {
-  const [screen, setScreen] = useState('splash') // 'splash' | 'onboarding' | 'login' | 'welcome' | 'goal-setup' | 'app'
+  const [screen, setScreen] = useState('splash') // 'splash' | 'welcome' | 'login' | 'goal-setup' | 'app'
+  const [loginInitialMode, setLoginInitialMode] = useState('login')
   const [isInitializing, setIsInitializing] = useState(true)
   const [currentUserId, setCurrentUserId] = useState(null)
   const [_currentUserName, setCurrentUserName] = useState('Builder')
@@ -151,6 +153,18 @@ export default function App() {
 
   useEffect(() => {
     const checkAuthStatus = async () => {
+      const urlParams = new URLSearchParams(window.location.search)
+      const paramScreen = urlParams.get('screen')
+      if (paramScreen) {
+        setScreen(paramScreen)
+        const paramMode = urlParams.get('mode')
+        if (paramMode) setLoginInitialMode(paramMode)
+        setIsInitializing(false)
+        const htmlSplash = document.getElementById('splash')
+        if (htmlSplash) htmlSplash.remove()
+        return
+      }
+
       const launched = localStorage.getItem('zyrbit_launched')
 
       // Add a 5s timeout — if Supabase hangs, fall through gracefully
@@ -172,7 +186,7 @@ export default function App() {
         // Record first login milestone (non-blocking)
         recordMilestone(session.user.id, 'first_login')
       } else if (launched) {
-        setScreen('login')
+        setScreen('welcome')
       } else {
         setScreen('splash')
       }
@@ -199,21 +213,21 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  const handleLoginSuccess = (userId, userName) => {
-    const isFirstTime = !localStorage.getItem('zyrbit_launched')
+  const handleLoginSuccess = (userId, userName, isNewUser = false) => {
     localStorage.setItem('zyrbit_launched', 'true')
     setCurrentUserId(userId)
     setCurrentUserName(userName || 'Builder')
-    setScreen('app')
-    if (isFirstTime) {
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('dexos:open-dex'))
-      }, 500)
+    if (isNewUser) {
+      setScreen('goal-setup')
+    } else {
+      setScreen('app')
     }
   }
+
   const handleSignOut = () => {
     try { sessionStorage.removeItem('dexos_session_chat'); } catch { /* ignore */ }
-    setScreen('login')
+    setLoginInitialMode('login')
+    setScreen('welcome')
   }
 
   if (isInitializing) return <LoadingScreen />
@@ -223,9 +237,47 @@ export default function App() {
       <ErrorBoundary>
         <div className="app-container">
           {isOffline && <OfflineBanner />}
-          {screen !== 'splash' && screen !== 'welcome' && <InstallBanner />}
-          {screen === 'splash' && <SplashScreen onGetStarted={() => setScreen('login')} onLogin={() => setScreen('login')} />}
-          {screen === 'login' && <LoginScreen onSuccess={handleLoginSuccess} />}
+          {screen === 'app' && <InstallBanner />}
+          {screen === 'splash' && (
+            <SplashScreen
+              onGetStarted={() => setScreen('welcome')}
+              onLogin={() => {
+                setLoginInitialMode('login')
+                setScreen('login')
+              }}
+            />
+          )}
+          {screen === 'welcome' && (
+            <WelcomeScreen
+              onGetStarted={() => {
+                setLoginInitialMode('signup')
+                setScreen('login')
+              }}
+              onSignIn={() => {
+                setLoginInitialMode('login')
+                setScreen('login')
+              }}
+            />
+          )}
+          {screen === 'login' && (
+            <LoginScreen
+              initialMode={loginInitialMode}
+              onSuccess={handleLoginSuccess}
+              onBack={() => setScreen('welcome')}
+            />
+          )}
+          {screen === 'goal-setup' && (
+            <GoalSetupScreen
+              userId={currentUserId}
+              onBack={() => setScreen('welcome')}
+              onComplete={() => {
+                setScreen('app')
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('dexos:open-dex'))
+                }, 500)
+              }}
+            />
+          )}
           {screen === 'app' && <MainApp handleSignOut={handleSignOut} currentUserId={currentUserId} />}
           <PaywallOverlay />
         </div>

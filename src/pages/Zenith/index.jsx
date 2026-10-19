@@ -11,7 +11,6 @@ import HeatmapGrid from '../../components/common/HeatmapGrid.jsx';
 import ErrorState from '../../components/ui/ErrorState.jsx';
 import BrainDumpEntry from '../../components/domain/zenith/BrainDumpEntry.jsx';
 import { TimeSpine } from '../../components/primitives/index.jsx';
-import ZenithArcHero from '../../components/domain/zenith/ZenithArcHero.jsx';
 import ZenithNextUp from '../../components/domain/zenith/ZenithNextUp.jsx';
 import { computeHabitImpact } from '../../engines/zenith/index.js';
 import {
@@ -25,6 +24,7 @@ import {
 import { completeTask as serviceCompleteTask } from '../../services/growthService.js';
 import { getHealthSnapshot } from '../../services/healthService.js';
 import DayReceiptModal from '../../components/domain/zenith/DayReceiptModal.jsx';
+import { todayStr } from '../../lib/dateUtils.js';
 
 const ZONE_OPTIONS = [
   { id: 'mind', label: 'Mind', icon: '🧠' },
@@ -270,8 +270,7 @@ export default function Zenith() {
   const [longestStreaks, setLongestStreaks] = useState({});
   const [activeZone, setActiveZone] = useState('all');
   const [celebrationShown, setCelebrationShown] = useState(() => {
-    const todayStr = (() => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0] })()
-    return localStorage.getItem('zyrbit_celebration_date') === todayStr
+    return localStorage.getItem('zyrbit_celebration_date') === todayStr();
   });
   const [showCelebration, setShowCelebration] = useState(false);
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
@@ -1130,7 +1129,7 @@ export default function Zenith() {
           {/* Header Skeleton */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: '#2DE09A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#060B08', fontWeight: 900 }}>Z</div>
+              <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: 'var(--brand-petrol, #174A55)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontWeight: 900 }}>Z</div>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: 900, color: '#F1F5F3' }}>ZYRBIT</div>
                 <div style={{ fontSize: '9px', color: '#7E948A', fontWeight: 700 }}>PERSONAL OS</div>
@@ -1171,220 +1170,359 @@ export default function Zenith() {
 
   return (
     <div className="app-container page-enter" style={{
-      background: 'var(--bg-root, #080E0B)',
+      background: 'var(--brand-ivory, #F4F0E8)',
       minHeight: '100vh',
-      color: 'var(--text-primary, #F1F5F3)',
+      color: 'var(--brand-charcoal, #111A20)',
       position: 'relative',
+      fontFamily: "'Inter', sans-serif",
     }}>
-      <div style={{ padding: '24px 20px 120px', display: 'flex', flexDirection: 'column', gap: '0' }}>
+      <div style={{ padding: '20px 20px calc(100px + env(safe-area-inset-bottom, 24px))', display: 'flex', flexDirection: 'column', gap: '0' }}>
 
-        {/* ── Top Header Row (Matching Screen 1) ── */}
+        {/* ── Top Header Row (Matching Screen 7) ── */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '22px',
+          marginBottom: '20px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div>
             <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '9px',
-              background: '#2DE09A',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#060B08',
-              fontWeight: 900,
-              fontSize: '16px',
-              boxShadow: '0 0 12px rgba(45, 224, 154, 0.35)',
+              fontSize: '18px',
+              fontWeight: 800,
+              color: 'var(--brand-charcoal, #111A20)',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              lineHeight: 1,
             }}>
-              Z
-            </div>
-            <div>
-              <div style={{
-                fontSize: '15px',
-                fontWeight: 900,
-                color: '#F1F5F3',
-                letterSpacing: '0.04em',
-                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-                lineHeight: 1.1,
-              }}>
-                ZYRBIT
-              </div>
-              <div style={{
-                fontSize: '9px',
-                color: '#7E948A',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-              }}>
-                Personal OS
-              </div>
+              ZYRBIT
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* Date Pill */}
-            <div style={{
-              background: '#111A15',
-              border: '1px solid #1A2B23',
-              borderRadius: '9999px',
-              padding: '5px 12px',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: '#7E948A',
-            }}>
-              {formattedDatePill}
-            </div>
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {/* Notification Bell */}
             <button
               type="button"
               onClick={() => showToast('All systems synchronized', 'info')}
               aria-label="Notifications"
               style={{
-                width: '34px',
-                height: '34px',
+                width: '36px',
+                height: '36px',
                 borderRadius: '50%',
-                background: '#111A15',
-                border: '1px solid #1A2B23',
+                background: '#FFFFFF',
+                border: '1.5px solid var(--brand-border, #E5E0D8)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: '#F1F5F3',
+                color: 'var(--brand-charcoal, #111A20)',
                 position: 'relative',
               }}
             >
-              <Bell size={16} strokeWidth={2} />
+              <Bell size={17} strokeWidth={2} />
               <div style={{
                 position: 'absolute',
                 top: '8px',
                 right: '8px',
-                width: '5px',
-                height: '5px',
+                width: '6px',
+                height: '6px',
                 borderRadius: '50%',
-                background: '#2DE09A',
+                background: 'var(--brand-petrol, #174A55)',
               }} />
             </button>
+
+            {/* Circular Z Avatar Badge */}
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: 'var(--brand-petrol, #174A55)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 700,
+              fontSize: '15px',
+              boxShadow: '0 2px 8px rgba(23, 74, 85, 0.25)',
+              cursor: 'pointer',
+            }}
+            onClick={() => navigate('/profile')}
+            >
+              Z
+            </div>
           </div>
         </div>
 
-        {/* ── Zenith Content Grid (1-Col on mobile, 2-Col on desktop >= 1024px) ── */}
+        {/* ── Zenith Content Grid ── */}
         <div className="zenith-content-grid">
           {/* ── Primary Column: Daily Signal, Next Best Move & Synthesis ── */}
           <div className="zenith-col-hero">
-            {/* Subtitle / Headline Section (Screen 1) */}
-            <div>
+            {/* Subtitle / Headline Section (Screen 7 Reference) */}
+            <div style={{ marginBottom: '18px' }}>
               <div style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: '#7E948A',
-                marginBottom: '6px',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--brand-text-sub, #6B7B82)',
+                marginBottom: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
               }}>
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                <span>📅</span> {new Date().toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
               </div>
               <h1 style={{
-                fontSize: '32px',
-                fontWeight: 900,
-                letterSpacing: '-0.03em',
-                color: '#F1F5F3',
-                margin: '0 0 6px',
-                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-                lineHeight: 1.1,
+                fontSize: '30px',
+                fontWeight: 800,
+                letterSpacing: '-0.025em',
+                color: 'var(--brand-charcoal, #111A20)',
+                margin: '0 0 4px',
+                lineHeight: 1.15,
               }}>
                 Make today count.
               </h1>
               <p style={{
                 margin: 0,
                 fontSize: '14px',
-                color: '#7E948A',
+                color: 'var(--brand-text-sub, #6B7B82)',
+                fontWeight: 450,
               }}>
                 A little progress, in every direction.
               </p>
             </div>
 
-            {/* DAILY SIGNAL HERO CARD (Screen 1 Reference) */}
+            {/* DAILY MOMENTUM HERO CARD (Screen 7 Reference) */}
             <div style={{
-              background: '#111A15',
-              border: '1px solid #1A2B23',
-              borderRadius: '24px',
-              padding: '24px 22px',
+              background: 'linear-gradient(135deg, #174A55 0%, #112F37 100%)',
+              borderRadius: '20px',
+              padding: '22px 20px',
               position: 'relative',
               overflow: 'hidden',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+              boxShadow: '0 6px 20px rgba(23, 74, 85, 0.22)',
+              marginBottom: '16px',
             }}>
               <div style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: '#7E948A',
-                marginBottom: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '8px',
               }}>
-                DAILY SIGNAL
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '8px' }}>
-                <span style={{
-                  fontSize: '48px',
-                  fontWeight: 900,
-                  color: '#F1F5F3',
-                  lineHeight: 1,
-                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                <div style={{
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: 'var(--brand-soft-teal, #DDE9EB)',
+                  letterSpacing: '0.02em',
                 }}>
-                  {Number(osScore) || 72}
+                  Daily Momentum
+                </div>
+                <ChevronRight size={16} color="#DDE9EB" style={{ transform: 'rotate(90deg)' }} />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '14px' }}>
+                <span style={{
+                  fontSize: '44px',
+                  fontWeight: 800,
+                  color: '#FFFFFF',
+                  lineHeight: 1,
+                  letterSpacing: '-0.02em',
+                }}>
+                  {typeof osScore === 'number' ? Math.round(osScore) : (Number(osScore) || 0)}
                 </span>
                 <span style={{
                   fontSize: '18px',
-                  fontWeight: 700,
-                  color: '#7E948A',
+                  fontWeight: 600,
+                  color: 'rgba(255, 255, 255, 0.75)',
                 }}>
                   / 100
                 </span>
               </div>
-              <div style={{
-                fontSize: '13px',
-                color: '#A7B9AF',
-                marginBottom: '16px',
-                fontWeight: 500,
-              }}>
-                {Number(osScore) >= 80 ? "You're operating at peak momentum." : "You're building momentum."}
-              </div>
-              {/* Neon mint progress track */}
+
+              {/* Progress track */}
               <div style={{
                 width: '100%',
-                height: '8px',
+                height: '7px',
                 borderRadius: '9999px',
-                background: '#1A2B23',
+                background: 'rgba(255, 255, 255, 0.22)',
                 overflow: 'hidden',
                 position: 'relative',
               }}>
                 <div style={{
-                  width: `${Math.max(8, Math.min(100, Number(osScore) || 72))}%`,
+                  width: `${Math.max(0, Math.min(100, typeof osScore === 'number' ? Math.round(osScore) : (Number(osScore) || 0)))}%`,
                   height: '100%',
                   borderRadius: '9999px',
-                  background: 'linear-gradient(90deg, #10B981 0%, #2DE09A 100%)',
-                  boxShadow: '0 0 12px rgba(45, 224, 154, 0.5)',
+                  background: '#FFFFFF',
                   transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
                 }} />
               </div>
             </div>
 
-            {/* NEXT BEST MOVE (Screen 1 Reference) */}
-            <div>
+            {/* YOUR FOUR ANCHORS (Screen 7 Reference) */}
+            <div style={{ marginBottom: '16px' }}>
               <div style={{
                 fontSize: '11px',
-                fontWeight: 800,
-                letterSpacing: '0.12em',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                color: '#7E948A',
-                marginBottom: '12px',
+                color: 'var(--brand-muted, #5A6D75)',
+                marginBottom: '10px',
               }}>
-                NEXT BEST MOVE
+                YOUR FOUR ANCHORS
               </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '12px',
+              }}>
+                {/* Habits Anchor */}
+                <div
+                  onClick={() => setShowAllZenith(p => !p)}
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1.5px solid var(--brand-border, #E5E0D8)',
+                    borderRadius: '16px',
+                    padding: '14px 16px',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--brand-border, #E5E0D8)'; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <div style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '50%',
+                      background: 'var(--brand-soft-teal, #DDE9EB)',
+                      color: 'var(--brand-petrol, #174A55)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                    }}>
+                      H
+                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-muted, #5A6D75)' }}>Habits</span>
+                  </div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--brand-text, #111A20)' }}>
+                    {completedHabitsCount}/{totalHabitsCount}
+                  </div>
+                </div>
+
+                {/* Growth Anchor */}
+                <div
+                  onClick={() => navigate('/growth')}
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1.5px solid var(--brand-border, #E5E0D8)',
+                    borderRadius: '16px',
+                    padding: '14px 16px',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--brand-border, #E5E0D8)'; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <div style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '50%',
+                      background: 'var(--brand-soft-teal, #DDE9EB)',
+                      color: 'var(--brand-petrol, #174A55)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                    }}>
+                      G
+                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-muted, #5A6D75)' }}>Growth</span>
+                  </div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--brand-text, #111A20)' }}>
+                    {tasks.filter(t => t.status !== 'done').length} tasks
+                  </div>
+                </div>
+
+                {/* Health Anchor */}
+                <div
+                  onClick={() => navigate('/food')}
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1.5px solid var(--brand-border, #E5E0D8)',
+                    borderRadius: '16px',
+                    padding: '14px 16px',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--brand-border, #E5E0D8)'; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <div style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '50%',
+                      background: 'var(--brand-soft-teal, #DDE9EB)',
+                      color: 'var(--brand-petrol, #174A55)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                    }}>
+                      H
+                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-muted, #5A6D75)' }}>Health</span>
+                  </div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--brand-text, #111A20)' }}>
+                    {totalCaloriesCount > 0 ? `${totalCaloriesCount.toLocaleString()} kcal` : '0 kcal'}
+                  </div>
+                </div>
+
+                {/* Wealth Anchor */}
+                <div
+                  onClick={() => navigate('/wealth')}
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1.5px solid var(--brand-border, #E5E0D8)',
+                    borderRadius: '16px',
+                    padding: '14px 16px',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--brand-border, #E5E0D8)'; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <div style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '50%',
+                      background: 'var(--brand-soft-teal, #DDE9EB)',
+                      color: 'var(--brand-petrol, #174A55)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                    }}>
+                      W
+                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-muted, #5A6D75)' }}>Wealth</span>
+                  </div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--brand-petrol, #174A55)' }}>
+                    On track
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* NEXT BEST MOVE (Screen 7 Reference) */}
+            <div style={{ marginBottom: '16px' }}>
               <div
                 onClick={() => {
                   if (priorities.length > 0 && priorities[0].taskObj) {
@@ -1395,45 +1533,49 @@ export default function Zenith() {
                   }
                 }}
                 style={{
-                  background: '#111A15',
-                  border: '1px solid #1A2B23',
-                  borderRadius: '20px',
-                  padding: '18px 20px',
+                  background: 'linear-gradient(135deg, #174A55 0%, #112F37 100%)',
+                  borderRadius: '18px',
+                  padding: '16px 18px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+                  boxShadow: '0 4px 16px rgba(23, 74, 85, 0.18)',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2DE09A'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div>
                   <div style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '12px',
-                    background: '#2DE09A',
-                    color: '#060B08',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    boxShadow: '0 0 16px rgba(45, 224, 154, 0.3)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: 'var(--brand-soft-teal, #DDE9EB)',
+                    marginBottom: '4px',
                   }}>
-                    <ArrowRight size={20} strokeWidth={2.6} style={{ transform: 'rotate(-45deg)' }} />
+                    Next Best Move
                   </div>
-                  <div>
-                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#F1F5F3', letterSpacing: '-0.01em' }}>
-                      {priorities[0]?.name || 'Finish one focus sprint'}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#7E948A', marginTop: '2px' }}>
-                      25 min · Deep execution practice
-                    </div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
+                    {priorities[0]?.name || 'Finish one focus sprint'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.75)', marginTop: '2px' }}>
+                    25 min · Deep work
                   </div>
                 </div>
-                <ChevronRight size={18} color="#7E948A" />
+
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#FFFFFF',
+                  flexShrink: 0,
+                }}>
+                  <ChevronRight size={18} strokeWidth={2.4} />
+                </div>
               </div>
             </div>
 
@@ -1441,44 +1583,44 @@ export default function Zenith() {
             <div
               onClick={() => setShowDayReceipt(true)}
               style={{
-                padding: '16px 20px',
-                borderRadius: '18px',
-                background: '#111A15',
-                border: '1px solid #1A2B23',
+                padding: '14px 18px',
+                borderRadius: '16px',
+                background: '#FFFFFF',
+                border: '1.5px solid var(--brand-border, #E5E0D8)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                marginBottom: '16px',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#2DE09A';
-                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#1A2B23';
-                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.borderColor = 'var(--brand-border, #E5E0D8)';
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2DE09A' }} />
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#2DE09A', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--brand-petrol, #174A55)' }} />
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--brand-petrol, #174A55)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                     DAY RECEIPT SYNTHESIS
                   </span>
                 </div>
-                <div style={{ fontSize: '13px', color: '#7E948A' }}>
+                <div style={{ fontSize: '13px', color: 'var(--brand-muted, #5A6D75)' }}>
                   {timeline.length > 0 ? 'Your day is synthesized. View daily receipt →' : 'View daily receipt artifact →'}
                 </div>
               </div>
               <div
                 style={{
                   padding: '6px 14px',
-                  borderRadius: '10px',
-                  background: '#2DE09A',
-                  color: '#060B08',
+                  borderRadius: '8px',
+                  background: 'var(--brand-petrol, #174A55)',
+                  color: '#FFFFFF',
                   fontSize: '11px',
-                  fontWeight: 800,
+                  fontWeight: 700,
                   letterSpacing: '0.04em',
                 }}
               >
@@ -1497,168 +1639,6 @@ export default function Zenith() {
 
           {/* ── Secondary Column: Four Anchors, Recent Activity & Arc ── */}
           <div className="zenith-col-anchors">
-            {/* YOUR FOUR ANCHORS (Screen 1 Reference) */}
-            <div>
-              <div style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: '#7E948A',
-                marginBottom: '12px',
-              }}>
-                YOUR FOUR ANCHORS
-              </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '12px',
-              }}>
-                {/* Habits Anchor */}
-                <div
-                  onClick={() => setShowAllZenith(p => !p)}
-                  style={{
-                    background: '#111A15',
-                    border: '1px solid #1A2B23',
-                    borderRadius: '18px',
-                    padding: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2DE09A'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      background: 'rgba(45, 224, 154, 0.15)',
-                      color: '#2DE09A',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                    }}>
-                      H
-                    </div>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3' }}>Habits</span>
-                  </div>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#F1F5F3' }}>
-                    {completedHabitsCount}/{totalHabitsCount}
-                  </div>
-                </div>
-
-                {/* Growth Anchor */}
-                <div
-                  onClick={() => navigate('/growth')}
-                  style={{
-                    background: '#111A15',
-                    border: '1px solid #1A2B23',
-                    borderRadius: '18px',
-                    padding: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#A855F7'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      background: 'rgba(168, 85, 247, 0.15)',
-                      color: '#A855F7',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                    }}>
-                      G
-                    </div>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3' }}>Growth</span>
-                  </div>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#F1F5F3' }}>
-                    {tasks.filter(t => t.status !== 'done').length} tasks
-                  </div>
-                </div>
-
-                {/* Health Anchor */}
-                <div
-                  onClick={() => navigate('/food')}
-                  style={{
-                    background: '#111A15',
-                    border: '1px solid #1A2B23',
-                    borderRadius: '18px',
-                    padding: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#F97316'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      background: 'rgba(249, 115, 22, 0.15)',
-                      color: '#F97316',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                    }}>
-                      H
-                    </div>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3' }}>Health</span>
-                  </div>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#F1F5F3' }}>
-                    {totalCaloriesCount > 0 ? `${totalCaloriesCount.toLocaleString()} kcal` : '1,240 kcal'}
-                  </div>
-                </div>
-
-                {/* Wealth Anchor */}
-                <div
-                  onClick={() => navigate('/wealth')}
-                  style={{
-                    background: '#111A15',
-                    border: '1px solid #1A2B23',
-                    borderRadius: '18px',
-                    padding: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38BDF8'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      background: 'rgba(56, 189, 248, 0.15)',
-                      color: '#38BDF8',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                    }}>
-                      W
-                    </div>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3' }}>Wealth</span>
-                  </div>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#2DE09A' }}>
-                    On track
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* NEXT UP 3 ITEMS (if habits view expanded) */}
             {showAllZenith && (
@@ -1701,7 +1681,7 @@ export default function Zenith() {
                       : evt.type === 'focus' ? '#A855F7'
                       : evt.type === 'sleep' ? '#818CF8'
                       : evt.type === 'water' ? '#38BDF8'
-                      : '#2DE09A';
+                      : 'var(--brand-petrol, #174A55)';
                     return (
                       <div
                         key={idx}
@@ -1756,25 +1736,6 @@ export default function Zenith() {
               </div>
             </div>
 
-            {/* THE 24-HOUR SOLAR ARC HERO */}
-            <div>
-              <ZenithArcHero
-                events={timeline}
-                stateHeadline={
-                  ctx.sleep > 0 && ctx.sleep < 6
-                    ? "On track, but energy is low."
-                    : ctx.completedTasks > 0
-                    ? "Momentum is active."
-                    : "The day is unfolding."
-                }
-                stateSubtext={
-                  ctx.sleep > 0 && ctx.sleep < 6
-                    ? "You've made good progress. A proper meal and some rest will help your evening."
-                    : "Prioritize your top 3 execution milestones and stay hydrated."
-                }
-                onOpenReceipt={() => setShowDayReceipt(true)}
-              />
-            </div>
           </div>
         </div>
       </div>

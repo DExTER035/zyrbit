@@ -103,14 +103,14 @@ export default function AppLayout({ children, userId }) {
                 width: '34px',
                 height: '34px',
                 borderRadius: '10px',
-                background: '#2DE09A',
+                background: 'var(--brand-petrol, #174A55)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#060B08',
+                color: '#FFFFFF',
                 fontWeight: 900,
                 fontSize: '17px',
-                boxShadow: '0 0 16px rgba(45, 224, 154, 0.35)',
+                boxShadow: '0 2px 8px rgba(23, 74, 85, 0.25)',
               }}>
                 Z
               </div>
@@ -120,14 +120,14 @@ export default function AppLayout({ children, userId }) {
                   fontWeight: 900,
                   color: '#F1F5F3',
                   letterSpacing: '0.04em',
-                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                  fontFamily: "'Inter', sans-serif",
                   lineHeight: 1.1,
                 }}>
                   ZYRBIT
                 </div>
                 <div style={{
                   fontSize: '10px',
-                  color: '#7E948A',
+                  color: '#9CA3AF',
                   fontWeight: 700,
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
@@ -162,9 +162,9 @@ export default function AppLayout({ children, userId }) {
                     textDecoration: 'none',
                     fontSize: '13px',
                     fontWeight: isActive ? 700 : 500,
-                    color: isActive ? '#2DE09A' : '#7E948A',
-                    background: isActive ? 'rgba(45, 224, 154, 0.12)' : 'transparent',
-                    border: isActive ? '1px solid rgba(45, 224, 154, 0.25)' : '1px solid transparent',
+                    color: isActive ? '#FFFFFF' : '#9CA3AF',
+                    background: isActive ? 'var(--brand-petrol, #174A55)' : 'transparent',
+                    border: isActive ? '1px solid rgba(23, 74, 85, 0.4)' : '1px solid transparent',
                     transition: 'all 0.15s ease',
                     whiteSpace: 'nowrap',
                   }}
@@ -185,15 +185,15 @@ export default function AppLayout({ children, userId }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: '#2DE09A',
-                color: '#060B08',
+                background: 'var(--brand-petrol, #174A55)',
+                color: '#FFFFFF',
                 border: 'none',
                 borderRadius: '12px',
                 padding: '8px 16px',
                 fontSize: '13px',
                 fontWeight: 700,
                 cursor: 'pointer',
-                boxShadow: '0 0 16px rgba(45, 224, 154, 0.3)',
+                boxShadow: '0 2px 10px rgba(23, 74, 85, 0.3)',
                 whiteSpace: 'nowrap',
               }}
             >
@@ -208,9 +208,9 @@ export default function AppLayout({ children, userId }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '7px',
-                background: '#111A15',
+                background: '#15181B',
                 color: '#F1F5F3',
-                border: '1px solid #1A2B23',
+                border: '1px solid #26272C',
                 borderRadius: '12px',
                 padding: '8px 14px',
                 fontSize: '13px',
@@ -219,14 +219,14 @@ export default function AppLayout({ children, userId }) {
                 whiteSpace: 'nowrap',
               }}
             >
-              <MessageSquare size={14} color="#2DE09A" />
+              <MessageSquare size={14} color="#367887" />
               <span>Dex AI</span>
               <kbd style={{
                 fontSize: '9px',
-                background: '#1A2B23',
+                background: '#26272C',
                 padding: '2px 5px',
                 borderRadius: '4px',
-                color: '#7E948A',
+                color: '#9CA3AF',
                 fontWeight: 700,
               }}>⌘K</kbd>
             </button>

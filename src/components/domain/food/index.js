@@ -4,7 +4,6 @@ export { default as FoodPicker } from './FoodPicker.jsx';
 export { default as GoalSettingsModal } from './GoalSettingsModal.jsx';
 export { default as MealLogCard } from './MealLogCard.jsx';
 export { default as MealSection } from './MealSection.jsx';
-export { default as NutritionSummary } from './NutritionSummary.jsx';
 export { default as PersonalUsualsBar } from './PersonalUsualsBar.jsx';
 export { default as SavedMealsSection } from './SavedMealsSection.jsx';
 export * from './shared.jsx';

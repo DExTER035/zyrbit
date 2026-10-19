@@ -29,6 +29,11 @@ const FREQUENCIES = [
   { id: 'one-time', label: 'One-time' },
 ];
 
+const getLocalYMD = (d = new Date()) => {
+  const o = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return o.toISOString().split('T')[0];
+};
+
 export default function BillFormModal({
   isOpen = true,
   editingBill = null,
@@ -39,7 +44,7 @@ export default function BillFormModal({
   onDelete,
 }) {
   const activeBill = editingBill || initialData;
-  const todayYMD = new Date().toISOString().split('T')[0];
+  const todayYMD = getLocalYMD();
 
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');

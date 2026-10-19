@@ -2,41 +2,40 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
+import { todayStr } from '../../../lib/dateUtils.js';
+
 // ─── Food Module Design Tokens ────────────────────────────────────────────────
-// Inherits from DexOS design system. Food accent = amber/warm.
+// Zyrbit Brand Visual System: Deep Charcoal, Petrol Teal (#174A55), Muted Teal (#367887), Warm Ivory (#F4F0E8)
 export const FC = {
-  bg:      'var(--bg-page, #F5F8FC)',
-  surface: 'var(--bg-card, #FFFFFF)',
-  elev:    'var(--bg-page, #F5F8FC)',
-  border:  'var(--border-primary, #E4EAF2)',
-  border2: 'var(--border-primary, #E4EAF2)',
-  text:    'var(--text-primary, #172033)',
-  sub:     'var(--text-secondary, #68758A)',
-  muted:   '#94A3B8',
-  dim:     '#E2E8F0',
+  bg:      '#0B0D0F',
+  surface: '#12161A',
+  elev:    '#161B22',
+  border:  '#1E252D',
+  border2: '#27313B',
+  text:    '#F4F0E8',
+  sub:     '#9CA3AF',
+  muted:   '#7A8D94',
+  dim:     '#1B2229',
 
-  // Food pillar accent — emerald / warm
-  food:    '#08B878',
-  foodDim: 'rgba(8, 184, 120, 0.12)',
+  // Primary brand accents
+  food:        '#174A55',
+  foodDim:     'rgba(23, 74, 85, 0.18)',
+  petrolMuted: '#367887',
+  softTeal:    '#DDE9EB',
 
-  // Macro colors
-  protein: '#08B878',  // emerald
-  carbs:   '#D97706',  // amber
-  fat:     '#8866E9',  // violet
-  fiber:   '#3296F4',  // blue
+  // Macro colors (No neon, No purple)
+  protein: '#367887',  // Muted Petrol Teal
+  carbs:   '#D97706',  // Warm Amber
+  fat:     '#7A8D94',  // Neutral Slate
+  fiber:   '#4A7C59',  // Sage Green
 
   // Status
-  optimal:  '#08B878',
+  optimal:  '#1FA36F',
   moderate: '#D97706',
   over:     '#EF4444',
 };
 
-// ─── Date Helper ──────────────────────────────────────────────────────────────
-export function todayStr() {
-  const d = new Date();
-  const offset = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - offset).toISOString().split('T')[0];
-}
+export { todayStr };
 
 // ─── Shared Primitives ────────────────────────────────────────────────────────
 export const FCard = ({ children, accent, onClick, style = {} }) => (
@@ -95,7 +94,7 @@ export const FBtn = ({ label, onClick, color = FC.food, disabled = false, style 
     disabled={disabled}
     style={{
       background: disabled ? FC.dim : color,
-      color: disabled ? FC.muted : '#000',
+      color: disabled ? FC.muted : '#FFFFFF',
       border: 'none',
       borderRadius: '14px',
       padding: '14px',

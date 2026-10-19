@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { X, Calculator, ChevronDown, ChevronUp } from 'lucide-react';
 import { FC, FInput, FBtn } from './shared.jsx';
-import { supabase } from '../../../lib/supabase/index.js';
+import { updateFoodSettings } from '../../../services/healthService.js';
 import { showToast } from '../../ui/Toast.jsx';
 
 // TDEE activity multipliers
@@ -88,10 +88,8 @@ export default function GoalSettingsModal({ userId, currentSettings, onSave, onC
     };
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('food_settings')
-        .upsert([{ user_id: userId, ...settings, updated_at: new Date().toISOString() }], { onConflict: 'user_id' });
-      if (error) throw error;
+      const res = await updateFoodSettings({ userId, ...settings });
+      if (!res.success) throw new Error(res.error || 'Database error');
 
       onSave(settings);
       showToast('✓ Goals saved', 'success');
@@ -148,7 +146,7 @@ export default function GoalSettingsModal({ userId, currentSettings, onSave, onC
           {/* Calorie calculator toggle */}
           <button
             onClick={() => setShowCalc(c => !c)}
-            style={{ background: 'transparent', border: `1px solid ${FC.border2}`, borderRadius: '12px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: FC.food, fontSize: '12px', fontWeight: 700, transition: 'all 0.15s' }}
+            style={{ background: 'transparent', border: `1px solid ${FC.border2}`, borderRadius: '12px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: FC.petrolMuted, fontSize: '12px', fontWeight: 700, transition: 'all 0.15s' }}
           >
             <Calculator size={14} />
             TDEE Calculator (optional)
@@ -174,7 +172,7 @@ export default function GoalSettingsModal({ userId, currentSettings, onSave, onC
                   <div style={labelStyle}>Sex</div>
                   <div style={{ display: 'flex', gap: '6px' }}>
                     {['male', 'female'].map(s => (
-                      <button key={s} onClick={() => setSex(s)} style={{ ...chipBase, flex: 1, background: sex === s ? FC.food : FC.dim, color: sex === s ? '#000' : FC.sub }}>
+                      <button key={s} onClick={() => setSex(s)} style={{ ...chipBase, flex: 1, background: sex === s ? FC.food : FC.dim, color: sex === s ? '#FFFFFF' : FC.sub }}>
                         {s === 'male' ? '♂' : '♀'} {s.charAt(0).toUpperCase() + s.slice(1)}
                       </button>
                     ))}
@@ -186,7 +184,7 @@ export default function GoalSettingsModal({ userId, currentSettings, onSave, onC
                 <div style={labelStyle}>Activity Level</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {ACTIVITY_LEVELS.map(lvl => (
-                    <button key={lvl.id} onClick={() => setActivity(lvl.id)} style={{ ...chipBase, textAlign: 'left', background: activity === lvl.id ? `${FC.food}18` : FC.dim, border: `1px solid ${activity === lvl.id ? FC.food : 'transparent'}`, color: activity === lvl.id ? FC.food : FC.sub, padding: '8px 12px' }}>
+                    <button key={lvl.id} onClick={() => setActivity(lvl.id)} style={{ ...chipBase, textAlign: 'left', background: activity === lvl.id ? `${FC.food}33` : FC.dim, border: `1px solid ${activity === lvl.id ? FC.petrolMuted : 'transparent'}`, color: activity === lvl.id ? '#F4F0E8' : FC.sub, padding: '8px 12px' }}>
                       <span style={{ fontWeight: 800 }}>{lvl.label}</span>
                       <span style={{ fontSize: '10px', marginLeft: '6px', opacity: 0.7 }}>{lvl.desc}</span>
                     </button>
@@ -198,7 +196,7 @@ export default function GoalSettingsModal({ userId, currentSettings, onSave, onC
                 <div style={labelStyle}>Goal</div>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   {GOALS.map(g => (
-                    <button key={g.id} onClick={() => setGoalAdj(g.id)} style={{ ...chipBase, flex: 1, background: goalAdj === g.id ? FC.food : FC.dim, color: goalAdj === g.id ? '#000' : FC.sub }}>
+                    <button key={g.id} onClick={() => setGoalAdj(g.id)} style={{ ...chipBase, flex: 1, background: goalAdj === g.id ? FC.food : FC.dim, color: goalAdj === g.id ? '#FFFFFF' : FC.sub }}>
                       {g.label}
                     </button>
                   ))}

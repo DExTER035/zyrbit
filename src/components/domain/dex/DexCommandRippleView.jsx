@@ -5,7 +5,7 @@
  * Multi-Domain Ripple Proposal Card, and Confirmation/Undo State.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Mic, Sparkles, Check, RotateCcw, X, Utensils, Wallet, Compass, Plus } from 'lucide-react';
+import { Send, Mic, Sparkles, Check, RotateCcw, X, Utensils, Wallet, Compass, Plus, ArrowRight } from 'lucide-react';
 
 export default function DexCommandRippleView({
   onCommandSubmit,
@@ -74,163 +74,130 @@ export default function DexCommandRippleView({
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      padding: '10px 16px 20px',
-      color: '#F1F5F3',
+      padding: '10px 16px 24px',
+      color: '#FFFFFF',
       position: 'relative',
       width: '100%',
       maxWidth: '480px',
       margin: '0 auto',
+      flexShrink: 0,
     }}>
-      {/* ── HEADER (Screen 5 Reference) ── */}
-      <div style={{ width: '100%', marginBottom: '20px', textAlign: 'left' }}>
-        <div style={{
-          fontSize: '11px',
-          fontWeight: 800,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: '#2DE09A',
-          marginBottom: '6px',
-        }}>
-          ZYRBIT INTELLIGENCE
-        </div>
-        <h2 style={{
-          fontSize: '28px',
-          fontWeight: 900,
-          color: '#F1F5F3',
-          letterSpacing: '-0.03em',
-          margin: '0 0 4px',
-          fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-        }}>
-          Think out loud.
-        </h2>
-        <div style={{
-          fontSize: '13px',
-          color: '#7E948A',
-        }}>
-          One assistant. Your whole system.
-        </div>
-      </div>
-
-      {/* ── CONCENTRIC GLOWING MINT RADAR CORE ── */}
+      {/* ── CENTRAL WHITE COMPANION CARD (Screen 11 Reference) ── */}
       <div style={{
-        position: 'relative',
-        width: '140px',
-        height: '140px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        margin: '10px auto 24px',
-      }}>
-        {/* Outer Ring */}
-        <div style={{
-          position: 'absolute',
-          width: '136px',
-          height: '136px',
-          borderRadius: '50%',
-          border: '1.5px solid rgba(45, 224, 154, 0.18)',
-        }} />
-        {/* Middle Ring */}
-        <div style={{
-          position: 'absolute',
-          width: '96px',
-          height: '96px',
-          borderRadius: '50%',
-          border: '2px solid rgba(45, 224, 154, 0.35)',
-        }} />
-        {/* Inner Ring */}
-        <div style={{
-          position: 'absolute',
-          width: '60px',
-          height: '60px',
-          borderRadius: '50%',
-          border: '2.5px solid rgba(45, 224, 154, 0.6)',
-        }} />
-        {/* Center Glowing Core */}
-        <div style={{
-          width: '26px',
-          height: '26px',
-          borderRadius: '50%',
-          background: '#2DE09A',
-          boxShadow: '0 0 24px rgba(45, 224, 154, 0.9), 0 0 12px #2DE09A',
-        }} />
-      </div>
-
-      {/* ── PROMPT HEADLINE ── */}
-      <div style={{ textAlign: 'center', marginBottom: '18px' }}>
-        <div style={{
-          fontSize: '11px',
-          fontWeight: 800,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: '#2DE09A',
-          marginBottom: '4px',
-        }}>
-          WHAT SHOULD WE DO NEXT?
-        </div>
-        <div style={{ fontSize: '15px', fontWeight: 800, color: '#F1F5F3', letterSpacing: '-0.01em' }}>
-          Ask. Reflect. Take action.
-        </div>
-      </div>
-
-      {/* ── 4 QUICK ACTION CARDS (Screen 5 Reference) ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '10px',
+        background: '#FFFFFF',
+        borderRadius: '24px',
+        padding: '22px 20px',
+        border: '1.5px solid var(--brand-border, #E5E0D8)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
         width: '100%',
-        marginBottom: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
       }}>
-        {[
-          { label: 'Plan my day', cmd: 'Plan my day', icon: '▶', color: '#2DE09A' },
-          { label: 'Analyze my meal', cmd: 'Analyze my meal', icon: '🥣', color: '#F97316' },
-          { label: 'Review spending', cmd: 'Review my spending this month', icon: '₹', color: '#38BDF8' },
-          { label: 'Check my habits', cmd: 'Check my habit streak', icon: '✓', color: '#A855F7' },
-        ].map((card, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => onCommandSubmit(card.cmd)}
+        {/* Top Greeting Row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: 'var(--brand-petrol, #174A55)',
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 800,
+            fontSize: '16px',
+            flexShrink: 0,
+          }}>
+            Z
+          </div>
+          <div>
+            <div style={{ fontSize: '17px', fontWeight: 800, color: '#111A20', letterSpacing: '-0.01em' }}>
+              Hey, I'm Dex.
+            </div>
+            <div style={{ fontSize: '12px', color: '#8A9CA3', marginTop: '2px' }}>
+              I can help you plan, track and make progress.
+            </div>
+          </div>
+        </div>
+
+        {/* 4 Action Suggestion Cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {[
+            { label: 'Plan my day', cmd: 'Plan my day', icon: '📅' },
+            { label: 'Analyze my meal', cmd: 'Analyze my meal', icon: '🥗' },
+            { label: 'Review my spending', cmd: 'Review my spending this month', icon: '💳' },
+            { label: 'Check my habits', cmd: 'Check my habit streak and momentum', icon: '🎯' },
+          ].map((act, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onCommandSubmit(act.cmd)}
+              style={{
+                background: '#F9F8F5',
+                border: '1px solid #ECE8DF',
+                borderRadius: '14px',
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#ECE8DF'; }}
+            >
+              <span style={{ fontSize: '16px' }}>{act.icon}</span>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#111A20' }}>{act.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Chat input inside card */}
+        <form onSubmit={handleSubmit} style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: '#FFFFFF',
+          border: '1.5px solid var(--brand-border, #E5E0D8)',
+          borderRadius: '9999px',
+          padding: '4px 6px 4px 14px',
+          marginTop: '4px',
+        }}>
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder="Ask Dex anything..."
             style={{
-              background: '#111A15',
-              border: '1px solid #1A2B23',
-              borderRadius: '16px',
-              padding: '12px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              cursor: 'pointer',
-              textAlign: 'left',
-              transition: 'all 0.15s ease',
+              flex: 1,
+              border: 'none',
+              outline: 'none',
+              background: 'transparent',
+              fontSize: '13px',
+              color: '#111A20',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = card.color;
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#1A2B23';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            <div style={{
-              width: '28px',
-              height: '28px',
+          />
+          <button
+            type="submit"
+            disabled={!inputText.trim()}
+            style={{
+              width: '32px',
+              height: '32px',
               borderRadius: '50%',
-              background: `${card.color}18`,
-              color: card.color,
+              background: inputText.trim() ? 'var(--brand-petrol, #174A55)' : '#DDE9EB',
+              color: inputText.trim() ? '#FFFFFF' : '#8A9CA3',
+              border: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '12px',
-              fontWeight: 800,
-              flexShrink: 0,
-            }}>
-              {card.icon}
-            </div>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3', lineHeight: 1.2 }}>
-              {card.label}
-            </span>
+              cursor: inputText.trim() ? 'pointer' : 'default',
+              transition: 'background 0.15s ease',
+            }}
+          >
+            <ArrowRight size={14} />
           </button>
-        ))}
+        </form>
       </div>
 
       {/* ── CONTEXT READY PILL (Screen 5 Reference) ── */}
@@ -598,10 +565,10 @@ export default function DexCommandRippleView({
             style={{
               width: '100%',
               padding: '12px 16px',
-              background: 'var(--bg-card, #FFFFFF)',
-              border: '1px solid var(--border-primary, #E4EAF2)',
+              background: '#111A15',
+              border: '1px solid #1A2B23',
               borderRadius: '14px',
-              color: 'var(--text-primary, #172033)',
+              color: '#F1F5F3',
               fontSize: '13px',
               fontWeight: 600,
               textAlign: 'left',
@@ -610,19 +577,21 @@ export default function DexCommandRippleView({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              gap: '10px',
+              wordBreak: 'break-word',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-accent, #08B878)';
-              e.currentTarget.style.background = 'rgba(8, 184, 120, 0.04)';
+              e.currentTarget.style.borderColor = '#2DE09A';
+              e.currentTarget.style.background = '#15221C';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border-primary, #E4EAF2)';
-              e.currentTarget.style.background = 'var(--bg-card, #FFFFFF)';
+              e.currentTarget.style.borderColor = '#1A2B23';
+              e.currentTarget.style.background = '#111A15';
             }}
           >
-            <span>{s}</span>
-            <span style={{ color: 'var(--color-accent, #08B878)', fontSize: '12px' }}>↗</span>
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s}</span>
+            <span style={{ color: '#2DE09A', fontSize: '13px', flexShrink: 0 }}>↗</span>
           </button>
         ))}
       </div>

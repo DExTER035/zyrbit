@@ -1,6 +1,8 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase/index.js';
+import { Bell, ChevronRight, Plus, ArrowRight } from 'lucide-react';
 import BottomNav from '../../components/layout/BottomNav.jsx';
 import { showToast } from '../../components/ui/Toast.jsx';
 
@@ -23,7 +25,7 @@ import SavedMealsSection from '../../components/domain/food/SavedMealsSection.js
 
 // ─── Domain Engines & Services ──────────────────────────────────────────────
 import { computeHealthState } from '../../engines/health/index.js';
-import { computePersonalUsuals } from '../../engines/food/index.js';
+import { computePersonalUsuals, calculateDailyTotals } from '../../engines/food/index.js';
 import {
   getHealthTelemetry,
   logWater as serviceLogWater,
@@ -51,7 +53,7 @@ export default function Health() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ─── Modal States ──────────────────────────────────────────────────────────
+  const [healthTab, setHealthTab] = useState('nutrition'); // nutrition | workout | sleep | water
   const [activePickerMealType, setActivePickerMealType] = useState(null);
   const [editingMealLog, setEditingMealLog] = useState(null);
   const [inspectingMealLog, setInspectingMealLog] = useState(null);
@@ -68,6 +70,14 @@ export default function Health() {
   const [settings, setSettings] = useState(null);           // Calorie & macro targets
   const [savedMeals, setSavedMeals] = useState([]);         // User saved combo templates
   const [personalFoods, setPersonalFoods] = useState([]);   // User personal food library
+
+  const dailyNutrition = useMemo(() => calculateDailyTotals(mealLogs), [mealLogs]);
+  const totalCalories = dailyNutrition.calories;
+  const totalProtein = dailyNutrition.protein;
+  const totalCarbs = dailyNutrition.carbs;
+  const totalFat = dailyNutrition.fat;
+  const calorieGoal = settings?.calorie_goal || 2200;
+  const caloriePercent = Math.min(100, Math.round((totalCalories / calorieGoal) * 100));
 
   // ─── Unified Data Fetcher ──────────────────────────────────────────────────
   const loadAllTelemetry = useCallback(async (uid, isBackground = false) => {
@@ -748,78 +758,280 @@ export default function Health() {
     <div
       className="app-container page-enter"
       style={{
-        background: '#0E0F13',
+        background: 'var(--brand-ivory, #F4F0E8)',
         minHeight: '100vh',
-        color: '#ECE8DF',
+        color: 'var(--brand-text, #111A20)',
         position: 'relative',
+        paddingBottom: 'calc(110px + env(safe-area-inset-bottom, 24px))',
       }}
     >
-      {/* ─── 1. HEADER ─── */}
-      <div style={{ padding: '36px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      {/* ─── 1. HEADER (Screen 9 Reference) ─── */}
+      <div style={{ padding: '24px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div>
           <h1 style={{
-            fontSize: '26px',
+            fontSize: '22px',
             fontWeight: 800,
-            color: '#ECE8DF',
-            letterSpacing: '-0.03em',
+            color: 'var(--brand-text, #111A20)',
+            letterSpacing: '-0.02em',
             margin: '0 0 2px',
+            fontFamily: "'Space Grotesk', -apple-system, sans-serif",
           }}>
             Health
           </h1>
           <div style={{
             fontSize: '13px',
-            color: '#9A978F',
-            fontWeight: 400,
+            color: 'var(--brand-muted, #5A6D75)',
+            fontWeight: 500,
           }}>
-            {bodySentence}
+            Fuel your next level.
           </div>
         </div>
 
-        <div
-          title={todayDisplay}
+        <button
+          type="button"
+          aria-label="Notifications"
           style={{
-            background: '#15161B',
-            border: '1px solid #26272D',
-            borderRadius: '9999px',
-            padding: '6px 14px',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: '#ECE8DF',
+            background: '#FFFFFF',
+            border: '1.5px solid var(--brand-border, #E5E0D8)',
+            borderRadius: '50%',
+            width: '36px',
+            height: '36px',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
+            justifyContent: 'center',
+            color: 'var(--brand-text, #111A20)',
             cursor: 'pointer',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
           }}
         >
-          Today ›
-        </div>
+          <Bell size={16} />
+        </button>
       </div>
 
-      {/* ─── 2. BODY RHYTHM TIMELINE & METRICS ─── */}
-      <div style={{ padding: '16px 20px 0' }}>
+      {/* ─── 2. PILLS (Nutrition, Workout, Sleep, Water) ─── */}
+      <div style={{ padding: '0 20px', display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        {[
+          { id: 'nutrition', label: 'Nutrition' },
+          { id: 'workout', label: 'Workout' },
+          { id: 'sleep', label: 'Sleep' },
+          { id: 'water', label: 'Water' },
+        ].map(p => {
+          const isActive = healthTab === p.id;
+          return (
+            <button
+              key={p.id}
+              onClick={() => setHealthTab(p.id)}
+              style={{
+                background: isActive ? 'var(--brand-petrol, #174A55)' : 'transparent',
+                border: 'none',
+                borderRadius: '9999px',
+                padding: '6px 16px',
+                fontSize: '13px',
+                fontWeight: isActive ? 700 : 500,
+                color: isActive ? '#FFFFFF' : 'var(--brand-muted, #5A6D75)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ─── 3. TODAY'S NUTRITION CARD (Screen 9 Reference) ─── */}
+      {healthTab === 'nutrition' && (
+        <>
+          <div style={{ padding: '0 20px', marginBottom: '20px' }}>
+            <div style={{
+              background: '#FFFFFF',
+              borderRadius: '20px',
+              padding: '20px',
+              border: '1.5px solid var(--brand-border, #E5E0D8)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            }}>
+              <div style={{
+                fontSize: '15px',
+                fontWeight: 800,
+                color: 'var(--brand-text, #111A20)',
+                marginBottom: '10px',
+              }}>
+                Today's Nutrition
+              </div>
+
+              {/* Donut progress ring */}
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', margin: '6px 0 16px' }}>
+                <svg width="130" height="130" viewBox="0 0 130 130">
+                  <circle
+                    cx="65"
+                    cy="65"
+                    r="52"
+                    fill="none"
+                    stroke="var(--brand-soft-teal, #DDE9EB)"
+                    strokeWidth="9"
+                  />
+                  <circle
+                    cx="65"
+                    cy="65"
+                    r="52"
+                    fill="none"
+                    stroke="var(--brand-petrol, #174A55)"
+                    strokeWidth="9"
+                    strokeDasharray={`${(caloriePercent / 100) * 326.7} 326.7`}
+                    strokeLinecap="round"
+                    transform="rotate(-90 65 65)"
+                    style={{ transition: 'stroke-dasharray 0.8s ease' }}
+                  />
+                </svg>
+                <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '26px', fontWeight: 800, color: 'var(--brand-text, #111A20)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                    {totalCalories.toLocaleString()}
+                  </span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-muted, #5A6D75)', marginTop: '4px' }}>
+                    kcal
+                  </span>
+                </div>
+              </div>
+
+              {/* Macros Row */}
+              <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', borderTop: '1px solid #F0ECE4', paddingTop: '14px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--brand-text, #111A20)' }}>
+                  <span style={{ color: 'var(--brand-petrol, #174A55)', marginRight: '4px' }}>•</span>
+                  Protein: <span style={{ fontWeight: 700 }}>{Math.round(totalProtein)} g</span>
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--brand-text, #111A20)' }}>
+                  <span style={{ color: '#D97706', marginRight: '4px' }}>•</span>
+                  Carbs: <span style={{ fontWeight: 700 }}>{Math.round(totalCarbs)} g</span>
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--brand-text, #111A20)' }}>
+                  <span style={{ color: '#E11D48', marginRight: '4px' }}>•</span>
+                  Fats: <span style={{ fontWeight: 700 }}>{Math.round(totalFat)} g</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ─── 4. TODAY'S MEALS SECTION (Screen 9 Reference) ─── */}
+          <div style={{ padding: '0 20px', marginBottom: '24px' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '14px',
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '16px',
+                fontWeight: 800,
+                color: 'var(--brand-text, #111A20)',
+              }}>
+                Today's Meals
+              </h2>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-muted, #5A6D75)' }}>
+                {mealLogs.length} logged
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
+              {mealLogs.length === 0 ? (
+                <div style={{
+                  padding: '24px 16px',
+                  background: '#FFFFFF',
+                  borderRadius: '16px',
+                  border: '1.5px solid var(--brand-border, #E5E0D8)',
+                  textAlign: 'center',
+                  color: 'var(--brand-muted, #5A6D75)',
+                  fontSize: '13px',
+                }}>
+                  No meals logged today. Tap Log a meal to get started.
+                </div>
+              ) : (
+                mealLogs.map(meal => (
+                  <div
+                    key={meal.id}
+                    onClick={() => setInspectingMealLog(meal)}
+                    style={{
+                      background: '#FFFFFF',
+                      borderRadius: '16px',
+                      padding: '12px 14px',
+                      border: '1.5px solid var(--brand-border, #E5E0D8)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    }}
+                  >
+                    <img
+                      src="https://images.unsplash.com/photo-1517673400267-0251440c45dc?auto=format&fit=crop&w=140&q=80"
+                      alt={meal.food_name}
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        borderRadius: '12px',
+                        objectFit: 'cover',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: '14px',
+                        fontWeight: 700,
+                        color: 'var(--brand-text, #111A20)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {meal.food_name}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--brand-muted, #5A6D75)', marginTop: '2px' }}>
+                        {(meal.meal_type || 'Meal').charAt(0).toUpperCase() + (meal.meal_type || 'Meal').slice(1)} · Today
+                      </div>
+                      <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--brand-petrol, #174A55)', marginTop: '2px' }}>
+                        {meal.calories} kcal · {meal.protein}g protein
+                      </div>
+                    </div>
+                    <ChevronRight size={16} color="var(--brand-muted, #5A6D75)" />
+                  </div>
+                ))
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/food')}
+              style={{
+                width: '100%',
+                padding: '11px',
+                borderRadius: '12px',
+                background: 'transparent',
+                border: '1.5px solid var(--brand-petrol, #174A55)',
+                color: 'var(--brand-petrol, #174A55)',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                transition: 'background 0.15s ease',
+              }}
+            >
+              <Plus size={15} />
+              <span>Log a meal</span>
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ─── 5. BODY RHYTHM & TELEMETRY (If non-nutrition tab or auxiliary) ─── */}
+      <div style={{ padding: '0 20px', display: healthTab === 'nutrition' ? 'none' : 'block' }}>
         <BodyRhythmVisualizer
           sleepHours={healthState.sleep?.hours ?? 0}
           mealLogs={mealLogs}
           waterLogs={waterLogs}
           moveLogs={moveLogs}
           healthState={healthState}
-        />
-      </div>
-
-      {/* ─── 3. TODAY'S MEALS (EDITORIAL & TAP-TO-INSPECT) ─── */}
-      <div style={{ padding: '0 20px' }}>
-        <HealthMealsList
-          mealLogs={mealLogs}
-          personalUsuals={personalUsuals}
-          favoriteFoodNames={favoriteFoodNames}
-          onSelectUsual={handleSelectUsual}
-          onRepeatYesterday={handleRepeatYesterday}
-          onSeeAll={() => navigate('/food')}
-          onAddMeal={() => navigate('/food')}
-          onEditMeal={(log) => setEditingMealLog(log)}
-          onDeleteMeal={handleDeleteMealLog}
-          onToggleFavorite={handleToggleFavorite}
-          onSaveCombo={handleSaveCombo}
         />
       </div>
 

@@ -6,11 +6,9 @@
 
 import { supabase } from '../lib/supabase/index.js';
 
-export const todayStr = () => {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().split('T')[0];
-};
+import { todayStr } from '../lib/dateUtils.js';
+
+export { todayStr };
 
 /**
  * Toggles a habit's daily completion status in activity_log.

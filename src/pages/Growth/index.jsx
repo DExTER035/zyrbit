@@ -960,13 +960,13 @@ export default function Growth() {
   // ─── RENDER — Main Growth Screen (Screen 2 Reference) ─────────────────
   return (
     <div className="app-container page-enter" style={{
-      background: 'var(--bg-root, #080E0B)',
+      background: 'var(--brand-deep-charcoal, #0F191C)',
       minHeight: '100vh',
-      color: 'var(--text-primary, #F1F5F3)',
+      color: '#FFFFFF',
       position: 'relative',
     }}>
 
-      {/* ── Top Header Row (Matching Screen 2) ── */}
+      {/* ── Top Header Row (Matching Screen 8 Reference) ── */}
       <div style={{
         padding: '24px 20px 0',
         display: 'flex',
@@ -974,128 +974,69 @@ export default function Growth() {
         justifyContent: 'space-between',
         marginBottom: '20px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '9px',
-            background: '#2DE09A',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#060B08',
-            fontWeight: 900,
-            fontSize: '16px',
-            boxShadow: '0 0 12px rgba(45, 224, 154, 0.35)',
+        <div>
+          <h1 style={{
+            margin: 0,
+            fontSize: '22px',
+            fontWeight: 800,
+            color: '#FFFFFF',
+            letterSpacing: '-0.02em',
+            fontFamily: "'Space Grotesk', -apple-system, sans-serif",
           }}>
-            Z
-          </div>
-          <div>
-            <div style={{
-              fontSize: '15px',
-              fontWeight: 900,
-              color: '#F1F5F3',
-              letterSpacing: '0.04em',
-              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-              lineHeight: 1.1,
-            }}>
-              ZYRBIT
-            </div>
-            <div style={{
-              fontSize: '9px',
-              color: '#7E948A',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}>
-              Personal OS
-            </div>
-          </div>
+            Growth
+          </h1>
+          <p style={{
+            margin: '3px 0 0',
+            fontSize: '13px',
+            color: '#8A9CA3',
+          }}>
+            Execute. Improve. Level up.
+          </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setTab('habits')}
-          aria-label="View Momentum History"
-          style={{
-            background: '#111A15',
-            border: '1px solid #1A2B23',
-            borderRadius: '50%',
-            width: '36px',
-            height: '36px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#F1F5F3',
-            cursor: 'pointer',
-          }}
-        >
-          <Timer size={16} />
-        </button>
-      </div>
-
-      {/* ── Title Section (Screen 2) ── */}
-      <div style={{ padding: '0 20px', marginBottom: '16px' }}>
         <div style={{
-          fontSize: '11px',
+          width: '32px',
+          height: '32px',
+          borderRadius: '50%',
+          background: 'var(--brand-petrol, #174A55)',
+          color: '#FFFFFF',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           fontWeight: 800,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: '#2DE09A',
-          marginBottom: '6px',
+          fontSize: '13px',
         }}>
-          BUILD YOUR MOMENTUM
+          Z
         </div>
-        <h1 style={{
-          fontSize: '30px',
-          fontWeight: 900,
-          letterSpacing: '-0.03em',
-          color: '#F1F5F3',
-          margin: '0 0 6px',
-          fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-        }}>
-          Keep the streak alive.
-        </h1>
-        <p style={{
-          margin: 0,
-          fontSize: '14px',
-          color: '#7E948A',
-        }}>
-          Goals become real when they move.
-        </p>
       </div>
 
-      {/* ── PILL FILTER BAR (Screen 2 Reference) ── */}
+      {/* ── PILL FILTER BAR (Screen 8 Reference: Tasks, Goals, Habits) ── */}
       <div style={{
         padding: '0 20px',
         display: 'flex',
         gap: '8px',
-        overflowX: 'auto',
-        marginBottom: '16px',
+        marginBottom: '20px',
       }}>
         {[
-          { id: 'today',    label: 'All Active' },
-          { id: 'projects', label: 'Projects' },
-          { id: 'goals',    label: 'Goals' },
-          { id: 'habits',   label: 'Routines' },
+          { id: 'today',  label: 'Tasks' },
+          { id: 'goals',  label: 'Goals' },
+          { id: 'habits', label: 'Habits' },
         ].map(t => {
-          const isActive = tab === t.id || (t.id === 'projects' && tab === 'plan');
+          const isActive = tab === t.id;
           return (
             <button
               key={t.id}
-              onClick={() => setTab(t.id === 'projects' ? 'plan' : t.id)}
+              onClick={() => setTab(t.id)}
               style={{
-                background: isActive ? '#2DE09A' : '#111A15',
-                border: `1px solid ${isActive ? '#2DE09A' : '#1A2B23'}`,
+                background: isActive ? '#FFFFFF' : '#1A262B',
+                border: `1px solid ${isActive ? '#FFFFFF' : 'rgba(255,255,255,0.08)'}`,
                 borderRadius: '9999px',
-                padding: '6px 14px',
+                padding: '6px 18px',
                 cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: 700,
-                color: isActive ? '#060B08' : '#7E948A',
-                boxShadow: isActive ? '0 0 12px rgba(45, 224, 154, 0.3)' : 'none',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: isActive ? '#111A20' : 'rgba(255,255,255,0.7)',
                 transition: 'all 0.15s ease',
-                whiteSpace: 'nowrap',
               }}
             >
               {t.label}
@@ -1105,7 +1046,7 @@ export default function Growth() {
       </div>
 
       {/* ── CONTENT ─────────────────────────────────────────────────── */}
-      <div style={{ padding: '18px 20px 120px' }}>
+      <div style={{ padding: '18px 20px calc(130px + env(safe-area-inset-bottom, 24px))' }}>
         {tab === 'today' && (
           <TodayTab
             goals={goals}

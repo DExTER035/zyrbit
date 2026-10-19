@@ -126,7 +126,7 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
 
   // Auto-scroll to latest message
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, loading, isOpen]);
@@ -638,44 +638,35 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
         style={{
           width: '100%',
           maxWidth: '520px',
-          background: '#111A15',
-          border: '1px solid #1A2B23',
+          background: 'var(--brand-deep-charcoal, #0F191C)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
           borderRadius: '24px',
           boxShadow: '0 24px 64px rgba(0, 0, 0, 0.6)',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '90vh',
-          height: '620px',
+          maxHeight: 'calc(92dvh - env(safe-area-inset-bottom, 0px))',
+          height: 'min(620px, 92dvh)',
           overflow: 'hidden',
         }}
       >
-        {/* Header */}
+        {/* Header (Screen 11 Reference) */}
         <div
           style={{
-            padding: '14px 20px',
-            borderBottom: '1px solid #1A2B23',
+            padding: '16px 20px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: '#111A15',
+            background: 'var(--brand-deep-charcoal, #0F191C)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '15px', fontWeight: 800, color: '#F1F5F3', letterSpacing: '-0.01em' }}>
-              Dex AI Assistant
-            </span>
-            <span style={{
-              fontSize: '10px',
-              fontWeight: 800,
-              color: '#2DE09A',
-              background: 'rgba(45, 224, 154, 0.12)',
-              border: '1px solid rgba(45, 224, 154, 0.25)',
-              borderRadius: '9999px',
-              padding: '2px 8px',
-              letterSpacing: '0.04em',
-            }}>
-              ONLINE
-            </span>
+          <div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
+              Dex
+            </div>
+            <div style={{ fontSize: '11px', color: '#8A9CA3', marginTop: '1px' }}>
+              Your intelligent companion.
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -727,6 +718,7 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
           {attachedImage && (

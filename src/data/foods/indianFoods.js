@@ -15,6 +15,7 @@
 
 import { FEATURES } from '../../config/features.js';
 import { ALL_CANONICAL_FOODS } from './canonicalFoods.js';
+import { calculateScaledNutrition } from '../../engines/food/index.js';
 
 export const FOOD_DB = [
   // ── BREAKFAST ──────────────────────────────────────────────────────────────
@@ -1027,13 +1028,20 @@ export const FOOD_DB = [
  * @returns {{ cal, protein, carbs, fat, fiber }}
  */
 export function computeNutrition(food, grams) {
-  const ratio = grams / 100;
+  const scaled = calculateScaledNutrition({
+    calories: food?.per100g?.cal || 0,
+    protein: food?.per100g?.protein || 0,
+    carbs: food?.per100g?.carbs || 0,
+    fat: food?.per100g?.fat || 0,
+    fiber: food?.per100g?.fiber || 0,
+    serving_size_g: 100,
+  }, grams);
   return {
-    cal:     Math.round(food.per100g.cal     * ratio * 10) / 10,
-    protein: Math.round(food.per100g.protein * ratio * 10) / 10,
-    carbs:   Math.round(food.per100g.carbs   * ratio * 10) / 10,
-    fat:     Math.round(food.per100g.fat     * ratio * 10) / 10,
-    fiber:   Math.round(food.per100g.fiber   * ratio * 10) / 10,
+    cal: scaled.calories,
+    protein: scaled.protein,
+    carbs: scaled.carbs,
+    fat: scaled.fat,
+    fiber: scaled.fiber,
   };
 }
 

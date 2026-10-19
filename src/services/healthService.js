@@ -15,11 +15,9 @@ import {
 } from '../engines/health/index.js';
 import * as foodService from './foodService.js';
 
-export const todayStr = () => {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().split('T')[0];
-};
+import { todayStr } from '../lib/dateUtils.js';
+
+export { todayStr };
 
 // ─── 1. HYDRATION (WATER) ─────────────────────────────────────────────────────
 

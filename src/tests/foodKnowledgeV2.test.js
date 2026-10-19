@@ -10,11 +10,12 @@
  * 6. Feature flag toggles: FOOD_KNOWLEDGE_V2 = false vs true
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import {
   CANONICAL_FOODS,
   ALL_CANONICAL_FOODS,
   findCanonicalFood,
+  loadGlobalCanonicalFoods,
 } from '../data/foods/canonicalFoods.js';
 import { FOOD_DB } from '../data/foods/indianFoods.js';
 import {
@@ -26,6 +27,10 @@ import { FEATURES, FOOD_AMBIGUITY_CALORIE_THRESHOLD } from '../config/features.j
 import * as aiModule from '../lib/ai/index.js';
 
 describe('Food Knowledge V2 — Architecture & Engine Verification', () => {
+  beforeAll(async () => {
+    await loadGlobalCanonicalFoods();
+  });
+
   beforeEach(() => {
     vi.restoreAllMocks();
   });

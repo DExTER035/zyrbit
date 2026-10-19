@@ -98,6 +98,19 @@
   --zone-body:   #2DE09A;
   --zone-growth: #A78BFA;
   --zone-soul:   #F59E0B;
+
+  /* ── Zyrbit Mobile-First Brand Tokens (Petrol Teal & Warm Ivory) ── */
+  --brand-petrol:       #174A55;
+  --brand-ivory:        #F4F0E8;
+  --brand-charcoal:     #111A20;
+  --brand-muted-petrol: #367887;
+  --brand-soft-teal:    #DDE9EB;
+  --brand-card-bg:      #FFFFFF;
+  --brand-border:       #E5E0D8;
+  --brand-text-sub:     #6B7B82;
+  --brand-radius-btn:   16px;
+  --brand-radius-card:  16px;
+  --brand-radius-input: 14px;
 }
 
 /* ── Glassmorphism utility ── */

@@ -2254,10 +2254,80 @@ export const PREPARATION_VARIANTS = [
   }
 ];
 
-import GLOBAL_CANONICAL_FOODS from './globalCanonicalFoods.js';
-import GLOBAL_ALIASES from './globalFoodAliases.js';
+const CURATED_COMBINED = [...CANONICAL_FOODS, ...PREPARATION_VARIANTS];
 
-export const ALL_CANONICAL_FOODS = GLOBAL_CANONICAL_FOODS;
+let _globalFoods = null;
+let _globalAliases = null;
+let _globalLoadPromise = null;
+
+/**
+ * Checks whether the full global catalog has already been loaded into memory.
+ * @returns {boolean}
+ */
+export function isGlobalCatalogLoaded() {
+  return _globalFoods !== null;
+}
+
+/**
+ * Dynamically loads the complete global canonical food catalog (~10,000+ USDA/CoFID items)
+ * and global aliases dictionary on demand.
+ * Prevents duplicate loading and avoids freezing the main application bundle.
+ * @returns {Promise<Array<Object>>}
+ */
+export async function loadGlobalCanonicalFoods() {
+  if (_globalFoods) return _globalFoods;
+  if (_globalLoadPromise) return _globalLoadPromise;
+
+  _globalLoadPromise = (async () => {
+    try {
+      const [foodsMod, aliasesMod] = await Promise.all([
+        import('./globalCanonicalFoods.js'),
+        import('./globalFoodAliases.js'),
+      ]);
+      _globalFoods = foodsMod.default || foodsMod.GLOBAL_CANONICAL_FOODS || [];
+      _globalAliases = aliasesMod.default || aliasesMod.GLOBAL_ALIASES || {};
+      return _globalFoods;
+    } catch (err) {
+      console.warn('[canonicalFoods] Failed to dynamically load global catalog:', err);
+      _globalFoods = null;
+      _globalAliases = null;
+      return CURATED_COMBINED;
+    } finally {
+      _globalLoadPromise = null;
+    }
+  })();
+
+  return _globalLoadPromise;
+}
+
+/**
+ * Synchronous proxy export for backward compatibility with existing callers and tests.
+ * Defaults to the curated seed catalog (112 foods) and dynamically transparently delegates
+ * to the complete global catalog once loaded.
+ */
+export const ALL_CANONICAL_FOODS = new Proxy(CURATED_COMBINED, {
+  get(target, prop, receiver) {
+    const active = _globalFoods || target;
+    if (prop === 'length') return active.length;
+    if (prop === Symbol.iterator) return active[Symbol.iterator].bind(active);
+    if (typeof active[prop] === 'function') {
+      return active[prop].bind(active);
+    }
+    return Reflect.get(active, prop, receiver);
+  },
+  has(target, prop) {
+    const active = _globalFoods || target;
+    return prop in active;
+  },
+  ownKeys(target) {
+    const active = _globalFoods || target;
+    return Reflect.ownKeys(active);
+  },
+  getOwnPropertyDescriptor(target, prop) {
+    const active = _globalFoods || target;
+    return Object.getOwnPropertyDescriptor(active, prop) || Reflect.getOwnPropertyDescriptor(target, prop);
+  },
+});
 
 /**
  * Curated aliases mapping synonyms, plurals, and regional names to canonical food IDs.
@@ -2337,7 +2407,8 @@ export const FOOD_ALIASES_V2 = [
  */
 export function getCanonicalFoodById(id) {
   if (!id) return null;
-  return ALL_CANONICAL_FOODS.find((f) => f.id === id) || null;
+  const active = _globalFoods || CURATED_COMBINED;
+  return active.find((f) => f.id === id) || null;
 }
 
 /**
@@ -2352,11 +2423,13 @@ export function getCanonicalFoodById(id) {
 export function findCanonicalFood(rawName, options = {}) {
   if (!rawName || typeof rawName !== 'string') return null;
   const q = rawName.trim().toLowerCase().replace(/^(?:some|plate of|bowl of|katori of|cup of|glass of)\s+/i, '');
+  const activeCatalog = _globalFoods || CURATED_COMBINED;
+  const activeAliases = _globalAliases || {};
 
   // 1. Alias match
   for (const alias of FOOD_ALIASES_V2) {
     if (alias.patterns.some((p) => p.test(q))) {
-      let match = ALL_CANONICAL_FOODS.find((f) => f.id === alias.id);
+      let match = activeCatalog.find((f) => f.id === alias.id);
       if (options.preparationState && match) {
         const variant = PREPARATION_VARIANTS.find(
           (v) => (v.canonicalParentId === match.id || v.id === match.id) && v.preparationState === options.preparationState
@@ -2364,7 +2437,7 @@ export function findCanonicalFood(rawName, options = {}) {
         if (variant) match = variant;
       }
       if (match) {
-        const variants = ALL_CANONICAL_FOODS.filter(
+        const variants = activeCatalog.filter(
           (f) => f.id === match.id || f.canonicalParentId === match.id || match.canonicalParentId === f.id
         );
         return { food: match, unitWeightG: alias.unitWeightG, candidates: variants };
@@ -2373,30 +2446,30 @@ export function findCanonicalFood(rawName, options = {}) {
   }
 
   // 1b. Global Alias Dictionary (USDA / CoFID synonyms & plurals)
-  if (GLOBAL_ALIASES && GLOBAL_ALIASES[q]) {
-    const aliasEntry = GLOBAL_ALIASES[q];
-    const match = ALL_CANONICAL_FOODS.find((f) => f.id === aliasEntry.canonicalId);
+  if (activeAliases && activeAliases[q]) {
+    const aliasEntry = activeAliases[q];
+    const match = activeCatalog.find((f) => f.id === aliasEntry.canonicalId);
     if (match) {
       return { food: match, unitWeightG: aliasEntry.unitWeightG || match.defaultServingG, candidates: [match] };
     }
   }
 
   // 2. Exact Name or ID match
-  const exact = ALL_CANONICAL_FOODS.find(
-    (f) => f.id.toLowerCase() === q || f.name.toLowerCase() === q
+  const exact = activeCatalog.find(
+    (f) => f.id.toLowerCase() === q || (f.name && f.name.toLowerCase() === q)
   );
   if (exact) {
-    const variants = ALL_CANONICAL_FOODS.filter(
+    const variants = activeCatalog.filter(
       (f) => f.id === exact.id || f.canonicalParentId === exact.id || exact.canonicalParentId === f.id
     );
     return { food: exact, unitWeightG: exact.defaultServingG, candidates: variants };
   }
 
   // 3. Substring match
-  const matches = ALL_CANONICAL_FOODS.filter(
+  const matches = activeCatalog.filter(
     (f) =>
-      f.name.toLowerCase().includes(q) ||
-      q.includes(f.name.toLowerCase()) ||
+      (f.name && f.name.toLowerCase().includes(q)) ||
+      (f.name && q.includes(f.name.toLowerCase())) ||
       f.id.toLowerCase().includes(q.replace(/\s+/g, '_'))
   );
 
@@ -2413,3 +2486,24 @@ export function findCanonicalFood(rawName, options = {}) {
 
   return null;
 }
+
+/**
+ * Asynchronously searches canonical foods, loading the expanded global catalog on demand
+ * if no curated food matches the query.
+ *
+ * @param {string} rawName
+ * @param {Object} [options]
+ * @returns {Promise<{ food: Object, unitWeightG: number|null, candidates?: Array<Object> } | null>}
+ */
+export async function findCanonicalFoodAsync(rawName, options = {}) {
+  const syncMatch = findCanonicalFood(rawName, options);
+  if (syncMatch) return syncMatch;
+
+  if (!isGlobalCatalogLoaded()) {
+    await loadGlobalCanonicalFoods();
+    return findCanonicalFood(rawName, options);
+  }
+
+  return null;
+}
+

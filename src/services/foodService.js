@@ -7,12 +7,9 @@
 import { supabase } from '../lib/supabase/index.js';
 import { calculateScaledNutrition, calculateDailyTotals } from '../engines/food/index.js';
 import { FOOD_DB } from '../data/foods/index.js';
+import { todayStr } from '../lib/dateUtils.js';
 
-export const todayStr = () => {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().split('T')[0];
-};
+export { todayStr };
 
 /**
  * Searches offline Indian Foods reference library for a food match.
@@ -435,11 +432,12 @@ export async function saveMeal({ userId, name, mealType = 'lunch', items = [] })
     fiber: Math.max(0, Math.min(2000, Number(item.fiber) || 0)),
   }));
 
-  const totalCal = Math.round(cleanItems.reduce((sum, i) => sum + (Number(i.calories) || 0), 0));
-  const totalProtein = Math.round(cleanItems.reduce((sum, i) => sum + (Number(i.protein) || 0), 0) * 10) / 10;
-  const totalCarbs = Math.round(cleanItems.reduce((sum, i) => sum + (Number(i.carbs) || 0), 0) * 10) / 10;
-  const totalFat = Math.round(cleanItems.reduce((sum, i) => sum + (Number(i.fat) || 0), 0) * 10) / 10;
-  const totalFiber = Math.round(cleanItems.reduce((sum, i) => sum + (Number(i.fiber) || 0), 0) * 10) / 10;
+  const totals = calculateDailyTotals(cleanItems);
+  const totalCal = totals.calories;
+  const totalProtein = totals.protein;
+  const totalCarbs = totals.carbs;
+  const totalFat = totals.fat;
+  const totalFiber = totals.fiber;
 
   const payload = {
     user_id: userId,

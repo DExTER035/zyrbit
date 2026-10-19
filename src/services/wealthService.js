@@ -15,11 +15,9 @@ import {
   isRepaymentIncome,
 } from '../engines/wealth/index.js';
 
-export const todayStr = () => {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().split('T')[0];
-};
+import { todayStr } from '../lib/dateUtils.js';
+
+export { todayStr };
 
 /**
  * Adds an expense transaction.
@@ -562,7 +560,10 @@ export async function saveWealthSettings({ userId, currency = 'INR', monthlyBudg
   if (!userId) {
     return { success: false, error: 'User ID is required.' };
   }
-  const budget = Math.max(0, Number(monthlyBudget) || 15000);
+  const numericBudget = Number(monthlyBudget);
+  const budget = (monthlyBudget !== undefined && monthlyBudget !== null && isFinite(numericBudget) && numericBudget >= 0)
+    ? Math.max(0, numericBudget)
+    : 15000;
 
   const payload = {
     id: userId,

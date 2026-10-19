@@ -92,7 +92,7 @@ export default function EditLogModal({ log, onSave, onClose }) {
                   borderRadius: '10px',
                   background: mealType === opt.value ? FC.food : FC.elev,
                   border: `1px solid ${mealType === opt.value ? FC.food : FC.border2}`,
-                  color: mealType === opt.value ? '#000' : FC.text,
+                  color: mealType === opt.value ? '#FFFFFF' : FC.text,
                   fontSize: '11px',
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -112,7 +112,7 @@ export default function EditLogModal({ log, onSave, onClose }) {
             <span style={{ fontSize: '10px', color: FC.muted, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
               Portion
             </span>
-            <span style={{ fontSize: '11px', color: FC.food, fontWeight: 700 }}>
+            <span style={{ fontSize: '11px', color: FC.petrolMuted, fontWeight: 700 }}>
               {quantityG} grams
             </span>
           </div>
@@ -186,9 +186,9 @@ export default function EditLogModal({ log, onSave, onClose }) {
                   style={{
                     padding: '8px 4px',
                     borderRadius: '10px',
-                    background: isActive ? `${FC.food}22` : FC.elev,
-                    border: `1px solid ${isActive ? FC.food : FC.border2}`,
-                    color: isActive ? FC.food : FC.sub,
+                    background: isActive ? `${FC.food}33` : FC.elev,
+                    border: `1px solid ${isActive ? FC.petrolMuted : FC.border2}`,
+                    color: isActive ? '#F4F0E8' : FC.sub,
                     fontSize: '11px',
                     fontWeight: 800,
                     cursor: 'pointer',
@@ -221,7 +221,7 @@ export default function EditLogModal({ log, onSave, onClose }) {
             justifyContent: 'space-around',
           }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '16px', fontWeight: 900, color: FC.food }}>{preview.calories}</div>
+              <div style={{ fontSize: '16px', fontWeight: 900, color: '#F4F0E8' }}>{preview.calories}</div>
               <div style={{ fontSize: '9px', color: FC.muted, fontWeight: 700 }}>kcal</div>
             </div>
             <div style={{ textAlign: 'center' }}>

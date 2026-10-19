@@ -1,5 +1,5 @@
 import { performance } from 'perf_hooks';
-import GLOBAL_FOODS from '../src/data/foods/globalCanonicalFoods.json' with { type: 'json' };
+import GLOBAL_FOODS from '../src/data/foods/globalCanonicalFoods.js';
 
 console.log(`Testing in-memory search across ${GLOBAL_FOODS.length} canonical foods...`);
 

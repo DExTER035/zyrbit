@@ -5,49 +5,90 @@ import { showToast } from '../../components/ui/Toast.jsx'
 import { supabase } from '../../lib/supabase/index.js'
 import { useInstallPrompt } from '../../hooks/useInstallPrompt.js'
 import useSubscription from '../../hooks/useSubscription.js'
-import ErrorState from '../../components/ui/ErrorState.jsx'
-import BetaOnboardingChecklist from '../../components/common/BetaOnboardingChecklist.jsx'
 import AdminAnalytics from '../../components/common/AdminAnalytics.jsx'
-import { Copy, Check, Sparkles, Shield, ArrowUpRight, LogOut, Download } from 'lucide-react'
-
-const ZONE_COLORS = { mind: '#1FA36F', body: '#10B981', growth: '#22C55E', soul: '#34D399' }
+import {
+  Bell,
+  Palette,
+  Shield,
+  ChevronRight,
+  Copy,
+  Check,
+  LogOut,
+  Download,
+  Key,
+  Database,
+  Trash2,
+  Anchor,
+  X,
+  AlertTriangle,
+  Camera,
+  CheckCircle2
+} from 'lucide-react'
 
 export default function Profile() {
   const navigate = useNavigate()
   const { isInstallable, promptInstall } = useInstallPrompt()
   const { tier, triggerPaywall } = useSubscription()
+
   const [user, setUser] = useState(null)
-  const [habits, setHabits] = useState([])
-  const [streaks, setStreaks] = useState([])
-  const [activeSection, setActiveSection] = useState('profile')
-  const [zoneBreakdown, setZoneBreakdown] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [copiedId, setCopiedId] = useState(false)
+  const [activeView, setActiveView] = useState('profile') // 'profile' | 'admin'
 
+  // Identity editing state
   const [avatarUrl, setAvatarUrl] = useState(null)
-  const [uploading, setUploading] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState('')
+  const [savingName, setSavingName] = useState(false)
 
-  const isAdmin = user?.email && (
-    user.email.includes('admin') ||
-    user.email.includes('insan') ||
-    user.email.includes('zyrbit') ||
-    user.email.includes('dexos') ||
-    user.email.includes('builder') ||
-    user.email.includes('test')
+  // Notification state
+  const [notifPermission, setNotifPermission] = useState(
+    typeof window !== 'undefined' && 'Notification' in window
+      ? Notification.permission
+      : 'unsupported'
   )
 
-  const loadData = useCallback(async (uid) => {
+  // Modals
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [passwordUpdating, setPasswordUpdating] = useState(false)
+  const [resetEmailSent, setResetEmailSent] = useState(false)
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletingData, setDeletingData] = useState(false)
+  const [exportingData, setExportingData] = useState(false)
+
+  const isAdmin = Boolean(
+    user?.email &&
+      (user.email.includes('admin') ||
+        user.email.includes('insan') ||
+        user.email.includes('zyrbit') ||
+        user.email.includes('dexos') ||
+        user.email.includes('builder') ||
+        user.email.includes('test'))
+  )
+
+  const loadUserData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const { data: h } = await supabase.from('habits').select('*').eq('user_id', uid)
-      setHabits(h || [])
-      const zb = {}
-      ;(h || []).forEach(hb => { zb[hb.zone] = (zb[hb.zone] || 0) + 1 })
-      setZoneBreakdown(zb)
-      const { data: st } = await supabase.from('user_streaks').select('current_streak').eq('user_id', uid)
-      setStreaks(st || [])
+      const {
+        data: { user: currentUser },
+        error: authErr
+      } = await supabase.auth.getUser()
+      if (authErr) throw authErr
+
+      if (currentUser) {
+        setUser(currentUser)
+        setAvatarUrl(currentUser.user_metadata?.avatar_url || null)
+        const initialName =
+          currentUser.user_metadata?.full_name ||
+          (currentUser.email ? currentUser.email.split('@')[0] : '') ||
+          (currentUser.is_anonymous ? 'Guest User' : 'User')
+        setNameInput(initialName)
+      }
     } catch (e) {
       console.warn('Profile load error:', e.message)
       setError(e.message)
@@ -57,35 +98,62 @@ export default function Profile() {
   }, [])
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) { 
-        setUser(user)
-        setAvatarUrl(user.user_metadata?.avatar_url || null)
-        loadData(user.id)
-      }
-    })
-  }, [loadData])
+    loadUserData()
+  }, [loadUserData])
 
+  // 1. Identity Handlers
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file || !user) return
-    if (file.size > 2 * 1024 * 1024) { showToast('❌ Max 2MB image', 'warning'); return }
-    setUploading(true)
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Image must be under 2MB', 'warning')
+      return
+    }
+    setUploadingAvatar(true)
     try {
       const ext = file.name.split('.').pop()
-      const path = `avatars/${user.id}.${ext}`
-      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-      if (upErr) throw upErr
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+      const filePath = `avatars/${user.id}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      const {
+        data: { publicUrl }
+      } = supabase.storage.from('avatars').getPublicUrl(filePath)
+
       await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
       await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
-      setAvatarUrl(publicUrl + '?t=' + Date.now())
-      showToast('📷 Profile picture updated!', 'success')
+
+      setAvatarUrl(`${publicUrl}?t=${Date.now()}`)
+      showToast('Avatar updated', 'success')
     } catch (err) {
       console.error(err)
-      showToast('❌ Upload failed.', 'error')
+      showToast('Avatar upload failed', 'error')
     } finally {
-      setUploading(false)
+      setUploadingAvatar(false)
+    }
+  }
+
+  const handleSaveName = async () => {
+    if (!nameInput.trim() || !user) return
+    setSavingName(true)
+    try {
+      const trimmed = nameInput.trim()
+      await supabase.auth.updateUser({ data: { full_name: trimmed } })
+      await supabase.from('profiles').update({ full_name: trimmed }).eq('id', user.id)
+      setUser((prev) => ({
+        ...prev,
+        user_metadata: { ...prev?.user_metadata, full_name: trimmed }
+      }))
+      setIsEditingName(false)
+      showToast('Display name updated', 'success')
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to update name', 'error')
+    } finally {
+      setSavingName(false)
     }
   }
 
@@ -93,547 +161,946 @@ export default function Profile() {
     if (!user?.id) return
     navigator.clipboard?.writeText(user.id)
     setCopiedId(true)
-    showToast('Account ID copied to clipboard', 'success')
+    showToast('Account ID copied', 'success')
     setTimeout(() => setCopiedId(false), 2000)
   }
 
-  const bestStreak = streaks.reduce((m, s) => Math.max(m, s.current_streak || 0), 0)
-  const totalHabits = habits.length
+  // 2. Preferences Handlers
+  const handleRequestNotifications = async () => {
+    if (!('Notification' in window)) {
+      showToast('Notifications not supported in this browser', 'info')
+      return
+    }
+    try {
+      const perm = await Notification.requestPermission()
+      setNotifPermission(perm)
+      if (perm === 'granted') {
+        showToast('Browser notifications enabled', 'success')
+      } else {
+        showToast('Notifications were not granted', 'info')
+      }
+    } catch {
+      showToast('Could not request notification permission', 'error')
+    }
+  }
 
+  // 3. Security & Password Handlers
+  const handleSendPasswordReset = async () => {
+    if (!user?.email) {
+      showToast('No email associated with this session', 'warning')
+      return
+    }
+    try {
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      })
+      if (resetErr) throw resetErr
+      setResetEmailSent(true)
+      showToast(`Password reset link sent to ${user.email}`, 'success')
+    } catch (err) {
+      console.error(err)
+      showToast(err.message || 'Failed to send reset link', 'error')
+    }
+  }
+
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault()
+    if (!newPassword || newPassword.length < 6) {
+      showToast('Password must be at least 6 characters', 'warning')
+      return
+    }
+    setPasswordUpdating(true)
+    try {
+      const { error: upErr } = await supabase.auth.updateUser({ password: newPassword })
+      if (upErr) throw upErr
+      setNewPassword('')
+      setShowPasswordModal(false)
+      showToast('Password changed successfully', 'success')
+    } catch (err) {
+      console.error(err)
+      showToast(err.message || 'Failed to update password', 'error')
+    } finally {
+      setPasswordUpdating(false)
+    }
+  }
+
+  // 4. Data Controls Handlers (Real JSON Export & Safe Clear)
+  const handleExportData = async () => {
+    if (!user?.id) return
+    setExportingData(true)
+    try {
+      const [habitsRes, tasksRes, logsRes, expensesRes, mealsRes] = await Promise.all([
+        supabase.from('habits').select('*').eq('user_id', user.id),
+        supabase.from('tasks').select('*').eq('user_id', user.id),
+        supabase.from('zenith_daily_logs').select('*').eq('user_id', user.id),
+        supabase.from('money_expenses').select('*').eq('user_id', user.id),
+        supabase.from('health_meals').select('*').eq('user_id', user.id)
+      ])
+
+      const exportPayload = {
+        app: 'Zyrbit',
+        export_date: new Date().toISOString(),
+        user_id: user.id,
+        email: user.email || 'guest',
+        data: {
+          habits: habitsRes.data || [],
+          tasks: tasksRes.data || [],
+          daily_logs: logsRes.data || [],
+          money_expenses: expensesRes.data || [],
+          health_meals: mealsRes.data || []
+        }
+      }
+
+      const jsonStr = JSON.stringify(exportPayload, null, 2)
+      const blob = new Blob([jsonStr], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `zyrbit_data_${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      showToast('Data export downloaded', 'success')
+    } catch (err) {
+      console.error('Export error:', err)
+      showToast('Failed to export data', 'error')
+    } finally {
+      setExportingData(false)
+    }
+  }
+
+  const handleDeletePersonalData = async () => {
+    if (!user?.id) return
+    setDeletingData(true)
+    try {
+      // Securely clear user rows protected by RLS
+      await Promise.all([
+        supabase.from('habits').delete().eq('user_id', user.id),
+        supabase.from('tasks').delete().eq('user_id', user.id),
+        supabase.from('zenith_daily_logs').delete().eq('user_id', user.id),
+        supabase.from('money_expenses').delete().eq('user_id', user.id),
+        supabase.from('health_meals').delete().eq('user_id', user.id)
+      ])
+
+      setShowDeleteModal(false)
+      showToast('Personal data cleared. Signing out...', 'info')
+
+      setTimeout(async () => {
+        try {
+          sessionStorage.removeItem('dexos_session_chat')
+        } catch {
+          /* ignore */
+        }
+        await supabase.auth.signOut()
+        localStorage.removeItem('zyrbit_onboarded')
+        navigate('/login', { replace: true })
+      }, 1000)
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to clear personal data', 'error')
+      setDeletingData(false)
+    }
+  }
+
+  // 5. Sign Out
   const handleSignOut = async () => {
-    try { sessionStorage.removeItem('dexos_session_chat'); } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem('dexos_session_chat')
+    } catch {
+      /* ignore */
+    }
     await supabase.auth.signOut()
     localStorage.removeItem('zyrbit_onboarded')
     navigate('/login', { replace: true })
   }
 
+  const displayName =
+    user?.user_metadata?.full_name ||
+    (user?.email ? user.email.split('@')[0] : '') ||
+    (user?.is_anonymous ? 'Guest User' : 'User')
+
+  const displayEmail = user?.email || (user?.is_anonymous ? 'Anonymous guest session' : 'No email attached')
+
   if (error) {
     return (
-      <div style={{ background: '#080E0B', minHeight: '100vh', padding: '20px' }}>
-        <ErrorState message={error} onRetry={() => loadData(user?.id)} />
+      <div style={{ background: 'var(--brand-ivory, #F4F0E8)', minHeight: '100vh', padding: '20px' }}>
+        <ErrorState message={error} onRetry={loadUserData} />
       </div>
     )
   }
 
   if (loading) {
     return (
-      <div style={{ background: '#080E0B', minHeight: '100vh', padding: '32px 20px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div
+        style={{
+          background: 'var(--brand-ivory, #F4F0E8)',
+          minHeight: '100vh',
+          padding: '32px 20px 120px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+          maxWidth: '480px',
+          margin: '0 auto'
+        }}
+      >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '50%' }}>
-          <div className="skeleton-box" style={{ height: '24px', width: '80%', background: '#111A15', borderRadius: '8px' }} />
-          <div className="skeleton-box" style={{ height: '12px', width: '60%', background: '#111A15', borderRadius: '6px' }} />
+          <div className="skeleton-box" style={{ height: '28px', width: '80%', background: '#E5E0D8', borderRadius: '8px' }} />
+          <div className="skeleton-box" style={{ height: '14px', width: '60%', background: '#E5E0D8', borderRadius: '6px' }} />
         </div>
-        <div className="skeleton-box" style={{ height: '140px', borderRadius: '24px', background: '#111A15' }} />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-          <div className="skeleton-box" style={{ height: '80px', borderRadius: '18px', background: '#111A15' }} />
-          <div className="skeleton-box" style={{ height: '80px', borderRadius: '18px', background: '#111A15' }} />
-          <div className="skeleton-box" style={{ height: '80px', borderRadius: '18px', background: '#111A15' }} />
-        </div>
+        <div className="skeleton-box" style={{ height: '90px', borderRadius: '20px', background: '#E5E0D8' }} />
+        <div className="skeleton-box" style={{ height: '240px', borderRadius: '20px', background: '#E5E0D8' }} />
       </div>
     )
   }
 
   return (
-    <div style={{ background: '#080E0B', minHeight: '100vh', padding: '0 20px 120px', color: '#F1F5F3' }}>
-      {/* ── Top Header Row (Matching Screen 6) ── */}
-      <div style={{ padding: '24px 0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '9px',
-            background: '#2DE09A',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#060B08',
-            fontWeight: 900,
-            fontSize: '16px',
-            boxShadow: '0 0 12px rgba(45, 224, 154, 0.35)',
-          }}>
-            Z
-          </div>
+    <div
+      className="flex flex-col flex-1"
+      style={{
+        background: 'var(--brand-ivory, #F4F0E8)',
+        minHeight: '100vh',
+        width: '100%',
+        color: '#111A20',
+        position: 'relative',
+        paddingBottom: 'calc(110px + env(safe-area-inset-bottom, 24px))'
+      }}
+    >
+      <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto', padding: '0 20px' }}>
+        {/* ── Top Header Row ── */}
+        <div style={{ padding: '24px 0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{
-              fontSize: '15px',
-              fontWeight: 900,
-              color: '#F1F5F3',
-              letterSpacing: '0.04em',
-              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-              lineHeight: 1.1,
-            }}>
-              ZYRBIT
-            </div>
-            <div style={{
-              fontSize: '9px',
-              color: '#7E948A',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}>
-              Personal OS
-            </div>
+            <h1
+              style={{
+                fontSize: '24px',
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                color: '#111A20',
+                margin: 0,
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif"
+              }}
+            >
+              Profile
+            </h1>
           </div>
-        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {isAdmin && (
-            <div style={{ display: 'flex', background: '#111A15', border: '1px solid #1A2B23', borderRadius: '9999px', padding: '3px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {isAdmin && (
               <button
                 type="button"
-                onClick={() => setActiveSection('profile')}
+                onClick={() => setActiveView(activeView === 'profile' ? 'admin' : 'profile')}
                 style={{
-                  background: activeSection === 'profile' ? '#2DE09A' : 'transparent',
-                  color: activeSection === 'profile' ? '#060B08' : '#7E948A',
-                  border: 'none',
+                  background: activeView === 'admin' ? 'var(--brand-petrol, #174A55)' : '#FFFFFF',
+                  color: activeView === 'admin' ? '#FFFFFF' : '#174A55',
+                  border: '1.5px solid #E5E0D8',
                   borderRadius: '9999px',
-                  padding: '4px 10px',
+                  padding: '6px 12px',
                   fontSize: '11px',
                   fontWeight: 700,
-                  cursor: 'pointer',
+                  cursor: 'pointer'
                 }}
               >
-                Profile
+                {activeView === 'admin' ? 'View Profile' : 'Admin'}
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveSection('admin')}
-                style={{
-                  background: activeSection === 'admin' ? '#2DE09A' : 'transparent',
-                  color: activeSection === 'admin' ? '#060B08' : '#7E948A',
-                  border: 'none',
-                  borderRadius: '9999px',
-                  padding: '4px 10px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Admin
-              </button>
-            </div>
-          )}
+            )}
 
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '5px 12px',
-            borderRadius: '9999px',
-            background: '#111A15',
-            border: '1px solid #1A2B23',
-            fontSize: '11px',
-            fontWeight: 700,
-            color: '#2DE09A',
-          }}>
-            <span>●</span>
-            <span>ONLINE</span>
+            <button
+              type="button"
+              onClick={handleRequestNotifications}
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                background: '#FFFFFF',
+                border: '1.5px solid #E5E0D8',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: notifPermission === 'granted' ? 'var(--brand-petrol, #174A55)' : '#7A8D94',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+              }}
+              title={`Notifications: ${notifPermission}`}
+              aria-label="Notification settings"
+            >
+              <Bell size={18} />
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* ── Title Section (Screen 6) ── */}
-      <div style={{ marginBottom: '22px' }}>
-        <div style={{
-          fontSize: '11px',
-          fontWeight: 800,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: '#2DE09A',
-          marginBottom: '6px',
-        }}>
-          YOUR SPACE
-        </div>
-        <h1 style={{
-          fontSize: '30px',
-          fontWeight: 900,
-          letterSpacing: '-0.03em',
-          color: '#F1F5F3',
-          margin: '0 0 6px',
-          fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-        }}>
-          Built around you.
-        </h1>
-        <p style={{
-          margin: 0,
-          fontSize: '14px',
-          color: '#7E948A',
-        }}>
-          Your system, your rules.
-        </p>
-      </div>
-
-      {/* ── RESPONSIVE TWO-COLUMN CONTENT GRID ── */}
-      {activeSection === 'profile' && (
-        <div className="profile-content-grid">
-          {/* ── COLUMN 1: IDENTITY, MOMENTUM & EQUILIBRIUM ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* USER IDENTITY HERO CARD (Screen 6 Reference) */}
-            <div style={{
-              background: '#111A15',
-              border: '1px solid #1A2B23',
-              borderRadius: '24px',
-              padding: '22px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
-            }}>
-              {/* Mint-ring Avatar */}
-              <label htmlFor="avatar-upload" style={{ cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
-                <div style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '50%',
-                  background: '#0B120E',
-                  border: '2.5px solid #2DE09A',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 0 16px rgba(45, 224, 154, 0.45)',
-                  transition: 'transform 0.15s ease',
-                }}>
-                  {(avatarUrl || user?.user_metadata?.avatar_url) ? (
-                    <img src={avatarUrl || user?.user_metadata?.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Avatar" />
-                  ) : (
-                    <span style={{ fontSize: '24px', fontWeight: 900, color: '#2DE09A' }}>Z</span>
-                  )}
-                </div>
-              </label>
-              <input id="avatar-upload" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontSize: '17px',
-                  fontWeight: 800,
-                  color: '#F1F5F3',
-                  letterSpacing: '-0.01em',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Your profile')}
-                </div>
-                <div style={{ fontSize: '12px', color: '#7E948A', marginTop: '2px' }}>
-                  Personal OS member
-                </div>
-
-                <div style={{
-                  marginTop: '8px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '3px 10px',
-                  borderRadius: '9999px',
-                  background: '#15221C',
-                  border: '1px solid #1A2B23',
-                  fontSize: '10px',
-                  fontWeight: 800,
-                  color: '#2DE09A',
-                  letterSpacing: '0.06em',
-                }}>
-                  <span>●</span>
-                  <span>SYNC CONNECTED</span>
-                </div>
-              </div>
-            </div>
-
-            {/* YOUR MOMENTUM METRICS */}
-            <div>
-              <div style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: '#7E948A',
-                marginBottom: '10px',
-              }}>
-                YOUR MOMENTUM
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                {/* Streak */}
-                <div style={{
-                  background: '#111A15',
-                  border: '1px solid #1A2B23',
-                  borderRadius: '18px',
-                  padding: '16px 10px',
-                  textAlign: 'center',
-                }}>
-                  <div style={{ fontSize: '22px', fontWeight: 900, color: '#F1F5F3', fontFamily: "'Space Grotesk', -apple-system, sans-serif" }}>
-                    {bestStreak || 12}
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 600, marginTop: '4px' }}>
-                    Day streak
-                  </div>
-                </div>
-
-                {/* Focus time */}
-                <div style={{
-                  background: '#111A15',
-                  border: '1px solid #1A2B23',
-                  borderRadius: '18px',
-                  padding: '16px 10px',
-                  textAlign: 'center',
-                }}>
-                  <div style={{ fontSize: '22px', fontWeight: 900, color: '#2DE09A', fontFamily: "'Space Grotesk', -apple-system, sans-serif" }}>
-                    8.4h
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 600, marginTop: '4px' }}>
-                    Focus time
-                  </div>
-                </div>
-
-                {/* Quests active */}
-                <div style={{
-                  background: '#111A15',
-                  border: '1px solid #1A2B23',
-                  borderRadius: '18px',
-                  padding: '16px 10px',
-                  textAlign: 'center',
-                }}>
-                  <div style={{ fontSize: '22px', fontWeight: 900, color: '#A855F7', fontFamily: "'Space Grotesk', -apple-system, sans-serif" }}>
-                    {totalHabits || 5}
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 600, marginTop: '4px' }}>
-                    Quests active
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* HABIT & ROUTINE EQUILIBRIUM CARD */}
-            <div style={{
-              background: '#111A15',
-              border: '1px solid #1A2B23',
-              borderRadius: '24px',
-              padding: '20px',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
-            }}>
-              <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '14px' }}>
-                ROUTINE EQUILIBRIUM
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px' }}>
-                <div style={{ background: '#15221C', padding: '14px', borderRadius: '16px', border: '1px solid #1A2B23', textAlign: 'center' }}>
-                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#F59E0B' }}>{bestStreak}d</div>
-                  <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 700, textTransform: 'uppercase', marginTop: 4 }}>Best Streak</div>
-                </div>
-                <div style={{ background: '#15221C', padding: '14px', borderRadius: '16px', border: '1px solid #1A2B23', textAlign: 'center' }}>
-                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#2DE09A' }}>{totalHabits}</div>
-                  <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 700, textTransform: 'uppercase', marginTop: 4 }}>Active Habits</div>
-                </div>
-              </div>
-
-              {/* Zone Breakdown */}
-              <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
-                Zone Distribution
-              </div>
-              {Object.entries(ZONE_COLORS).map(([zone, color]) => {
-                const count = zoneBreakdown[zone] || 0
-                const pct = totalHabits > 0 ? Math.round((count / totalHabits) * 100) : 0
-                const icons = { mind: '🧠', body: '💪', growth: '🌱', soul: '🔮' }
-                return (
-                  <div key={zone} style={{ marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '13px', color: '#F1F5F3', fontWeight: 600 }}>{icons[zone]} {zone}</span>
-                      <span style={{ fontSize: '12px', color: '#7E948A', fontWeight: 700 }}>{count} ({pct}%)</span>
-                    </div>
-                    <div style={{ background: '#15221C', height: '6px', borderRadius: '9999px', overflow: 'hidden', border: '1px solid #1A2B23' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '9999px', transition: 'width 0.3s ease' }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* BETA ONBOARDING CHECKLIST */}
-            {user?.id && <BetaOnboardingChecklist userId={user.id} />}
-          </div>
-
-          {/* ── COLUMN 2: SYSTEM PREFERENCES, DETAILS & ACTIONS ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* DOMAIN ANCHORS SHORTCUTS */}
-            <div style={{
-              background: '#111A15',
-              border: '1px solid #1A2B23',
-              borderRadius: '24px',
-              padding: '16px 18px',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
-            }}>
-              <div style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: '#7E948A',
-                marginBottom: '10px',
-              }}>
-                PRIMARY DOMAINS
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {[
-                  { label: 'Nutrition & Meal Fueling', route: '/food', icon: '🥗', color: '#2DE09A' },
-                  { label: 'Wealth & Money Flow', route: '/wealth', icon: '💳', color: '#38BDF8' },
-                  { label: 'Focus & Productivity Engine', route: '/growth', icon: '🎯', color: '#A855F7' },
-                ].map((link, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => navigate(link.route)}
+        {activeView === 'profile' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {/* ── SECTION 1: PROFILE IDENTITY AND EDITING ── */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1.5px solid #E5E0D8',
+                borderRadius: '20px',
+                padding: '18px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0, flex: 1 }}>
+                <label
+                  htmlFor="avatar-file-input"
+                  style={{ cursor: 'pointer', position: 'relative', flexShrink: 0 }}
+                  title="Upload profile picture"
+                >
+                  <div
                     style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '50%',
+                      background: 'var(--brand-petrol, #174A55)',
+                      overflow: 'hidden',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 10px',
-                      background: 'transparent',
-                      border: 'none',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'background 0.15s ease',
+                      justifyContent: 'center',
+                      color: '#FFFFFF',
+                      fontWeight: 800,
+                      fontSize: '22px'
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#15221C'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '18px' }}>{link.icon}</span>
-                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#F1F5F3' }}>{link.label}</span>
+                    {avatarUrl ? (
+                      <img src={avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Avatar" />
+                    ) : (
+                      <span>{displayName.charAt(0).toUpperCase() || 'U'}</span>
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      right: '-2px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E5E0D8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--brand-petrol, #174A55)'
+                    }}
+                  >
+                    <Camera size={11} />
+                  </div>
+                </label>
+                <input
+                  id="avatar-file-input"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleAvatarUpload}
+                  disabled={uploadingAvatar}
+                />
+
+                <div style={{ minWidth: 0, flex: 1, paddingRight: '10px' }}>
+                  {isEditingName ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input
+                        type="text"
+                        value={nameInput}
+                        onChange={(e) => setNameInput(e.target.value)}
+                        placeholder="Display name"
+                        style={{
+                          padding: '5px 8px',
+                          border: '1.5px solid var(--brand-petrol, #174A55)',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: 700,
+                          outline: 'none',
+                          width: '140px',
+                          background: '#FAFAFA'
+                        }}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveName}
+                        disabled={savingName}
+                        style={{
+                          padding: '5px 10px',
+                          background: 'var(--brand-petrol, #174A55)',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {savingName ? '...' : 'Save'}
+                      </button>
                     </div>
-                    <ArrowUpRight size={15} color="#7E948A" />
-                  </button>
-                ))}
+                  ) : (
+                    <div
+                      style={{
+                        fontSize: '16px',
+                        fontWeight: 800,
+                        color: '#111A20',
+                        letterSpacing: '-0.01em',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {displayName}
+                    </div>
+                  )}
+
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: '#7A8D94',
+                      marginTop: '2px',
+                      fontWeight: 500,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {displayEmail}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsEditingName(!isEditingName)}
+                style={{
+                  border: '1.5px solid var(--brand-petrol, #174A55)',
+                  background: 'transparent',
+                  color: 'var(--brand-petrol, #174A55)',
+                  borderRadius: '9999px',
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }}
+              >
+                {isEditingName ? 'Cancel' : 'Edit'}
+              </button>
+            </div>
+
+            {/* ── SECTION 2: PREFERENCES ── */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1.5px solid #E5E0D8',
+                borderRadius: '20px',
+                padding: '4px 18px',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)'
+              }}
+            >
+              <div
+                style={{
+                  padding: '14px 0 8px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: '#7A8D94'
+                }}
+              >
+                Preferences
+              </div>
+
+              {/* Appearance */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 0',
+                  borderBottom: '1px solid #F0ECE4'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      background: 'var(--brand-soft-teal, #DDE9EB)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--brand-petrol, #174A55)'
+                    }}
+                  >
+                    <Palette size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#111A20' }}>Appearance</div>
+                    <div style={{ fontSize: '12px', color: '#7A8D94', marginTop: '1px' }}>
+                      Petrol Teal & Warm Ivory (Default)
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#174A55' }} />
+                  <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#F4F0E8', border: '1px solid #D0C9BE' }} />
+                  <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#111A20' }} />
+                </div>
+              </div>
+
+              {/* Notifications */}
+              <div
+                onClick={handleRequestNotifications}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 0',
+                  borderBottom: '1px solid #F0ECE4',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      background: 'var(--brand-soft-teal, #DDE9EB)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--brand-petrol, #174A55)'
+                    }}
+                  >
+                    <Bell size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#111A20' }}>Notifications</div>
+                    <div style={{ fontSize: '12px', color: '#7A8D94', marginTop: '1px' }}>
+                      {notifPermission === 'granted'
+                        ? 'Enabled for this device'
+                        : notifPermission === 'denied'
+                        ? 'Disabled in browser settings'
+                        : 'Tap to enable browser alerts'}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: notifPermission === 'granted' ? '#1FA36F' : '#7A8D94'
+                    }}
+                  >
+                    {notifPermission === 'granted' ? 'Active' : 'Prompt'}
+                  </span>
+                  <ChevronRight size={16} color="#A0AAB0" />
+                </div>
+              </div>
+
+              {/* Goals and Routines */}
+              <div
+                onClick={() => navigate('/growth')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 0',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      background: 'var(--brand-soft-teal, #DDE9EB)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--brand-petrol, #174A55)'
+                    }}
+                  >
+                    <Anchor size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#111A20' }}>Goals & Routines</div>
+                    <div style={{ fontSize: '12px', color: '#7A8D94', marginTop: '1px' }}>
+                      Manage habits and anchors in Growth
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={16} color="#A0AAB0" />
               </div>
             </div>
 
-            {/* MEMBERSHIP STATUS & UPGRADE */}
-            <div style={{
-              background: '#111A15',
-              border: '1px solid #1A2B23',
-              borderRadius: '24px',
-              padding: '20px',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-              <div>
-                <div style={{ fontSize: '10px', color: '#2DE09A', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 }}>
-                  MEMBERSHIP TIER
-                </div>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#F1F5F3', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>{tier === 'free' ? 'Personal Plan' : tier === 'premium' ? 'Premium 🌟' : 'Elite 👑'}</span>
-                </div>
+            {/* ── SECTION 3: SECURITY & PRIVACY ── */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1.5px solid #E5E0D8',
+                borderRadius: '20px',
+                padding: '4px 18px',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)'
+              }}
+            >
+              <div
+                style={{
+                  padding: '14px 0 8px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: '#7A8D94'
+                }}
+              >
+                Security & Privacy
               </div>
 
-              {tier === 'free' ? (
-                <button
-                  type="button"
-                  onClick={() => triggerPaywall('Upgrade your plan to unlock elite features')}
+              {/* Authentication Details */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 0',
+                  borderBottom: '1px solid #F0ECE4'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      background: 'var(--brand-soft-teal, #DDE9EB)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--brand-petrol, #174A55)'
+                    }}
+                  >
+                    <Shield size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#111A20' }}>Authentication</div>
+                    <div style={{ fontSize: '12px', color: '#7A8D94', marginTop: '1px' }}>
+                      {user?.app_metadata?.provider ? `Provider: ${user.app_metadata.provider}` : 'Supabase Auth'}
+                    </div>
+                  </div>
+                </div>
+                <span
                   style={{
-                    background: '#2DE09A',
-                    color: '#060B08',
-                    fontWeight: 800,
-                    fontSize: '12px',
-                    padding: '8px 16px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    boxShadow: '0 0 12px rgba(45, 224, 154, 0.3)',
-                    letterSpacing: '0.04em',
-                  }}
-                >
-                  UPGRADE
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => triggerPaywall('Manage your subscription settings')}
-                  style={{
-                    background: '#15221C',
-                    color: '#F1F5F3',
+                    fontSize: '11px',
                     fontWeight: 700,
-                    fontSize: '12px',
-                    padding: '8px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid #1A2B23',
-                    cursor: 'pointer',
+                    color: '#1FA36F',
+                    background: '#E8F5E9',
+                    padding: '3px 8px',
+                    borderRadius: '6px'
                   }}
                 >
-                  MANAGE
-                </button>
-              )}
-            </div>
-
-            {/* ACCOUNT & SESSION DETAILS */}
-            <div style={{
-              background: '#111A15',
-              border: '1px solid #1A2B23',
-              borderRadius: '24px',
-              padding: '20px',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
-            }}>
-              <div style={{ fontSize: '11px', color: '#7E948A', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '14px' }}>
-                ACCOUNT & SECURITY
+                  RLS Enforced
+                </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {/* Password Recovery / Change */}
+              <div
+                onClick={() => setShowPasswordModal(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 0',
+                  borderBottom: '1px solid #F0ECE4',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      background: 'var(--brand-soft-teal, #DDE9EB)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--brand-petrol, #174A55)'
+                    }}
+                  >
+                    <Key size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#111A20' }}>Password & Access</div>
+                    <div style={{ fontSize: '12px', color: '#7A8D94', marginTop: '1px' }}>
+                      Change password or request recovery link
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={16} color="#A0AAB0" />
+              </div>
+
+              {/* Sessions Note */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 0'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#111A20' }}>Session Security</div>
+                  <div style={{ fontSize: '12px', color: '#7A8D94', marginTop: '2px' }}>
+                    Authenticated browser session. Signing out clears local token storage.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── SECTION 4: DATA CONTROLS ── */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1.5px solid #E5E0D8',
+                borderRadius: '20px',
+                padding: '4px 18px',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)'
+              }}
+            >
+              <div
+                style={{
+                  padding: '14px 0 8px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: '#7A8D94'
+                }}
+              >
+                Data Controls
+              </div>
+
+              {/* Real JSON Export */}
+              <div
+                onClick={handleExportData}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 0',
+                  borderBottom: '1px solid #F0ECE4',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      background: 'var(--brand-soft-teal, #DDE9EB)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--brand-petrol, #174A55)'
+                    }}
+                  >
+                    <Download size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#111A20' }}>Export Personal Data</div>
+                    <div style={{ fontSize: '12px', color: '#7A8D94', marginTop: '1px' }}>
+                      Download habits, logs, and expenses as JSON
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={exportingData}
+                  style={{
+                    border: '1px solid #E5E0D8',
+                    background: '#FAFAFA',
+                    color: '#111A20',
+                    borderRadius: '9999px',
+                    padding: '5px 12px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {exportingData ? 'Exporting...' : 'Export'}
+                </button>
+              </div>
+
+              {/* Account Data Deletion */}
+              <div
+                onClick={() => setShowDeleteModal(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 0',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      background: '#FEE2E2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#DC2626'
+                    }}
+                  >
+                    <Trash2 size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#DC2626' }}>Delete Personal Records</div>
+                    <div style={{ fontSize: '12px', color: '#7A8D94', marginTop: '1px' }}>
+                      Permanently delete habits, tasks and logs
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={16} color="#DC2626" />
+              </div>
+            </div>
+
+            {/* ── SECTION 5: MEMBERSHIP & ACCOUNT DETAILS ── */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1.5px solid #E5E0D8',
+                borderRadius: '20px',
+                padding: '18px 20px',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px'
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      color: '#7A8D94'
+                    }}
+                  >
+                    Membership
+                  </div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#111A20', marginTop: '2px' }}>
+                    {tier === 'free' ? 'Personal Plan' : tier === 'premium' ? 'Premium 🌟' : 'Elite 👑'}
+                  </div>
+                </div>
+                {tier === 'free' ? (
+                  <button
+                    type="button"
+                    onClick={() => triggerPaywall('Upgrade your plan to unlock elite features')}
+                    style={{
+                      background: 'var(--brand-petrol, #174A55)',
+                      color: '#FFFFFF',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      padding: '6px 14px',
+                      borderRadius: '9999px',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Upgrade
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => triggerPaywall('Manage your subscription settings')}
+                    style={{
+                      background: '#F4F0E8',
+                      color: '#111A20',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      padding: '6px 14px',
+                      borderRadius: '9999px',
+                      border: '1px solid #E5E0D8',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Manage
+                  </button>
+                )}
+              </div>
+
+              <div style={{ height: '1px', background: '#F0ECE4' }} />
+
+              {/* Account ID */}
+              <div
+                onClick={handleCopyAccountId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer'
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      color: '#7A8D94'
+                    }}
+                  >
+                    Account ID
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: '#111A20',
+                      fontFamily: 'monospace',
+                      marginTop: '2px'
+                    }}
+                  >
+                    {user?.id ? `${user.id.slice(0, 8)}...${user.id.slice(-4)}` : 'Local Session'}
+                  </div>
+                </div>
                 <div
-                  onClick={handleCopyAccountId}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 14px',
-                    background: '#15221C',
-                    borderRadius: '14px',
-                    border: '1px solid #1A2B23',
-                    cursor: 'pointer',
+                    gap: '4px',
+                    fontSize: '12px',
+                    color: 'var(--brand-petrol, #174A55)',
+                    fontWeight: 600
                   }}
                 >
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#7E948A' }}>Account ID</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F3', fontFamily: 'monospace' }}>
-                      {user?.id ? `${user.id.slice(0, 8)}...${user.id.slice(-4)}` : 'Local Session'}
-                    </span>
-                    {copiedId ? <Check size={13} color="#2DE09A" /> : <Copy size={13} color="#7E948A" />}
-                  </div>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 14px',
-                  background: '#15221C',
-                  borderRadius: '14px',
-                  border: '1px solid #1A2B23',
-                }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#7E948A' }}>Auth Provider</span>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F3' }}>
-                    {user?.app_metadata?.provider || 'Supabase Auth'}
-                  </span>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 14px',
-                  background: '#15221C',
-                  borderRadius: '14px',
-                  border: '1px solid #1A2B23',
-                }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#7E948A' }}>Session State</span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#2DE09A' }}>
-                    {user ? 'Active' : 'Unauthenticated'}
-                  </span>
+                  {copiedId ? <span>Copied</span> : <span>Copy</span>}
+                  {copiedId ? <Check size={14} /> : <Copy size={14} />}
                 </div>
               </div>
             </div>
 
-            {/* INSTALL PWA BUTTON */}
+            {/* PWA INSTALL ACTION (IF AVAILABLE) */}
             {isInstallable && (
               <button
                 type="button"
@@ -642,25 +1109,24 @@ export default function Profile() {
                   width: '100%',
                   padding: '14px',
                   borderRadius: '16px',
-                  background: '#15221C',
-                  border: '1px solid #2DE09A',
-                  color: '#2DE09A',
+                  background: '#FFFFFF',
+                  border: '1.5px solid var(--brand-petrol, #174A55)',
+                  color: 'var(--brand-petrol, #174A55)',
                   fontWeight: 800,
                   fontSize: '13px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: '0 0 16px rgba(45, 224, 154, 0.15)',
+                  gap: '8px'
                 }}
               >
                 <Download size={16} />
-                <span>INSTALL PWA TO HOME SCREEN</span>
+                <span>Install Zyrbit to Home Screen</span>
               </button>
             )}
 
-            {/* SIGN OUT BUTTON */}
+            {/* ── SECTION 6: SIGN OUT ── */}
             <button
               type="button"
               onClick={handleSignOut}
@@ -668,31 +1134,224 @@ export default function Profile() {
                 width: '100%',
                 padding: '14px',
                 borderRadius: '16px',
-                background: '#15181B',
-                border: '1px solid #1A2B23',
-                color: '#EF4444',
+                background: '#FFFFFF',
+                border: '1.5px solid #FCA5A5',
+                color: '#DC2626',
                 fontWeight: 800,
                 fontSize: '13px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                transition: 'border-color 0.15s ease',
+                gap: '8px'
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#EF4444'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
             >
               <LogOut size={16} />
-              <span>SIGN OUT OF SYSTEM</span>
+              <span>Sign Out</span>
             </button>
+          </div>
+        ) : (
+          /* ADMIN VIEW */
+          isAdmin && <AdminAnalytics />
+        )}
+      </div>
+
+      {/* ── PASSWORD RECOVERY / UPDATE MODAL ── */}
+      {showPasswordModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(17, 26, 32, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            zIndex: 1000
+          }}
+        >
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: '20px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '380px',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '17px', fontWeight: 800, color: '#111A20' }}>Password & Access</div>
+              <button
+                type="button"
+                onClick={() => setShowPasswordModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7A8D94' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {user?.email ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ fontSize: '13px', color: '#7A8D94' }}>
+                  Account email: <strong style={{ color: '#111A20' }}>{user.email}</strong>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSendPasswordReset}
+                  disabled={resetEmailSent}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--brand-petrol, #174A55)',
+                    background: resetEmailSent ? '#E8F5E9' : '#FFFFFF',
+                    color: resetEmailSent ? '#1FA36F' : 'var(--brand-petrol, #174A55)',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {resetEmailSent ? (
+                    <>
+                      <CheckCircle2 size={16} />
+                      <span>Reset Link Sent</span>
+                    </>
+                  ) : (
+                    <span>Send Password Reset Email</span>
+                  )}
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0' }}>
+                  <div style={{ flex: 1, height: '1px', background: '#E5E0D8' }} />
+                  <span style={{ fontSize: '11px', color: '#7A8D94', fontWeight: 600 }}>OR SET NEW PASSWORD</span>
+                  <div style={{ flex: 1, height: '1px', background: '#E5E0D8' }} />
+                </div>
+
+                <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <input
+                    type="password"
+                    placeholder="New password (min 6 characters)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #E5E0D8',
+                      fontSize: '13px',
+                      outline: 'none'
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={passwordUpdating}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '10px',
+                      background: 'var(--brand-petrol, #174A55)',
+                      color: '#FFFFFF',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {passwordUpdating ? 'Updating...' : 'Update Password'}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div style={{ fontSize: '13px', color: '#7A8D94' }}>
+                You are currently in a guest session without an attached email address.
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* ADMIN SECTION */}
-      {activeSection === 'admin' && isAdmin && (
-        <AdminAnalytics />
+      {/* ── DATA DELETION CONFIRMATION MODAL ── */}
+      {showDeleteModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(17, 26, 32, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            zIndex: 1000
+          }}
+        >
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: '20px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '380px',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#DC2626' }}>
+              <AlertTriangle size={22} />
+              <div style={{ fontSize: '17px', fontWeight: 800, color: '#111A20' }}>Clear Personal Records</div>
+            </div>
+
+            <p style={{ fontSize: '13px', color: '#5A6E75', margin: 0, lineHeight: 1.5 }}>
+              This will permanently delete your stored habits, daily tasks, focus logs, meals, and expenses from the database, then sign you out.
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deletingData}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: '12px',
+                  border: '1.5px solid #E5E0D8',
+                  background: '#FFFFFF',
+                  color: '#111A20',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeletePersonalData}
+                disabled={deletingData}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: '#DC2626',
+                  color: '#FFFFFF',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {deletingData ? 'Deleting...' : 'Delete & Sign Out'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <BottomNav activeTab="profile" onTabChange={(t) => navigate(`/${t}`)} />

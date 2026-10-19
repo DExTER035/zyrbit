@@ -24,18 +24,18 @@ import { parseBrainDump } from '../../../dex/brainDumpParser.js';
 import { processUserInput, DEX_RESULT_TYPE } from '../../../dex/index.js';
 import { showToast } from '../../ui/Toast.jsx';
 
-// ─── Design tokens (Zyrbit palette) ──────────────────────────────────────────
+// ─── Design tokens (Zyrbit Petrol Teal palette) ──────────────────────────────
 const T = {
-  bg:      '#0B0D0F',
-  surface: '#15181B',
-  border:  '#23272E',
-  borderSubtle: 'rgba(255,255,255,0.06)',
-  text:    '#F5F5F5',
-  sub:     '#9CA3AF',
-  muted:   '#6B7280',
-  accent:  '#1FA36F',
-  amber:   '#F59E0B',
-  danger:  '#EF4444',
+  bg:      '#FFFFFF',
+  surface: '#FFFFFF',
+  border:  'var(--brand-border, #E5E0D8)',
+  borderSubtle: '#F0ECE4',
+  text:    'var(--brand-text, #111A20)',
+  sub:     'var(--brand-muted, #5A6D75)',
+  muted:   '#8C9DA3',
+  accent:  'var(--brand-petrol, #174A55)',
+  amber:   '#D97706',
+  danger:  '#DC2626',
 };
 
 // Domain display config
@@ -537,9 +537,9 @@ export default function BrainDumpEntry({ userId, onStateChange }) {
               padding: '7px 14px',
               borderRadius: '8px',
               background: !inputText.trim() || isParsing
-                ? 'rgba(31,163,111,0.12)'
-                : T.accent,
-              color: !inputText.trim() || isParsing ? T.accent : '#0B0D0F',
+                ? 'var(--brand-soft-teal, #DDE9EB)'
+                : 'var(--brand-petrol, #174A55)',
+              color: !inputText.trim() || isParsing ? 'var(--brand-muted, #5A6D75)' : '#FFFFFF',
               border: 'none',
               fontWeight: 700,
               fontSize: '12px',

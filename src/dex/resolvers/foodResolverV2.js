@@ -10,10 +10,7 @@
  */
 
 import { calculateScaledNutrition } from '../../engines/food/index.js';
-import {
-  ALL_CANONICAL_FOODS,
-  findCanonicalFood,
-} from '../../data/foods/canonicalFoods.js';
+import { findCanonicalFood } from '../../data/foods/canonicalFoods.js';
 import { FOOD_AMBIGUITY_CALORIE_THRESHOLD } from '../../config/features.js';
 
 // Number words dictionary

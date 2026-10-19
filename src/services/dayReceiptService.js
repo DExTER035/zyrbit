@@ -16,11 +16,9 @@ import { getGrowthData } from './growthService.js';
 import { getHealthSnapshot } from './healthService.js';
 import { getWealthSnapshot } from './wealthService.js';
 
-export const todayStr = () => {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().split('T')[0];
-};
+import { todayStr } from '../lib/dateUtils.js';
+
+export { todayStr };
 
 /**
  * Formats a YYYY-MM-DD date into the canonical uppercase receipt header string:

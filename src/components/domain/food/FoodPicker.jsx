@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Search,
   PlusCircle,
@@ -21,14 +21,17 @@ import {
   CANONICAL_FOODS,
   FOOD_DB,
   findCanonicalFood,
+  loadGlobalCanonicalFoods,
+  isGlobalCatalogLoaded,
 } from '../../../data/foods/index.js';
 import { calculateScaledNutrition } from '../../../engines/food/index.js';
 import { FEATURES, FOOD_AMBIGUITY_CALORIE_THRESHOLD } from '../../../config/features.js';
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
-const ACCENT_GREEN = '#1FA36F';
-const SURFACE_CARD = '#1B1F23';
-const BORDER_SUBTLE = '#26272C';
+const ACCENT_PETROL = '#174A55';
+const ACCENT_MUTED_TEAL = '#367887';
+const SURFACE_CARD = '#12161A';
+const BORDER_SUBTLE = '#1E252D';
 
 // ── Browse Categories for All Foods Tab (Flow 8) ──────────────────────────────
 const BROWSE_CATEGORIES = [
@@ -93,14 +96,38 @@ export default function FoodPicker({
   const [customFat, setCustomFat] = useState('');
   const [customFiber, setCustomFiber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [globalCatalogLoaded, setGlobalCatalogLoaded] = useState(() => isGlobalCatalogLoaded());
+  const [catalogLoading, setCatalogLoading] = useState(false);
+
+  // Lazy-load the expanded USDA global catalog when searching or selecting All Foods
+  useEffect(() => {
+    const hasSearchQuery = Boolean(query && query.trim());
+    if ((hasSearchQuery || activeTab === 'all' || selectedCategory) && !isGlobalCatalogLoaded()) {
+      setCatalogLoading(true);
+      loadGlobalCanonicalFoods()
+        .then(() => {
+          setGlobalCatalogLoaded(true);
+        })
+        .catch((err) => {
+          console.warn('[FoodPicker] Error loading global food catalog:', err);
+        })
+        .finally(() => {
+          setCatalogLoading(false);
+        });
+    }
+  }, [query, activeTab, selectedCategory]);
 
   // ── Canonical Catalog ────────────────────────────────────────────────────────
   const canonicalCatalog = useMemo(() => {
+    // Reference globalCatalogLoaded to re-evaluate when dynamic USDA bundle resolves
+    if (globalCatalogLoaded && FEATURES.FOOD_KNOWLEDGE_V2 && ALL_CANONICAL_FOODS?.length > 0) {
+      return ALL_CANONICAL_FOODS;
+    }
     if (FEATURES.FOOD_KNOWLEDGE_V2 && ALL_CANONICAL_FOODS && ALL_CANONICAL_FOODS.length > 0) {
       return ALL_CANONICAL_FOODS;
     }
     return CANONICAL_FOODS || FOOD_DB || [];
-  }, []);
+  }, [globalCatalogLoaded]);
 
   // ── Set of Favorite Food Names ───────────────────────────────────────────────
   const favoriteFoodNames = useMemo(() => {
@@ -476,7 +503,7 @@ export default function FoodPicker({
                     textAlign: 'left',
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = ACCENT_GREEN; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = ACCENT_MUTED_TEAL; }}
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER_SUBTLE; }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -623,13 +650,13 @@ export default function FoodPicker({
                 </span>
                 {selectedFood.preparationState && selectedFood.preparationState !== 'raw' && (
                   <span style={{
-                    background: 'rgba(31,163,111,0.12)',
-                    border: '1px solid rgba(31,163,111,0.25)',
+                    background: 'rgba(23,74,85,0.25)',
+                    border: '1px solid rgba(54,120,135,0.3)',
                     borderRadius: '6px',
                     padding: '1px 6px',
                     fontSize: '11px',
                     fontWeight: 700,
-                    color: ACCENT_GREEN,
+                    color: ACCENT_MUTED_TEAL,
                     textTransform: 'capitalize',
                   }}>
                     {selectedFood.preparationState}
@@ -673,9 +700,9 @@ export default function FoodPicker({
                     style={{
                       padding: '8px 4px',
                       borderRadius: '10px',
-                      background: isSelected ? 'rgba(31,163,111,0.15)' : SURFACE_CARD,
-                      border: `1px solid ${isSelected ? ACCENT_GREEN : BORDER_SUBTLE}`,
-                      color: isSelected ? ACCENT_GREEN : FC.sub,
+                      background: isSelected ? 'rgba(23,74,85,0.25)' : SURFACE_CARD,
+                      border: `1px solid ${isSelected ? ACCENT_MUTED_TEAL : BORDER_SUBTLE}`,
+                      color: isSelected ? '#F4F0E8' : FC.sub,
                       fontSize: '12px',
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -711,8 +738,8 @@ export default function FoodPicker({
                       justifyContent: 'space-between',
                       padding: '12px 16px',
                       borderRadius: '14px',
-                      background: isSelected ? 'rgba(31,163,111,0.08)' : SURFACE_CARD,
-                      border: `1px solid ${isSelected ? ACCENT_GREEN : BORDER_SUBTLE}`,
+                      background: isSelected ? 'rgba(23,74,85,0.2)' : SURFACE_CARD,
+                      border: `1px solid ${isSelected ? ACCENT_MUTED_TEAL : BORDER_SUBTLE}`,
                       cursor: 'pointer',
                       textAlign: 'left',
                     }}
@@ -728,13 +755,13 @@ export default function FoodPicker({
                         width: '18px',
                         height: '18px',
                         borderRadius: '50%',
-                        border: `2px solid ${isSelected ? ACCENT_GREEN : FC.muted}`,
-                        background: isSelected ? ACCENT_GREEN : 'transparent',
+                        border: `2px solid ${isSelected ? ACCENT_PETROL : FC.muted}`,
+                        background: isSelected ? ACCENT_PETROL : 'transparent',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}>
-                        {isSelected && <Check size={12} color="#000" strokeWidth={3} />}
+                        {isSelected && <Check size={12} color="#FFFFFF" strokeWidth={3} />}
                       </div>
                     </div>
                   </button>
@@ -744,8 +771,8 @@ export default function FoodPicker({
               {/* Custom Amount Option */}
               <div style={{
                 borderRadius: '14px',
-                background: isCustomMode ? 'rgba(31,163,111,0.08)' : SURFACE_CARD,
-                border: `1px solid ${isCustomMode ? ACCENT_GREEN : BORDER_SUBTLE}`,
+                background: isCustomMode ? 'rgba(23,74,85,0.2)' : SURFACE_CARD,
+                border: `1px solid ${isCustomMode ? ACCENT_MUTED_TEAL : BORDER_SUBTLE}`,
                 padding: '12px 16px',
               }}>
                 <button
@@ -795,13 +822,13 @@ export default function FoodPicker({
               width: '100%',
               padding: '16px',
               borderRadius: '16px',
-              background: (!nutritionPreview || effectiveGrams <= 0) ? FC.dim : ACCENT_GREEN,
+              background: (!nutritionPreview || effectiveGrams <= 0) ? FC.dim : ACCENT_PETROL,
               color: (!nutritionPreview || effectiveGrams <= 0) ? FC.muted : '#FFFFFF',
               border: 'none',
               fontSize: '15px',
               fontWeight: 800,
               cursor: (!nutritionPreview || effectiveGrams <= 0) ? 'not-allowed' : 'pointer',
-              boxShadow: '0 4px 16px rgba(31,163,111,0.25)',
+              boxShadow: 'none',
               transition: 'all 0.15s ease',
             }}
           >
@@ -828,7 +855,7 @@ export default function FoodPicker({
                 flex: 1,
                 padding: '8px',
                 borderRadius: '10px',
-                background: personalTab === 'single' ? ACCENT_GREEN : 'transparent',
+                background: personalTab === 'single' ? ACCENT_PETROL : 'transparent',
                 color: personalTab === 'single' ? '#FFF' : FC.sub,
                 border: 'none',
                 fontSize: '12px',
@@ -845,7 +872,7 @@ export default function FoodPicker({
                 flex: 1,
                 padding: '8px',
                 borderRadius: '10px',
-                background: personalTab === 'recipe' ? ACCENT_GREEN : 'transparent',
+                background: personalTab === 'recipe' ? ACCENT_PETROL : 'transparent',
                 color: personalTab === 'recipe' ? '#FFF' : FC.sub,
                 border: 'none',
                 fontSize: '12px',
@@ -934,7 +961,7 @@ export default function FoodPicker({
             label={isSubmitting ? 'Saving...' : (editingPersonalFood ? 'Update Personal Food 💾' : 'Save to My Foods ⭐')}
             onClick={handleSavePersonalFood}
             disabled={!customName.trim() || !customCal || isSubmitting}
-            color={ACCENT_GREEN}
+            color={ACCENT_PETROL}
           />
 
           {editingPersonalFood && onDeletePersonalFood && (
@@ -1042,8 +1069,8 @@ export default function FoodPicker({
                     padding: '10px 0',
                     background: 'transparent',
                     border: 'none',
-                    borderBottom: `2px solid ${isActive ? ACCENT_GREEN : 'transparent'}`,
-                    color: isActive ? ACCENT_GREEN : FC.sub,
+                    borderBottom: `2px solid ${isActive ? ACCENT_MUTED_TEAL : 'transparent'}`,
+                    color: isActive ? '#F4F0E8' : FC.sub,
                     fontSize: '13px',
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -1072,7 +1099,7 @@ export default function FoodPicker({
               {/* Personal Foods Matching Query */}
               {matchingPersonalFoods.length > 0 && (
                 <div>
-                  <div style={{ fontSize: '10px', color: ACCENT_GREEN, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '4px 0 6px 4px' }}>
+                  <div style={{ fontSize: '10px', color: ACCENT_MUTED_TEAL, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '4px 0 6px 4px' }}>
                     Personal Foods ({matchingPersonalFoods.length})
                   </div>
                   {matchingPersonalFoods.map((pf) => (
@@ -1126,17 +1153,33 @@ export default function FoodPicker({
                 </div>
               )}
 
-              {/* No Search Results */}
-              {matchingPersonalFoods.length === 0 && canonicalSearchResults.length === 0 && (
-                <div style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <Search size={24} style={{ color: FC.muted, opacity: 0.5 }} />
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: FC.text }}>
-                    No matching foods found
-                  </div>
-                  <div style={{ fontSize: '12px', color: FC.muted, maxWidth: '240px' }}>
-                    Try another keyword or create a personal food definition.
-                  </div>
+              {/* Background Global Catalog Search Indicator */}
+              {catalogLoading && canonicalSearchResults.length > 0 && (
+                <div style={{ padding: '8px 16px', textAlign: 'center', fontSize: '11px', color: FC.muted }}>
+                  Searching full global catalog...
                 </div>
+              )}
+
+              {/* No Search Results or Loading State */}
+              {matchingPersonalFoods.length === 0 && canonicalSearchResults.length === 0 && (
+                catalogLoading ? (
+                  <div style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                    <Search size={24} style={{ color: ACCENT_MUTED_TEAL, opacity: 0.8 }} />
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: FC.text }}>
+                      Searching full global catalog...
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                    <Search size={24} style={{ color: FC.muted, opacity: 0.5 }} />
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: FC.text }}>
+                      No matching foods found
+                    </div>
+                    <div style={{ fontSize: '12px', color: FC.muted, maxWidth: '240px' }}>
+                      Try another keyword or create a personal food definition.
+                    </div>
+                  </div>
+                )
               )}
             </>
           ) : (
@@ -1224,7 +1267,7 @@ export default function FoodPicker({
                             gap: '4px',
                             background: 'transparent',
                             border: 'none',
-                            color: ACCENT_GREEN,
+                            color: ACCENT_MUTED_TEAL,
                             fontSize: '12px',
                             fontWeight: 700,
                             cursor: 'pointer',
@@ -1307,18 +1350,18 @@ export default function FoodPicker({
             width: '100%',
             marginTop: '4px',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = ACCENT_GREEN; }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = ACCENT_MUTED_TEAL; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER_SUBTLE; }}
         >
           <div style={{
             width: '22px',
             height: '22px',
             borderRadius: '50%',
-            border: `1.5px solid ${ACCENT_GREEN}`,
+            border: `1.5px solid ${ACCENT_MUTED_TEAL}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: ACCENT_GREEN,
+            color: ACCENT_MUTED_TEAL,
           }}>
             <Plus size={14} strokeWidth={2.5} />
           </div>
@@ -1401,8 +1444,8 @@ function FoodItemRow({
               <span style={{
                 fontSize: '10px',
                 fontWeight: 700,
-                color: ACCENT_GREEN,
-                background: 'rgba(31,163,111,0.12)',
+                color: ACCENT_MUTED_TEAL,
+                background: 'rgba(23,74,85,0.25)',
                 padding: '1px 6px',
                 borderRadius: '4px',
               }}>
@@ -1462,9 +1505,9 @@ function FoodItemRow({
               width: '28px',
               height: '28px',
               borderRadius: '50%',
-              border: `1.5px solid ${ACCENT_GREEN}`,
-              background: 'rgba(31,163,111,0.1)',
-              color: ACCENT_GREEN,
+              border: `1.5px solid ${BORDER_SUBTLE}`,
+              background: 'rgba(23, 74, 85, 0.25)',
+              color: '#F4F0E8',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

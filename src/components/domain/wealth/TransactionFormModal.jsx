@@ -31,6 +31,11 @@ const INCOME_CHIPS = [
   { id: 'Other', label: 'Other', icon: '✦' },
 ];
 
+const getLocalYMD = (d = new Date()) => {
+  const o = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return o.toISOString().split('T')[0];
+};
+
 export default function TransactionFormModal({
   isOpen = true,
   type = 'expense', // 'expense' | 'income'
@@ -43,7 +48,7 @@ export default function TransactionFormModal({
 }) {
   const activeItem = editingItem || initialData;
   const isExpense = type === 'expense';
-  const todayYMD = new Date().toISOString().split('T')[0];
+  const todayYMD = getLocalYMD();
 
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState(isExpense ? 'Food' : 'Salary');

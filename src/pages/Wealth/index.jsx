@@ -96,13 +96,19 @@ export default function Wealth() {
 
   // Active view: 'home' | 'assets' | 'commitments' | 'promises' | 'flow' | 'recent'
   const [activeView, setActiveView] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('view') || 'home';
+    if (typeof window !== 'undefined' && window.location) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('view') || 'home';
+    }
+    return 'home';
   });
   const [commitmentsTab, setCommitmentsTab] = useState('upcoming'); // 'upcoming' | 'recurring' | 'past'
   const [promisesTab, setPromisesTab] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('tab') || 'owed_to_me';
+    if (typeof window !== 'undefined' && window.location) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('tab') || 'owed_to_me';
+    }
+    return 'owed_to_me';
   }); // 'owed_to_me' | 'i_owe'
   const [recentFilter, setRecentFilter] = useState('all'); // 'all' | 'expense' | 'income'
 
@@ -141,8 +147,9 @@ export default function Wealth() {
       setBills(b || []);
 
       if (s) {
+        const numBudget = Number(s.monthly_budget);
         setBudgetForm({
-          budget: s.monthly_budget || 15000,
+          budget: (s.monthly_budget !== null && s.monthly_budget !== undefined && isFinite(numBudget) && numBudget >= 0) ? numBudget : 15000,
           currency: s.currency || 'INR',
         });
       }
@@ -341,6 +348,27 @@ export default function Wealth() {
     }
   };
 
+  // Action: Toggle Bill Status (with error checking and submission protection)
+  const handleToggleBill = async (bill) => {
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const nextStatus = bill.status === 'paid' ? 'unpaid' : 'paid';
+      const res = await toggleBillStatus({ userId: user.id, billId: bill.id, status: nextStatus });
+      if (!res?.success) {
+        showToast(res?.error || 'Failed to update commitment status.', 'error');
+        return;
+      }
+      showToast(nextStatus === 'paid' ? `Marked ${bill.name} as paid` : `Marked ${bill.name} as unpaid`, 'success');
+      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
+      await loadData(user.id, true);
+    } catch (err) {
+      showToast(err.message || 'Failed to update commitment.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Action: Save Promise (Create / Update)
   const handleSavePromise = async (promiseData) => {
     if (!user || isSubmitting) return;
@@ -500,9 +528,11 @@ export default function Wealth() {
     if (!user || isSubmitting) return;
     setIsSubmitting(true);
     try {
+      const parsedBudget = parseFloat(budgetForm.budget);
+      const monthlyBudget = !isNaN(parsedBudget) && parsedBudget >= 0 ? parsedBudget : 15000;
       const res = await saveWealthSettings({
         userId: user.id,
-        monthlyBudget: parseFloat(budgetForm.budget) || 15000,
+        monthlyBudget,
         currency: budgetForm.currency,
       });
       if (!res.success) throw new Error(res.error);
@@ -599,7 +629,7 @@ export default function Wealth() {
           </button>
         </div>
 
-        <div style={{ padding: '8px 20px 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ padding: '8px 20px calc(130px + env(safe-area-inset-bottom, 24px))', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {assetItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -800,13 +830,10 @@ export default function Wealth() {
                   <div style={{ fontSize: '15px', fontWeight: 700, color: '#F5F5F5' }}>{fmtFull(bill.amount)}</div>
                   <button
                     type="button"
-                    onClick={async (e) => {
+                    disabled={isSubmitting}
+                    onClick={(e) => {
                       e.stopPropagation();
-                      const nextStatus = bill.status === 'paid' ? 'unpaid' : 'paid';
-                      await toggleBillStatus({ userId: user.id, billId: bill.id, status: nextStatus });
-                      showToast(nextStatus === 'paid' ? `Marked ${bill.name} as paid` : `Marked ${bill.name} as unpaid`, 'success');
-                      window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
-                      await loadData(user.id, true);
+                      handleToggleBill(bill);
                     }}
                     style={{
                       background: bill.status === 'paid' ? '#1F2922' : '#2A2215',
@@ -816,7 +843,8 @@ export default function Wealth() {
                       fontWeight: 600,
                       padding: '4px 8px',
                       borderRadius: '6px',
-                      cursor: 'pointer',
+                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                      opacity: isSubmitting ? 0.6 : 1,
                     }}
                   >
                     {bill.status === 'paid' ? 'Paid ✓' : 'Mark paid'}
@@ -1010,12 +1038,14 @@ export default function Wealth() {
                     <div style={{ fontSize: '15px', fontWeight: 700, color: '#EF4444' }}>{fmtFull(l.amount)}</div>
                     <button
                       type="button"
-                      onClick={async (e) => {
+                      disabled={isSubmitting}
+                      onClick={(e) => {
                         e.stopPropagation();
-                        await toggleBillStatus({ userId: user.id, billId: l.id, status: 'paid' });
-                        showToast(`Paid loan ${l.name}`, 'success');
-                        window.dispatchEvent(new CustomEvent('dexos:refresh', { detail: { domain: 'wealth', source: 'wealth_page' } }));
-                        await loadData(user.id, true);
+                        handleResolvePromise({
+                          id: l.id,
+                          amount: l.amount,
+                          person: l.person || l.name,
+                        });
                       }}
                       style={{
                         background: '#2A1F22',
@@ -1025,7 +1055,8 @@ export default function Wealth() {
                         fontWeight: 600,
                         padding: '4px 8px',
                         borderRadius: '6px',
-                        cursor: 'pointer',
+                        cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                        opacity: isSubmitting ? 0.6 : 1,
                       }}
                     >
                       Mark paid
@@ -1296,161 +1327,305 @@ export default function Wealth() {
   // 6. HOME VIEW (Matches Left Column of Reference Image!)
   const renderHomeView = () => {
     const activeCommitments = bills.filter((b) => b.status !== 'paid');
+    let homeTx = [
+      ...expenses.map((e) => ({ ...e, txType: 'expense', date: e.expense_date, title: e.note || e.category || 'Expense' })),
+      ...incomes.map((i) => ({ ...i, txType: 'income', date: i.income_date, title: i.note || i.source || 'Income' })),
+    ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+    if (recentFilter === 'expense') {
+      homeTx = homeTx.filter((t) => t.txType === 'expense');
+    } else if (recentFilter === 'income') {
+      homeTx = homeTx.filter((t) => t.txType === 'income');
+    }
 
     return (
       <div className="flex flex-col">
-        {/* ── Top Header Row (Matching Screen 4) ── */}
+        {/* ── Top Header Row (Matching Screen 10 Reference) ── */}
         <div style={{ padding: '24px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '9px',
-              background: '#2DE09A',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#060B08',
-              fontWeight: 900,
-              fontSize: '16px',
-              boxShadow: '0 0 12px rgba(45, 224, 154, 0.35)',
+          <div>
+            <h1 style={{
+              margin: 0,
+              fontSize: '22px',
+              fontWeight: 800,
+              color: '#FFFFFF',
+              letterSpacing: '-0.02em',
+              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
             }}>
-              Z
-            </div>
-            <div>
-              <div style={{
-                fontSize: '15px',
-                fontWeight: 900,
-                color: '#F1F5F3',
-                letterSpacing: '0.04em',
-                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-                lineHeight: 1.1,
-              }}>
-                ZYRBIT
-              </div>
-              <div style={{
-                fontSize: '9px',
-                color: '#7E948A',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-              }}>
-                Personal OS
-              </div>
-            </div>
+              Wealth
+            </h1>
+            <p style={{
+              margin: '3px 0 0',
+              fontSize: '13px',
+              color: '#8A9CA3',
+            }}>
+              Spend with intention.
+            </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              background: '#111A15',
-              border: '1px solid #1A2B23',
-              borderRadius: '9999px',
-              padding: '5px 12px',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: '#7E948A',
-              cursor: 'pointer',
-            }}>
-              This month ›
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsConnectMoneyOpen(true)}
-              style={{
-                background: '#111A15',
-                border: '1px solid #1A2B23',
-                borderRadius: '50%',
-                width: '34px',
-                height: '34px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#2DE09A',
-                cursor: 'pointer',
-              }}
-              title="Connect Money"
-            >
-              <LinkIcon size={14} />
-            </button>
-          </div>
-        </div>
-
-        {/* ── Title Section (Screen 4) ── */}
-        <div style={{ padding: '0 20px', marginBottom: '20px' }}>
           <div style={{
-            fontSize: '11px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            background: 'var(--brand-petrol, #174A55)',
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             fontWeight: 800,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            color: '#2DE09A',
-            marginBottom: '6px',
+            fontSize: '13px',
           }}>
-            YOUR MONEY, IN MOTION
+            Z
           </div>
-          <h1 style={{
-            fontSize: '30px',
-            fontWeight: 900,
-            letterSpacing: '-0.03em',
-            color: '#F1F5F3',
-            margin: '0 0 6px',
-            fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-          }}>
-            Spend with intention.
-          </h1>
-          <p style={{
-            margin: 0,
-            fontSize: '14px',
-            color: '#7E948A',
-          }}>
-            A calmer view of your financial life.
-          </p>
         </div>
 
-        <div className="wealth-content-grid" style={{ padding: '0 20px 24px' }}>
-          {/* ── COLUMN 1: THE WEALTH FLOW HERO (SAFE-TO-SPEND + MONEY MAP) ── */}
+        {/* ── PILL FILTER BAR (Screen 10 Reference: Overview, Expenses, Income) ── */}
+        <div style={{
+          padding: '0 20px',
+          display: 'flex',
+          gap: '8px',
+          marginBottom: '20px',
+        }}>
+          {[
+            { id: 'overview', label: 'Overview' },
+            { id: 'expense',  label: 'Expenses' },
+            { id: 'income',   label: 'Income' },
+          ].map(p => {
+            const isActive = (recentFilter === p.id) || (p.id === 'overview' && (!recentFilter || recentFilter === 'all'));
+            return (
+              <button
+                key={p.id}
+                onClick={() => setRecentFilter(p.id === 'overview' ? 'all' : p.id)}
+                style={{
+                  background: isActive ? '#FFFFFF' : '#1A262B',
+                  border: `1px solid ${isActive ? '#FFFFFF' : 'rgba(255,255,255,0.08)'}`,
+                  borderRadius: '9999px',
+                  padding: '6px 18px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: isActive ? '#111A20' : 'rgba(255,255,255,0.7)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="wealth-content-grid" style={{ padding: '0 20px calc(130px + env(safe-area-inset-bottom, 24px))' }}>
+          {/* ── CARD 1: AVAILABLE TO SPEND HERO CARD (Screen 10 Reference) ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <WealthFlowHero
-              liquidCash={liquidCash}
-              upcomingBillTotal={committedTotal}
-              unencumberedCash={unencumberedCash}
-              safeToSpendDaily={safeToSpendDaily}
-              daysLeft={moneyState?.daysLeft || 1}
-              onOpenIncome={() => {
-                setEditingTransaction(null);
-                setTransactionModalType('income');
-                setIsTransactionModalOpen(true);
-              }}
-              onOpenExpense={() => {
-                setEditingTransaction(null);
-                setTransactionModalType('expense');
-                setIsTransactionModalOpen(true);
-              }}
-              onOpenBills={() => {
-                setEditingBill(null);
-                setIsBillModalOpen(true);
-              }}
-              onOpenPromises={() => {
-                setEditingPromise(null);
-                setIsPromiseModalOpen(true);
-              }}
-            />
+            <div style={{
+              background: 'linear-gradient(135deg, #174A55 0%, #112F37 100%)',
+              borderRadius: '20px',
+              padding: '22px 20px',
+              boxShadow: '0 4px 20px rgba(23, 74, 85, 0.25)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--brand-soft-teal, #DDE9EB)',
+                letterSpacing: '0.04em',
+              }}>
+                Available to Spend
+              </div>
+              <div style={{
+                fontSize: '32px',
+                fontWeight: 800,
+                color: '#FFFFFF',
+                letterSpacing: '-0.02em',
+                margin: '8px 0 4px',
+              }}>
+                {currencySymbol} {Number(moneyState?.unencumberedCash ?? moneyState?.liquidCash ?? 0).toLocaleString()}
+              </div>
+              <div
+                onClick={() => setActiveView('flow')}
+                style={{
+                  fontSize: '12px',
+                  color: 'rgba(255, 255, 255, 0.75)',
+                  marginBottom: '16px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <span>
+                  {(moneyState?.monthlyBudget !== null && moneyState?.monthlyBudget !== undefined) 
+                    ? `of ${currencySymbol} ${Number(moneyState.monthlyBudget).toLocaleString()} monthly budget` 
+                    : (settings?.monthly_budget !== null && settings?.monthly_budget !== undefined && isFinite(Number(settings.monthly_budget)) && Number(settings.monthly_budget) >= 0)
+                      ? `of ${currencySymbol} ${Number(settings.monthly_budget).toLocaleString()} monthly budget`
+                      : 'Set monthly budget'}
+                </span>
+                <ChevronRight size={12} />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingTransaction(null);
+                    setTransactionModalType('expense');
+                    setIsTransactionModalOpen(true);
+                  }}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: '10px',
+                    background: '#FFFFFF',
+                    border: 'none',
+                    color: 'var(--brand-petrol, #174A55)',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Plus size={15} />
+                  <span>Add Expense</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingTransaction(null);
+                    setTransactionModalType('income');
+                    setIsTransactionModalOpen(true);
+                  }}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '10px',
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: '#FFFFFF',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  + Income
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* ── COLUMN 2: RECENT STREAM & SECONDARY DRILL-DOWNS ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <WealthRecentEvents
-              expenses={expenses}
-              incomes={incomes}
-              promises={bills}
-              onSeeAll={() => setActiveView('recent')}
-              onTransactionClick={(tx) => {
-                const isIncome = tx.isCredit || tx.txType === 'income' || tx.type === 'INCOME' || !!tx.source || tx.raw?.source;
-                setEditingTransaction(tx.raw || tx);
-                setTransactionModalType(isIncome ? 'income' : 'expense');
-                setIsTransactionModalOpen(true);
-              }}
-            />
+          {/* ── CARD 2: RECENT TRANSACTIONS (Screen 10 Reference) ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '4px' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '16px',
+                fontWeight: 800,
+                color: '#FFFFFF',
+              }}>
+                Recent Transactions
+              </h2>
+              <span
+                onClick={() => setActiveView('recent')}
+                style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-soft-teal, #DDE9EB)', cursor: 'pointer' }}
+              >
+                View all ›
+              </span>
+            </div>
+
+            <div style={{
+              background: '#FFFFFF',
+              borderRadius: '20px',
+              padding: '16px',
+              border: '1.5px solid var(--brand-border, #E5E0D8)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}>
+              {homeTx.length === 0 ? (
+                <div style={{
+                  padding: '24px 16px',
+                  textAlign: 'center',
+                  color: 'var(--brand-muted, #5A6D75)',
+                  fontSize: '13px',
+                }}>
+                  No financial events recorded yet.
+                </div>
+              ) : (
+                homeTx.slice(0, 5).map((tx) => {
+                  const isCredit = tx.isCredit || tx.txType === 'income';
+                  return (
+                    <div
+                      key={tx.id}
+                      onClick={() => {
+                        setEditingTransaction(tx.raw || tx);
+                        setTransactionModalType(isCredit ? 'income' : 'expense');
+                        setIsTransactionModalOpen(true);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        borderRadius: '12px',
+                        background: '#F9F8F5',
+                        border: '1px solid #ECE8DF',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                        <div style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '50%',
+                          background: isCredit ? 'rgba(31, 163, 111, 0.15)' : 'var(--brand-soft-teal, #DDE9EB)',
+                          color: isCredit ? '#1FA36F' : 'var(--brand-petrol, #174A55)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          flexShrink: 0,
+                        }}>
+                          {isCredit ? '↓' : '↑'}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{
+                            fontSize: '14px',
+                            fontWeight: 700,
+                            color: '#111A20',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {tx.merchant || tx.title || tx.name || (isCredit ? 'Income' : 'Expense')}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#8A9CA3', marginTop: '2px' }}>
+                            {tx.category || (isCredit ? 'Income' : 'General')}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
+                        <div style={{
+                          fontSize: '14px',
+                          fontWeight: 700,
+                          color: isCredit ? '#1FA36F' : '#111A20',
+                        }}>
+                          {isCredit ? '+' : '-'} ₹{Number(tx.amount || 0).toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#8A9CA3', marginTop: '2px' }}>
+                          {tx.date ? tx.date.split('T')[0] : 'Today'}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
 
             {/* ── SECONDARY DOMAIN DRILL-DOWN & CONNECT MONEY ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
@@ -1469,7 +1644,7 @@ export default function Wealth() {
                   textAlign: 'left',
                   transition: 'border-color 0.15s ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2DE09A'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
               >
                 <div>
@@ -1559,7 +1734,7 @@ export default function Wealth() {
                   textAlign: 'left',
                   transition: 'border-color 0.15s ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2DE09A'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1A2B23'; }}
               >
                 <div>

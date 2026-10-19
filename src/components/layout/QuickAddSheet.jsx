@@ -27,29 +27,29 @@ export default function QuickAddSheet({ isOpen, onClose, onSelectAction }) {
   const actions = [
     {
       id: 'food',
-      title: 'Log Meal / Food',
-      subtitle: 'Track breakfast, lunch, dinner, or snack',
+      title: 'Log Meal / Nutrition',
+      subtitle: 'Breakfast, lunch, dinner, or quick macros',
       icon: Utensils,
-      color: '#10B981',
-      bgColor: 'rgba(16, 185, 129, 0.12)',
+      color: '#174A55',
+      bgColor: '#DDE9EB',
       route: '/food',
     },
     {
       id: 'wealth',
       title: 'Record Expense or Income',
-      subtitle: 'Log financial transaction, bill, or inflow',
+      subtitle: 'Log financial transaction, bill, or cashflow',
       icon: CreditCard,
-      color: '#E9B44C',
-      bgColor: 'rgba(233, 180, 76, 0.12)',
+      color: '#174A55',
+      bgColor: '#DDE9EB',
       route: '/wealth',
     },
     {
       id: 'focus',
-      title: 'Start Focus Session',
+      title: 'Start Focus Sprint',
       subtitle: 'Deep work timer & milestone countdown',
       icon: Timer,
-      color: '#38BDF8',
-      bgColor: 'rgba(56, 189, 248, 0.12)',
+      color: '#174A55',
+      bgColor: '#DDE9EB',
       route: '/growth',
       event: 'dexos:open-focus',
     },
@@ -58,8 +58,8 @@ export default function QuickAddSheet({ isOpen, onClose, onSelectAction }) {
       title: 'Check-in Keystone Habit',
       subtitle: "Update today's habit momentum & streak",
       icon: CheckCircle2,
-      color: '#A855F7',
-      bgColor: 'rgba(168, 85, 247, 0.12)',
+      color: '#174A55',
+      bgColor: '#DDE9EB',
       route: '/zenith',
     },
     {
@@ -67,18 +67,18 @@ export default function QuickAddSheet({ isOpen, onClose, onSelectAction }) {
       title: 'Log Hydration & Health',
       subtitle: 'Water intake, workout, or sleep entry',
       icon: Activity,
-      color: '#F43F5E',
-      bgColor: 'rgba(244, 63, 94, 0.12)',
+      color: '#174A55',
+      bgColor: '#DDE9EB',
       route: '/health',
     },
     {
       id: 'dex',
-      title: 'Use Dex AI Assistant',
-      subtitle: 'Natural language capture across any domain',
+      title: 'Ask Dex Companion',
+      subtitle: 'Natural language assistance across your day',
       icon: Sparkles,
-      color: '#1FA36F',
-      bgColor: 'rgba(31, 163, 111, 0.18)',
-      badge: 'Beta',
+      color: '#174A55',
+      bgColor: '#DDE9EB',
+      badge: 'AI',
       event: 'dexos:open-dex',
     },
   ];
@@ -97,51 +97,76 @@ export default function QuickAddSheet({ isOpen, onClose, onSelectAction }) {
     <div
       className="zyrbit-modal-backdrop"
       onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(17, 26, 32, 0.45)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+      }}
     >
       <div
         className="zyrbit-modal-sheet"
         onClick={(e) => e.stopPropagation()}
         style={{
-          padding: '20px 20px calc(80px + env(safe-area-inset-bottom, 16px))',
+          width: '100%',
+          maxWidth: '430px',
+          backgroundColor: '#FFFFFF',
+          borderRadius: '24px 24px 0 0',
+          borderTop: '1px solid var(--brand-border, #E5E0D8)',
+          boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.12)',
+          padding: '16px 20px calc(80px + env(safe-area-inset-bottom, 16px))',
+          boxSizing: 'border-box',
+          animation: 'slideUpSheet 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
         {/* Drag handle */}
         <div
-          className="md:hidden"
           style={{
-            width: '40px',
+            width: '36px',
             height: '4px',
-            borderRadius: '2px',
-            background: '#22372D',
+            borderRadius: '999px',
+            backgroundColor: '#D1CABE',
             margin: '0 auto 16px',
           }}
         />
 
         {/* Sheet Header */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '16px',
-          padding: '0 4px',
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '16px',
+            padding: '0 2px',
+          }}
+        >
           <div>
-            <h2 style={{
-              margin: 0,
-              fontSize: '18px',
-              fontWeight: 800,
-              color: '#F1F5F3',
-              letterSpacing: '-0.02em',
-              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-            }}>
-              What would you like to add?
+            <h2
+              style={{
+                margin: 0,
+                fontSize: '18px',
+                fontWeight: 700,
+                color: 'var(--brand-charcoal, #111A20)',
+                letterSpacing: '-0.02em',
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              Quick Action
             </h2>
-            <p style={{
-              margin: '3px 0 0',
-              fontSize: '13px',
-              color: '#7E948A',
-            }}>
-              Quick 1-tap capture across your personal operating system
+            <p
+              style={{
+                margin: '3px 0 0',
+                fontSize: '13px',
+                color: 'var(--brand-text-sub, #6B7B82)',
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              1-tap capture across your personal operating system
             </p>
           </div>
 
@@ -150,8 +175,8 @@ export default function QuickAddSheet({ isOpen, onClose, onSelectAction }) {
             onClick={onClose}
             aria-label="Close action sheet"
             style={{
-              background: '#15221C',
-              border: '1px solid #1A2B23',
+              background: '#F4F0E8',
+              border: '1px solid #E5E0D8',
               borderRadius: '50%',
               width: '32px',
               height: '32px',
@@ -159,18 +184,16 @@ export default function QuickAddSheet({ isOpen, onClose, onSelectAction }) {
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: '#7E948A',
+              color: 'var(--brand-charcoal, #111A20)',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#F1F5F3'; e.currentTarget.style.borderColor = '#2DE09A'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#7E948A'; e.currentTarget.style.borderColor = '#1A2B23'; }}
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Quick Action List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {actions.map((act) => {
             const Icon = act.icon;
             return (
@@ -183,9 +206,9 @@ export default function QuickAddSheet({ isOpen, onClose, onSelectAction }) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '14px',
-                  padding: '12px 14px',
-                  background: '#15221C',
-                  border: '1px solid #1A2B23',
+                  padding: '13px 14px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1.5px solid var(--brand-border, #E5E0D8)',
                   borderRadius: '16px',
                   cursor: 'pointer',
                   textAlign: 'left',
@@ -193,98 +216,81 @@ export default function QuickAddSheet({ isOpen, onClose, onSelectAction }) {
                   boxSizing: 'border-box',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#2DE09A';
-                  e.currentTarget.style.background = '#1A2B23';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)';
+                  e.currentTarget.style.backgroundColor = '#FAF8F5';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#1A2B23';
-                  e.currentTarget.style.background = '#15221C';
-                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = 'var(--brand-border, #E5E0D8)';
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
                 }}
               >
                 {/* Icon in colored rounded container */}
-                <div style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
-                  background: act.bgColor,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: act.color,
-                  flexShrink: 0,
-                  transition: 'transform 0.15s ease',
-                }}>
+                <div
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '12px',
+                    backgroundColor: act.bgColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: act.color,
+                    flexShrink: 0,
+                  }}
+                >
                   <Icon size={20} strokeWidth={2.2} />
                 </div>
 
                 {/* Text Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      color: '#F1F5F3',
-                      letterSpacing: '-0.01em',
-                    }}>
+                    <span
+                      style={{
+                        fontSize: '14.5px',
+                        fontWeight: 600,
+                        color: 'var(--brand-charcoal, #111A20)',
+                        letterSpacing: '-0.01em',
+                        fontFamily: "'Inter', sans-serif",
+                      }}
+                    >
                       {act.title}
                     </span>
                     {act.badge && (
-                      <span style={{
-                        fontSize: '9px',
-                        fontWeight: 800,
-                        color: act.color,
-                        background: act.bgColor,
-                        border: `1px solid ${act.color}40`,
-                        borderRadius: '4px',
-                        padding: '1px 5px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
-                      }}>
+                      <span
+                        style={{
+                          fontSize: '9.5px',
+                          fontWeight: 700,
+                          color: '#174A55',
+                          backgroundColor: '#DDE9EB',
+                          padding: '1px 6px',
+                          borderRadius: '6px',
+                        }}
+                      >
                         {act.badge}
                       </span>
                     )}
                   </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#7E948A',
-                    marginTop: '2px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--brand-text-sub, #6B7B82)',
+                      marginTop: '2px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  >
                     {act.subtitle}
                   </div>
                 </div>
 
-                {/* Right Arrow */}
-                <div style={{
-                  color: '#7E948A',
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexShrink: 0,
-                }}>
-                  <ChevronRight size={18} />
-                </div>
+                <ChevronRight size={17} color="#9CA3AF" />
               </button>
             );
           })}
         </div>
       </div>
-
-      <style>{`
-        @keyframes slideUpQuickAdd {
-          from {
-            transform: translateY(100%);
-            opacity: 0.5;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-      `}</style>
     </div>
   );
 }

@@ -60,157 +60,134 @@ export default function TodayTab({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', fontFamily: 'Inter, sans-serif' }}>
-      {/* ── THE VISUAL PATH HERO ── */}
-      <GrowthPathHero
-        goals={goals}
-        streak={streak}
-        tasks={tasks}
-        projects={projects}
-        onCompleteTask={completeTask}
-        onStartFocus={onInstantFocus}
-      />
-
-      {/* ── CURRENT FOCUS ── */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontFamily: 'Inter, sans-serif' }}>
+      {/* ── CARD 1: TODAY'S TASKS (Screen 8 Reference) ── */}
       <div style={{
-        padding: '18px 0',
-        borderTop: '1px solid #1C1D21',
-        borderBottom: '1px solid #1C1D21',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '16px',
+        background: '#FFFFFF',
+        borderRadius: '20px',
+        padding: '20px',
+        border: '1.5px solid var(--brand-border, #E5E0D8)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: '10px',
-            fontWeight: 700,
-            color: '#1FA36F',
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-          }}>
-            CURRENT FOCUS
-          </div>
-          <div style={{
-            fontSize: '15px',
-            fontWeight: 600,
-            color: '#F5F5F5',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {primaryTask ? primaryTask.name : 'Deep Work Session'}
-          </div>
-          <div style={{ fontSize: '12px', color: '#9CA3AF' }}>
-            {todayFocusMin > 0 ? `${todayFocusMin}m completed today · 45 min recommended` : '45 min recommended block'}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => onInstantFocus('timed', 45, primaryTask?.name || 'Deep Work', primaryTask ? projectMap[primaryTask.project_id] : null)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '10px 16px',
-            borderRadius: '10px',
-            background: '#1FA36F',
-            border: 'none',
-            color: '#0B0D0F',
-            fontSize: '12px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            flexShrink: 0,
-            transition: 'opacity 0.15s',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-        >
-          <Play size={13} fill="#0B0D0F" />
-          <span>Start 45m</span>
-        </button>
-      </div>
-
-      {/* ── QUICK ACTION ── */}
-      <div>
         <div style={{
           display: 'flex',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: showAddForm ? '12px' : '0',
+          marginBottom: '14px',
         }}>
-          <button
-            type="button"
-            onClick={() => setShowAddForm(p => !p)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#E9B44C',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '4px 0',
-            }}
-          >
-            <Plus size={14} />
-            <span>{showAddForm ? 'Cancel' : 'Add Action'}</span>
-          </button>
+          <h2 style={{
+            margin: 0,
+            fontSize: '16px',
+            fontWeight: 800,
+            color: '#111A20',
+            letterSpacing: '-0.01em',
+          }}>
+            Today's Tasks
+          </h2>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#8A9CA3' }}>
+            {availableTasks.length} pending
+          </span>
         </div>
 
-        {/* Quick inline add form */}
-        {showAddForm && (
-          <form onSubmit={handleAddTaskSubmit} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        {/* Task Items */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+          {availableTasks.length === 0 ? (
+            <div style={{
+              padding: '20px 10px',
+              textAlign: 'center',
+              color: '#8A9CA3',
+              fontSize: '13px',
+            }}>
+              No tasks pending. Tap + Add task to get started.
+            </div>
+          ) : (
+            availableTasks.slice(0, 5).map(task => (
+              <div
+                key={task.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  background: '#F9F8F5',
+                  border: '1px solid #ECE8DF',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => completeTask(task)}
+                    aria-label={`Complete ${task.name}`}
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      border: '2px solid var(--brand-petrol, #174A55)',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      color: '#111A20',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {task.name}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#8A9CA3', marginTop: '1px' }}>
+                      {task.status === 'in_progress' ? 'In progress' : 'Not started'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ color: '#8A9CA3', flexShrink: 0, marginLeft: '8px' }}>
+                  <ArrowRight size={14} />
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Add Task Trigger or Form */}
+        {showAddForm ? (
+          <form onSubmit={handleAddTaskSubmit} style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
             <input
               type="text"
               autoFocus
-              placeholder="What needs to move forward next?..."
+              placeholder="Task name..."
               value={taskName}
               onChange={e => setTaskName(e.target.value)}
               style={{
                 flex: 1,
-                background: '#15181B',
-                border: '1px solid #1C1D21',
-                borderRadius: '8px',
-                color: '#ECE8DF',
-                padding: '9px 12px',
+                background: '#FFFFFF',
+                border: '1.5px solid var(--brand-border, #E5E0D8)',
+                borderRadius: '10px',
+                color: '#111A20',
+                padding: '8px 12px',
                 fontSize: '13px',
                 outline: 'none',
               }}
             />
-            {projects.length > 0 && (
-              <select
-                value={selectedTaskProject}
-                onChange={e => setSelectedTaskProject(e.target.value)}
-                style={{
-                  background: '#15181B',
-                  border: '1px solid #1C1D21',
-                  borderRadius: '8px',
-                  color: '#9CA3AF',
-                  padding: '0 8px',
-                  fontSize: '11px',
-                  outline: 'none',
-                  maxWidth: '120px',
-                }}
-              >
-                <option value="">No Project</option>
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            )}
             <button
               type="submit"
               disabled={!taskName.trim()}
               style={{
-                padding: '9px 14px',
-                borderRadius: '8px',
-                background: taskName.trim() ? '#E9B44C' : '#23272E',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                background: taskName.trim() ? 'var(--brand-petrol, #174A55)' : '#DDE9EB',
                 border: 'none',
-                color: taskName.trim() ? '#0B0D0F' : '#6B7280',
+                color: taskName.trim() ? '#FFFFFF' : '#8A9CA3',
                 cursor: taskName.trim() ? 'pointer' : 'default',
                 fontSize: '12px',
                 fontWeight: 700,
@@ -218,49 +195,98 @@ export default function TodayTab({
             >
               Add
             </button>
+            <button
+              type="button"
+              onClick={() => setShowAddForm(false)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '10px',
+                background: 'transparent',
+                border: '1px solid #E5E0D8',
+                color: '#8A9CA3',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+            >
+              Cancel
+            </button>
           </form>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowAddForm(true)}
+            style={{
+              width: '100%',
+              padding: '10px',
+              borderRadius: '10px',
+              background: 'transparent',
+              border: '1.5px dashed var(--brand-soft-teal, #DDE9EB)',
+              color: 'var(--brand-petrol, #174A55)',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            <Plus size={15} />
+            <span>Add task</span>
+          </button>
         )}
       </div>
 
-      {/* ── PROGRESSIVE DISCLOSURE: BLOCKED & HABITS ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid #1C1D21', paddingTop: '18px' }}>
-        {blockedCount > 0 && (
-          <div
-            onClick={() => setTab('plan')}
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              cursor: 'pointer',
-              color: '#9CA3AF',
-              fontSize: '12px',
-              padding: '6px 0',
-            }}
-          >
-            <span>🔒 {blockedCount} task{blockedCount === 1 ? '' : 's'} waiting on prerequisites</span>
-            <span style={{ color: '#1FA36F', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
-              Plan <ArrowRight size={11} />
-            </span>
-          </div>
-        )}
-
-        <div
-          onClick={() => setTab('habits')}
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            cursor: 'pointer',
-            color: '#9CA3AF',
-            fontSize: '12px',
-            padding: '6px 0',
-          }}
-        >
-          <span>Maintenance: {completedHabitsCount} of {habits.length} habits logged today</span>
-          <span style={{ color: '#1FA36F', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
-            Habits <ArrowRight size={11} />
-          </span>
+      {/* ── CARD 2: FOCUS SESSION (Screen 8 Reference) ── */}
+      <div style={{
+        background: '#FFFFFF',
+        borderRadius: '20px',
+        padding: '20px',
+        border: '1.5px solid var(--brand-border, #E5E0D8)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+      }}>
+        <div style={{ fontSize: '15px', fontWeight: 800, color: '#111A20' }}>
+          Focus Session
         </div>
+        <div style={{
+          fontSize: '32px',
+          fontWeight: 800,
+          color: '#111A20',
+          letterSpacing: '-0.02em',
+          margin: '6px 0 2px',
+        }}>
+          25:00
+        </div>
+        <div style={{ fontSize: '13px', color: '#8A9CA3', marginBottom: '16px' }}>
+          Deep work
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onInstantFocus('timed', 25, primaryTask?.name || 'Deep work', primaryTask ? projectMap[primaryTask.project_id] : null)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '13px 20px',
+            borderRadius: '12px',
+            background: 'var(--brand-petrol, #174A55)',
+            border: 'none',
+            color: '#FFFFFF',
+            fontSize: '13px',
+            fontWeight: 800,
+            letterSpacing: '0.04em',
+            cursor: 'pointer',
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+        >
+          <span>START FOCUS</span>
+          <ArrowRight size={15} strokeWidth={2.5} />
+        </button>
       </div>
 
     </div>

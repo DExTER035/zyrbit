@@ -165,10 +165,11 @@ export function computeMoneyState({
     .reduce((s, e) => s + toNum(e.amount), 0);
 
   // ── Budget ────────────────────────────────────────────────────────────────
-  const rawBudget     = Number(settings?.monthly_budget);
-  const monthlyBudget = isFinite(rawBudget) && rawBudget > 0 ? rawBudget : null;
-  const budgetUsedPct = monthlyBudget
-    ? Math.min(100, Math.round((monthSpend / monthlyBudget) * 100))
+  const rawBudget = settings?.monthly_budget;
+  const isBudgetExplicit = rawBudget !== null && rawBudget !== undefined && rawBudget !== '' && isFinite(Number(rawBudget)) && Number(rawBudget) >= 0;
+  const monthlyBudget = isBudgetExplicit ? Number(rawBudget) : null;
+  const budgetUsedPct = monthlyBudget != null
+    ? (monthlyBudget === 0 ? (monthSpend > 0 ? 100 : 0) : Math.min(100, Math.round((monthSpend / monthlyBudget) * 100)))
     : null;
   const budgetRemaining = monthlyBudget != null
     ? Math.max(0, monthlyBudget - monthSpend)
@@ -240,17 +241,26 @@ export function computeMoneyState({
 
   // ── Spending pace (requires budget) ───────────────────────────────────────
   let spendingPace = null;
-  if (monthlyBudget != null && monthlyBudget > 0) {
-    const timePct   = Math.round((currentDay / daysInMonth) * 100);
-    const budgetPct = Math.min(100, Math.round((monthSpend / monthlyBudget) * 100));
-
-    if (monthSpend >= monthlyBudget) {
-      spendingPace = { status: 'exceeded', label: 'Budget reached', timePct, budgetPct };
-    } else if (budgetPct <= timePct + 5) {
-      spendingPace = { status: 'on_track', label: 'On track', timePct, budgetPct };
+  if (monthlyBudget != null) {
+    if (monthlyBudget === 0) {
+      spendingPace = {
+        status: monthSpend > 0 ? 'exceeded' : 'on_track',
+        label: monthSpend > 0 ? 'Budget reached' : 'On track',
+        timePct: 100,
+        budgetPct: monthSpend > 0 ? 100 : 0,
+      };
     } else {
-      const diff = budgetPct - timePct;
-      spendingPace = { status: 'ahead', label: `${diff}% ahead of schedule`, timePct, budgetPct };
+      const timePct   = Math.round((currentDay / daysInMonth) * 100);
+      const budgetPct = Math.min(100, Math.round((monthSpend / monthlyBudget) * 100));
+
+      if (monthSpend >= monthlyBudget) {
+        spendingPace = { status: 'exceeded', label: 'Budget reached', timePct, budgetPct };
+      } else if (budgetPct <= timePct + 5) {
+        spendingPace = { status: 'on_track', label: 'On track', timePct, budgetPct };
+      } else {
+        const diff = budgetPct - timePct;
+        spendingPace = { status: 'ahead', label: `${diff}% ahead of schedule`, timePct, budgetPct };
+      }
     }
   }
 
