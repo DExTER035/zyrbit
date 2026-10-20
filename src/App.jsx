@@ -10,6 +10,7 @@ import AppLayout from './components/layout/AppLayout.jsx'
 import Logo from './components/ui/Logo.jsx'
 import InstallBanner from './components/layout/InstallBanner.jsx'
 import GoalSetupScreen from './screens/GoalSetupScreen.jsx'
+import Showcase5Tabs from './pages/Showcase5Tabs.jsx'
 
 import { SubscriptionProvider } from './context/SubscriptionContext.jsx'
 import PaywallOverlay from './components/ui/PaywallOverlay.jsx'
@@ -106,8 +107,13 @@ function MainApp({ handleSignOut, currentUserId }) {
         <Route path="/challenge" element={<Navigate to="/growth" replace />} />
         <Route path="/stats" element={<Navigate to="/zenith" replace />} />
         <Route path="/profile" element={<ProtectedRoute onSignOut={handleSignOut}><Profile /></ProtectedRoute>} />
+        <Route path="/showcase" element={<Showcase5Tabs />} />
         <Route path="/login" element={<RedirectToLogin onSignOut={handleSignOut} />} />
-        <Route path="/" element={<Navigate to="/zenith" replace />} />
+        <Route path="/" element={
+          (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('screen') === 'showcase')
+            ? <Showcase5Tabs />
+            : <Navigate to="/zenith" replace />
+        } />
         <Route path="*" element={<Navigate to="/zenith" replace />} />
       </Routes>
     </BrowserRouter>
@@ -141,11 +147,18 @@ const OfflineBanner = () => (
 )
 
 export default function App() {
-  const [screen, setScreen] = useState('splash') // 'splash' | 'welcome' | 'login' | 'goal-setup' | 'app'
+  const isShowcaseRequested = typeof window !== 'undefined' && (
+    new URLSearchParams(window.location.search).get('screen') === 'showcase' ||
+    window.location.pathname === '/showcase'
+  )
+
+  const [screen, setScreen] = useState(() => isShowcaseRequested ? 'showcase' : 'splash') // 'splash' | 'welcome' | 'login' | 'goal-setup' | 'app' | 'showcase'
   const [loginInitialMode, setLoginInitialMode] = useState('login')
-  const [isInitializing, setIsInitializing] = useState(true)
+  const [isInitializing, setIsInitializing] = useState(!isShowcaseRequested)
   const [currentUserId, setCurrentUserId] = useState(null)
   const [_currentUserName, setCurrentUserName] = useState('Builder')
+
+
 
   const isOffline = useOfflineDetector()
 
@@ -159,6 +172,14 @@ export default function App() {
         setScreen(paramScreen)
         const paramMode = urlParams.get('mode')
         if (paramMode) setLoginInitialMode(paramMode)
+        setIsInitializing(false)
+        const htmlSplash = document.getElementById('splash')
+        if (htmlSplash) htmlSplash.remove()
+        return
+      }
+
+      if (window.location.pathname === '/showcase') {
+        setScreen('showcase')
         setIsInitializing(false)
         const htmlSplash = document.getElementById('splash')
         if (htmlSplash) htmlSplash.remove()
@@ -202,6 +223,10 @@ export default function App() {
     checkAuthStatus()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.get('screen') === 'showcase' || window.location.pathname === '/showcase') {
+        return
+      }
       if (session) {
         localStorage.setItem('zyrbit_launched', 'true')
         setCurrentUserId(session.user.id)
@@ -228,6 +253,19 @@ export default function App() {
     try { sessionStorage.removeItem('dexos_session_chat'); } catch { /* ignore */ }
     setLoginInitialMode('login')
     setScreen('welcome')
+  }
+
+  // Showcase preview bypasses auth loading states completely
+  if (screen === 'showcase' || isShowcaseRequested) {
+    return (
+      <SubscriptionProvider>
+        <ErrorBoundary>
+          <div className="app-container">
+            <Showcase5Tabs />
+          </div>
+        </ErrorBoundary>
+      </SubscriptionProvider>
+    )
   }
 
   if (isInitializing) return <LoadingScreen />
@@ -278,6 +316,7 @@ export default function App() {
               }}
             />
           )}
+          {screen === 'showcase' && <Showcase5Tabs />}
           {screen === 'app' && <MainApp handleSignOut={handleSignOut} currentUserId={currentUserId} />}
           <PaywallOverlay />
         </div>

@@ -401,3 +401,150 @@ export const BrandOptionCard = ({
     </div>
   )
 }
+
+export const BrandCard = ({
+  children,
+  style = {},
+  variant = 'surface', // 'surface' | 'ivory' | 'petrol'
+  onClick,
+  ...props
+}) => {
+  const isPetrol = variant === 'petrol'
+  const isIvory = variant === 'ivory'
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        backgroundColor: isPetrol
+          ? 'var(--brand-petrol, #174A55)'
+          : isIvory
+          ? 'var(--brand-ivory, #F4F0E8)'
+          : 'var(--brand-card-bg, #FFFFFF)',
+        color: isPetrol ? '#FFFFFF' : 'var(--brand-charcoal, #111A20)',
+        borderRadius: 'var(--brand-radius-card, 16px)',
+        border: isPetrol
+          ? 'none'
+          : '1.5px solid var(--brand-border, #E5E0D8)',
+        boxShadow: isPetrol
+          ? '0 4px 16px rgba(23, 74, 85, 0.25)'
+          : 'var(--brand-shadow-card, 0 2px 10px rgba(17, 26, 32, 0.04))',
+        padding: '16px 18px',
+        boxSizing: 'border-box',
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'all 0.16s ease-in-out',
+        ...style,
+      }}
+      {...props}
+    >
+      {children}
+    </div>
+  )
+}
+
+export const BrandPill = ({
+  children,
+  active = false,
+  onClick,
+  icon = null,
+  style = {},
+  ...props
+}) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '6px 14px',
+        borderRadius: 'var(--brand-radius-pill, 9999px)',
+        backgroundColor: active ? 'var(--brand-petrol, #174A55)' : 'var(--brand-card-bg, #FFFFFF)',
+        color: active ? '#FFFFFF' : 'var(--brand-charcoal, #111A20)',
+        border: `1.5px solid ${active ? 'var(--brand-petrol, #174A55)' : 'var(--brand-border, #E5E0D8)'}`,
+        fontSize: '12.5px',
+        fontWeight: active ? 700 : 550,
+        fontFamily: "'Inter', sans-serif",
+        cursor: 'pointer',
+        transition: 'all 0.16s ease',
+        userSelect: 'none',
+        outline: 'none',
+        ...style,
+      }}
+      {...props}
+    >
+      {icon && <span>{icon}</span>}
+      <span>{children}</span>
+    </button>
+  )
+}
+
+export const BrandMetricTile = ({
+  label,
+  value,
+  subtext,
+  icon = null,
+  style = {},
+}) => {
+  return (
+    <div
+      style={{
+        backgroundColor: 'var(--brand-card-bg, #FFFFFF)',
+        border: '1.5px solid var(--brand-border, #E5E0D8)',
+        borderRadius: 'var(--brand-radius-card, 16px)',
+        padding: '14px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        boxShadow: 'var(--brand-shadow-card, 0 2px 10px rgba(17, 26, 32, 0.04))',
+        boxSizing: 'border-box',
+        ...style,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span
+          style={{
+            fontSize: '11px',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            color: 'var(--brand-text-sub, #68777B)',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          {label}
+        </span>
+        {icon && (
+          <span style={{ color: 'var(--brand-muted-petrol, #367887)' }}>
+            {icon}
+          </span>
+        )}
+      </div>
+      <div
+        style={{
+          fontSize: '22px',
+          fontWeight: 800,
+          color: 'var(--brand-charcoal, #111A20)',
+          letterSpacing: '-0.02em',
+          fontFamily: "'Inter', sans-serif",
+          marginTop: '2px',
+        }}
+      >
+        {value}
+      </div>
+      {subtext && (
+        <div
+          style={{
+            fontSize: '11.5px',
+            color: 'var(--brand-text-sub, #68777B)',
+            marginTop: '1px',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          {subtext}
+        </div>
+      )}
+    </div>
+  )
+}

@@ -111,6 +111,18 @@
   --brand-radius-btn:   16px;
   --brand-radius-card:  16px;
   --brand-radius-input: 14px;
+  --brand-radius-pill:  9999px;
+  --brand-shadow-card:  0 2px 10px rgba(17, 26, 32, 0.04);
+  --brand-shadow-fab:   0 4px 16px rgba(23, 74, 85, 0.35);
+
+  /* ── Dex Dedicated Dark Workspace Tokens ── */
+  --dex-bg:           #0B0D0F;
+  --dex-surface:      #15181B;
+  --dex-elevated:     #1E2227;
+  --dex-border:       #26272D;
+  --dex-text-primary: #F1F5F3;
+  --dex-text-muted:   #7E948A;
+  --dex-accent:       #174A55;
 }
 
 /* ── Glassmorphism utility ── */

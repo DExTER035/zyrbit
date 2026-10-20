@@ -28,6 +28,31 @@ export const PRIMITIVE_TOKENS = {
 };
 
 /**
+ * Zyrbit Approved Brand Tokens — Petrol Teal & Warm Ivory Architecture
+ */
+export const BRAND_TOKENS = {
+  petrol:      '#174A55',
+  ivory:       '#F4F0E8',
+  charcoal:    '#111A20',
+  mutedPetrol: '#367887',
+  softTeal:    '#DDE9EB',
+  cardBg:      '#FFFFFF',
+  border:      '#E5E0D8',
+  subText:     '#68777B',
+  radiusCard:  '16px',
+  radiusBtn:   '14px',
+  radiusPill:  '9999px',
+  success:     '#1FA36F',
+  warning:     '#F59E0B',
+  error:       '#EF4444',
+  dexBg:       '#0B0D0F',
+  dexSurface:  '#15181B',
+  dexBorder:   '#26272D',
+  dexText:     '#F1F5F3',
+  dexMuted:    '#7E948A',
+};
+
+/**
  * Zyrbit V1 Design Tokens — The Personal Operating System
  * Aligned with the master visual reference:
  * Background: #0E0F13 | Primary: #ECE8DF | Muted: #9A978F | Hairline: #3A3B40 | Amber: #E9B44C
