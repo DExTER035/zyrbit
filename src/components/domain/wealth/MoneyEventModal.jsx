@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Mic, ArrowUpRight, Check, ChevronRight } from 'lucide-react';
+import { X, Mic, ArrowUpRight, Check, Sparkles } from 'lucide-react';
 import { resolveFinancialInput } from '../../../dex/resolvers/moneyResolver.js';
 
 const PRESETS = [
@@ -14,15 +14,7 @@ const PRESETS = [
 
 /**
  * MoneyEventModal — Dexterous Bottom Sheet
- * Replaces the old 8-button accounting form with the natural-language capture
- * bottom sheet from the Zyrbit Wealth reference.
- *
- * Flow:
- * 1. User tells Zyrbit what happened ("I ate poha for ₹30", "Ninad owes me ₹300")
- * 2. Zyrbit understands the semantics deterministically
- * 3. Shows "UNDERSTOOD AS" confirmation card
- * 4. User confirms with one tap
- * 5. Optional manual fallback via "or Log manually"
+ * Natural-language financial capture in Warm Ivory + Petrol Teal design language.
  */
 export default function MoneyEventModal({
   currencySymbol = '₹',
@@ -219,8 +211,8 @@ export default function MoneyEventModal({
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        background: 'rgba(5, 7, 9, 0.78)',
-        backdropFilter: 'blur(6px)',
+        background: 'rgba(17, 26, 32, 0.45)',
+        backdropFilter: 'blur(4px)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',
@@ -236,16 +228,16 @@ export default function MoneyEventModal({
         style={{
           width: '100%',
           maxWidth: '430px',
-          background: '#15181B',
-          borderTop: '1px solid #23272E',
-          borderLeft: '1px solid #23272E',
-          borderRight: '1px solid #23272E',
-          borderRadius: '20px 20px 0 0',
+          background: '#F4F0E8',
+          borderTop: '1px solid #E5E0D8',
+          borderLeft: '1px solid #E5E0D8',
+          borderRight: '1px solid #E5E0D8',
+          borderRadius: '24px 24px 0 0',
           padding: '16px 20px 28px 20px',
           display: 'flex',
           flexDirection: 'column',
           gap: '14px',
-          boxShadow: '0 -20px 40px -10px rgba(0, 0, 0, 0.8)',
+          boxShadow: '0 -20px 48px -12px rgba(17, 26, 32, 0.25)',
         }}
       >
         {/* Drag handle */}
@@ -253,7 +245,7 @@ export default function MoneyEventModal({
           style={{
             width: '36px',
             height: '4px',
-            background: '#374151',
+            background: '#D5CEC5',
             borderRadius: '2px',
             margin: '0 auto 4px auto',
           }}
@@ -261,28 +253,49 @@ export default function MoneyEventModal({
 
         {/* Top Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div
-            className="font-serif-state"
-            style={{
-              fontSize: '20px',
-              fontWeight: 400,
-              color: '#F5F5F5',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            {isManualMode ? 'Log manually' : 'Tell Zyrbit what happened'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '12px',
+                background: '#DDE9EB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#174A55',
+              }}
+            >
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  color: '#111A20',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {isManualMode ? 'Log manually' : 'Tell Zyrbit what happened'}
+              </div>
+              <div style={{ fontSize: '11px', color: '#68777B' }}>
+                Natural financial capture
+              </div>
+            </div>
           </div>
 
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close"
             style={{
-              background: '#1F2329',
-              border: 'none',
+              background: '#FAF7F2',
+              border: '1px solid #E5E0D8',
               borderRadius: '50%',
               width: '28px',
               height: '28px',
-              color: '#9CA3AF',
+              color: '#68777B',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -296,7 +309,17 @@ export default function MoneyEventModal({
         {!isManualMode ? (
           <>
             {/* Natural language input field */}
-            <div style={{ position: 'relative', width: '100%' }}>
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #E5E0D8',
+                borderRadius: '16px',
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
               <input
                 ref={inputRef}
                 type="text"
@@ -308,30 +331,15 @@ export default function MoneyEventModal({
                 placeholder="I ate poha for ₹30..."
                 style={{
                   width: '100%',
-                  background: '#1A1D22',
-                  border: '1px solid #282C35',
-                  borderRadius: '10px',
-                  padding: '13px 42px 13px 14px',
-                  color: '#F5F5F5',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#111A20',
                   fontSize: '14px',
                   outline: 'none',
-                  transition: 'border-color 0.15s',
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = '#E9B44C'; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = '#282C35'; }}
               />
-              <div
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#9CA3AF',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <Mic size={17} />
+              <div style={{ color: '#68777B', display: 'flex', alignItems: 'center' }}>
+                <Mic size={18} />
               </div>
             </div>
 
@@ -351,10 +359,10 @@ export default function MoneyEventModal({
                   type="button"
                   onClick={() => handleChipClick(preset)}
                   style={{
-                    background: '#1E2229',
-                    border: '1px solid #282D36',
-                    borderRadius: '8px',
-                    color: '#D1D5DB',
+                    background: '#FAF7F2',
+                    border: '1px solid #E5E0D8',
+                    borderRadius: '10px',
+                    color: '#111A20',
                     fontSize: '12px',
                     padding: '6px 12px',
                     whiteSpace: 'nowrap',
@@ -363,12 +371,12 @@ export default function MoneyEventModal({
                     flexShrink: 0,
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#E9B44C40';
-                    e.currentTarget.style.color = '#F5F5F5';
+                    e.currentTarget.style.borderColor = '#174A55';
+                    e.currentTarget.style.background = '#DDE9EB';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#282D36';
-                    e.currentTarget.style.color = '#D1D5DB';
+                    e.currentTarget.style.borderColor = '#E5E0D8';
+                    e.currentTarget.style.background = '#FAF7F2';
                   }}
                 >
                   {preset}
@@ -380,29 +388,29 @@ export default function MoneyEventModal({
             {clarification && (
               <div
                 style={{
-                  background: '#1C2129',
-                  border: '1px solid #F59E0B40',
-                  borderRadius: '10px',
+                  background: '#FEF3C7',
+                  border: '1px solid #FCD34D',
+                  borderRadius: '14px',
                   padding: '12px 14px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '8px',
                 }}
               >
-                <div style={{ fontSize: '13px', color: '#F59E0B', fontWeight: 600 }}>
+                <div style={{ fontSize: '13px', color: '#92400E', fontWeight: 600 }}>
                   {clarification.question}
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {clarification.options.map((opt) => (
                     <button
                       key={opt}
                       type="button"
                       onClick={() => handleClarifyOption(opt)}
                       style={{
-                        background: '#242A34',
-                        border: '1px solid #374151',
-                        borderRadius: '6px',
-                        color: '#F5F5F5',
+                        background: '#FFFFFF',
+                        border: '1px solid #FCD34D',
+                        borderRadius: '8px',
+                        color: '#92400E',
                         fontSize: '12px',
                         fontWeight: 600,
                         padding: '6px 12px',
@@ -420,10 +428,10 @@ export default function MoneyEventModal({
             {resolvedState && !clarification && (
               <div
                 style={{
-                  background: '#181C22',
-                  border: '1px solid #282E38',
-                  borderRadius: '10px',
-                  padding: '12px 14px',
+                  background: '#FFFFFF',
+                  border: '1px solid #E5E0D8',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '4px',
@@ -433,22 +441,22 @@ export default function MoneyEventModal({
                   style={{
                     fontSize: '10px',
                     fontWeight: 700,
-                    letterSpacing: '0.12em',
+                    letterSpacing: '0.1em',
                     textTransform: 'uppercase',
-                    color: '#E9B44C',
+                    color: '#174A55',
                   }}
                 >
                   UNDERSTOOD AS
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 500, color: '#F5F5F5' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#111A20' }}>
                     {resolvedState.params?.note || resolvedState.params?.name || resolvedState.params?.category || 'Financial Event'}
                   </div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#F5F5F5' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: '#111A20' }}>
                     {resolvedState.action === 'add_income' ? '+' : ''}{currencySymbol}{resolvedState.params?.amount?.toLocaleString()}
                   </div>
                 </div>
-                <div style={{ fontSize: '12px', color: '#9CA3AF' }}>
+                <div style={{ fontSize: '12px', color: '#68777B' }}>
                   {resolvedState.action === 'add_bill'
                     ? `Commitment / Promise · Due ${resolvedState.params?.dueDate || 'soon'}`
                     : resolvedState.params?.category === 'Transfer'
@@ -467,13 +475,13 @@ export default function MoneyEventModal({
               disabled={!naturalText.trim() || saving}
               style={{
                 width: '100%',
-                background: '#E9B44C',
+                background: '#174A55',
                 border: 'none',
-                borderRadius: '10px',
-                color: '#0B0D0F',
+                borderRadius: '16px',
+                color: '#FFFFFF',
                 fontSize: '14px',
                 fontWeight: 700,
-                padding: '13px',
+                padding: '14px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -504,13 +512,13 @@ export default function MoneyEventModal({
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#9CA3AF',
+                  color: '#68777B',
                   fontSize: '12px',
                   cursor: 'pointer',
                   padding: '4px',
                 }}
               >
-                or <span style={{ textDecoration: 'underline', color: '#D1D5DB' }}>Log manually</span>
+                or <span style={{ textDecoration: 'underline', color: '#111A20', fontWeight: 600 }}>Log manually</span>
               </button>
             </div>
           </>
@@ -526,12 +534,13 @@ export default function MoneyEventModal({
                   style={{
                     flex: 1,
                     padding: '8px 4px',
-                    borderRadius: '6px',
-                    background: manualType === t ? '#E9B44C' : '#1E2229',
-                    color: manualType === t ? '#0B0D0F' : '#9CA3AF',
+                    borderRadius: '10px',
+                    background: manualType === t ? '#174A55' : '#FAF7F2',
+                    color: manualType === t ? '#FFFFFF' : '#68777B',
                     fontWeight: 600,
                     fontSize: '12px',
-                    border: 'none',
+                    border: '1px solid',
+                    borderColor: manualType === t ? '#174A55' : '#E5E0D8',
                     cursor: 'pointer',
                   }}
                 >
@@ -540,8 +549,18 @@ export default function MoneyEventModal({
               ))}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span style={{ fontSize: '11px', color: '#9CA3AF' }}>Amount ({currencySymbol})</span>
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #E5E0D8',
+                borderRadius: '16px',
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}
+            >
+              <span style={{ fontSize: '11px', color: '#68777B', fontWeight: 600 }}>Amount ({currencySymbol})</span>
               <input
                 type="number"
                 value={manualAmount}
@@ -549,19 +568,28 @@ export default function MoneyEventModal({
                 placeholder="0.00"
                 style={{
                   width: '100%',
-                  background: '#1A1D22',
-                  border: '1px solid #282C35',
-                  borderRadius: '8px',
-                  padding: '10px 12px',
-                  color: '#F5F5F5',
-                  fontSize: '16px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#111A20',
+                  fontSize: '18px',
+                  fontWeight: 700,
                   outline: 'none',
                 }}
               />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span style={{ fontSize: '11px', color: '#9CA3AF' }}>Description / Title</span>
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #E5E0D8',
+                borderRadius: '16px',
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}
+            >
+              <span style={{ fontSize: '11px', color: '#68777B', fontWeight: 600 }}>Description / Title</span>
               <input
                 type="text"
                 value={manualNote}
@@ -569,11 +597,9 @@ export default function MoneyEventModal({
                 placeholder="Poha, Metro, Groceries..."
                 style={{
                   width: '100%',
-                  background: '#1A1D22',
-                  border: '1px solid #282C35',
-                  borderRadius: '8px',
-                  padding: '10px 12px',
-                  color: '#F5F5F5',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#111A20',
                   fontSize: '14px',
                   outline: 'none',
                 }}
@@ -586,13 +612,13 @@ export default function MoneyEventModal({
               disabled={!manualAmount || saving}
               style={{
                 width: '100%',
-                background: '#E9B44C',
+                background: '#174A55',
                 border: 'none',
-                borderRadius: '8px',
-                color: '#0B0D0F',
+                borderRadius: '16px',
+                color: '#FFFFFF',
                 fontSize: '14px',
                 fontWeight: 700,
-                padding: '12px',
+                padding: '14px',
                 marginTop: '4px',
                 cursor: manualAmount ? 'pointer' : 'not-allowed',
                 opacity: manualAmount ? 1 : 0.5,
@@ -608,7 +634,7 @@ export default function MoneyEventModal({
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#9CA3AF',
+                  color: '#68777B',
                   fontSize: '12px',
                   cursor: 'pointer',
                   padding: '4px',
@@ -623,3 +649,4 @@ export default function MoneyEventModal({
     </div>
   );
 }
+

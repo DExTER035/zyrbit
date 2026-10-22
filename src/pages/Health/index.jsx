@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase/index.js';
-import { Bell, ChevronRight, Plus, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Bell, ChevronRight, Plus, ArrowRight, Sparkles, Utensils, Droplets, Moon, Zap, Scale } from 'lucide-react';
 import BottomNav from '../../components/layout/BottomNav.jsx';
 import { showToast } from '../../components/ui/Toast.jsx';
 
@@ -10,6 +10,12 @@ import { showToast } from '../../components/ui/Toast.jsx';
 import {
   C,
   todayStr,
+  HealthStateHero,
+  SleepCard,
+  WaterCard,
+  ActivityCard,
+  WeightCard,
+  ProgressBar,
 } from '../../components/domain/health/index.js';
 import BodyRhythmVisualizer from '../../components/domain/health/BodyRhythmVisualizer.jsx';
 import HealthMealsList from '../../components/domain/health/HealthMealsList.jsx';
@@ -765,545 +771,368 @@ export default function Health() {
         paddingBottom: 'calc(110px + env(safe-area-inset-bottom, 24px))',
       }}
     >
-      {/* ─── 1. HEADER (Screen 9 Reference) ─── */}
-      <div style={{ padding: '24px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div>
-          <h1 style={{
-            fontSize: '22px',
-            fontWeight: 800,
-            color: 'var(--brand-text, #111A20)',
-            letterSpacing: '-0.02em',
-            margin: '0 0 2px',
-            fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-          }}>
-            Health
-          </h1>
-          <div style={{
-            fontSize: '13px',
-            color: 'var(--brand-muted, #5A6D75)',
-            fontWeight: 500,
-          }}>
-            Fuel your next level.
+      <div
+        style={{
+          maxWidth: '960px',
+          margin: '0 auto',
+          padding: '24px 20px 40px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+        }}
+      >
+        {/* ─── 1. TOP BAR: BACK NAVIGATION + DATE ─── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/track')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--brand-text, #111A20)',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 0',
+              minHeight: '44px',
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>Track</span>
+          </button>
+
+          <div
+            style={{
+              fontSize: '12px',
+              fontWeight: 600,
+              color: 'var(--brand-muted, #68777B)',
+              background: '#FFFFFF',
+              border: '1.5px solid var(--brand-border, #E5E0D8)',
+              padding: '4px 12px',
+              borderRadius: '9999px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}
+          >
+            {todayDisplay}
           </div>
         </div>
 
-        <button
-          type="button"
-          aria-label="Notifications"
+        {/* ─── 2. TITLE SECTION ─── */}
+        <div>
+          <h1
+            style={{
+              fontSize: '24px',
+              fontWeight: 800,
+              color: 'var(--brand-text, #111A20)',
+              letterSpacing: '-0.02em',
+              margin: '0 0 4px',
+              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+            }}
+          >
+            Health Telemetry
+          </h1>
+          <p
+            style={{
+              fontSize: '13px',
+              color: 'var(--brand-muted, #68777B)',
+              margin: 0,
+              fontWeight: 500,
+            }}
+          >
+            Fuel your next level. Calm, holistic daily physical signals.
+          </p>
+        </div>
+
+        {/* ─── 3. PHYSICAL STATE HERO ─── */}
+        <HealthStateHero healthState={healthState} />
+
+        {/* ─── 4. CONTEXTUAL INTELLIGENCE ("WHAT WOULD HELP") ─── */}
+        <div
           style={{
             background: '#FFFFFF',
             border: '1.5px solid var(--brand-border, #E5E0D8)',
-            borderRadius: '50%',
-            width: '36px',
-            height: '36px',
+            borderRadius: '18px',
+            padding: '18px 20px',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--brand-text, #111A20)',
-            cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            alignItems: 'flex-start',
+            gap: '14px',
+            boxShadow: '0 2px 8px rgba(17,26,32,0.03)',
           }}
         >
-          <Bell size={16} />
-        </button>
-      </div>
-
-      {/* ─── 2. PILLS (Nutrition, Workout, Sleep, Water) ─── */}
-      <div style={{ padding: '0 20px', display: 'flex', gap: '8px', marginBottom: '20px' }}>
-        {[
-          { id: 'nutrition', label: 'Nutrition' },
-          { id: 'workout', label: 'Workout' },
-          { id: 'sleep', label: 'Sleep' },
-          { id: 'water', label: 'Water' },
-        ].map(p => {
-          const isActive = healthTab === p.id;
-          return (
-            <button
-              key={p.id}
-              onClick={() => setHealthTab(p.id)}
-              style={{
-                background: isActive ? 'var(--brand-petrol, #174A55)' : 'transparent',
-                border: 'none',
-                borderRadius: '9999px',
-                padding: '6px 16px',
-                fontSize: '13px',
-                fontWeight: isActive ? 700 : 500,
-                color: isActive ? '#FFFFFF' : 'var(--brand-muted, #5A6D75)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {p.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ─── 3. TODAY'S NUTRITION CARD (Screen 9 Reference) ─── */}
-      {healthTab === 'nutrition' && (
-        <>
-          <div style={{ padding: '0 20px', marginBottom: '20px' }}>
-            <div style={{
-              background: '#FFFFFF',
-              borderRadius: '20px',
-              padding: '20px',
-              border: '1.5px solid var(--brand-border, #E5E0D8)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-            }}>
-              <div style={{
-                fontSize: '15px',
-                fontWeight: 800,
-                color: 'var(--brand-text, #111A20)',
-                marginBottom: '10px',
-              }}>
-                Today's Nutrition
-              </div>
-
-              {/* Donut progress ring */}
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', margin: '6px 0 16px' }}>
-                <svg width="130" height="130" viewBox="0 0 130 130">
-                  <circle
-                    cx="65"
-                    cy="65"
-                    r="52"
-                    fill="none"
-                    stroke="var(--brand-soft-teal, #DDE9EB)"
-                    strokeWidth="9"
-                  />
-                  <circle
-                    cx="65"
-                    cy="65"
-                    r="52"
-                    fill="none"
-                    stroke="var(--brand-petrol, #174A55)"
-                    strokeWidth="9"
-                    strokeDasharray={`${(caloriePercent / 100) * 326.7} 326.7`}
-                    strokeLinecap="round"
-                    transform="rotate(-90 65 65)"
-                    style={{ transition: 'stroke-dasharray 0.8s ease' }}
-                  />
-                </svg>
-                <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '26px', fontWeight: 800, color: 'var(--brand-text, #111A20)', letterSpacing: '-0.02em', lineHeight: 1 }}>
-                    {totalCalories.toLocaleString()}
-                  </span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-muted, #5A6D75)', marginTop: '4px' }}>
-                    kcal
-                  </span>
-                </div>
-              </div>
-
-              {/* Macros Row */}
-              <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', borderTop: '1px solid #F0ECE4', paddingTop: '14px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--brand-text, #111A20)' }}>
-                  <span style={{ color: 'var(--brand-petrol, #174A55)', marginRight: '4px' }}>•</span>
-                  Protein: <span style={{ fontWeight: 700 }}>{Math.round(totalProtein)} g</span>
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--brand-text, #111A20)' }}>
-                  <span style={{ color: '#D97706', marginRight: '4px' }}>•</span>
-                  Carbs: <span style={{ fontWeight: 700 }}>{Math.round(totalCarbs)} g</span>
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--brand-text, #111A20)' }}>
-                  <span style={{ color: '#E11D48', marginRight: '4px' }}>•</span>
-                  Fats: <span style={{ fontWeight: 700 }}>{Math.round(totalFat)} g</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ─── 4. TODAY'S MEALS SECTION (Screen 9 Reference) ─── */}
-          <div style={{ padding: '0 20px', marginBottom: '24px' }}>
-            <div style={{
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '12px',
+              background: 'rgba(23, 74, 85, 0.1)',
+              color: 'var(--brand-petrol, #174A55)',
               display: 'flex',
-              justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '14px',
-            }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: '16px',
-                fontWeight: 800,
-                color: 'var(--brand-text, #111A20)',
-              }}>
-                Today's Meals
-              </h2>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-muted, #5A6D75)' }}>
-                {mealLogs.length} logged
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
-              {mealLogs.length === 0 ? (
-                <div style={{
-                  padding: '24px 16px',
-                  background: '#FFFFFF',
-                  borderRadius: '16px',
-                  border: '1.5px solid var(--brand-border, #E5E0D8)',
-                  textAlign: 'center',
-                  color: 'var(--brand-muted, #5A6D75)',
-                  fontSize: '13px',
-                }}>
-                  No meals logged today. Tap Log a meal to get started.
-                </div>
-              ) : (
-                mealLogs.map(meal => (
-                  <div
-                    key={meal.id}
-                    onClick={() => setInspectingMealLog(meal)}
-                    style={{
-                      background: '#FFFFFF',
-                      borderRadius: '16px',
-                      padding: '12px 14px',
-                      border: '1.5px solid var(--brand-border, #E5E0D8)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      cursor: 'pointer',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                    }}
-                  >
-                    <img
-                      src="https://images.unsplash.com/photo-1517673400267-0251440c45dc?auto=format&fit=crop&w=140&q=80"
-                      alt={meal.food_name}
-                      style={{
-                        width: '52px',
-                        height: '52px',
-                        borderRadius: '12px',
-                        objectFit: 'cover',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: '14px',
-                        fontWeight: 700,
-                        color: 'var(--brand-text, #111A20)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {meal.food_name}
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--brand-muted, #5A6D75)', marginTop: '2px' }}>
-                        {(meal.meal_type || 'Meal').charAt(0).toUpperCase() + (meal.meal_type || 'Meal').slice(1)} · Today
-                      </div>
-                      <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--brand-petrol, #174A55)', marginTop: '2px' }}>
-                        {meal.calories} kcal · {meal.protein}g protein
-                      </div>
-                    </div>
-                    <ChevronRight size={16} color="var(--brand-muted, #5A6D75)" />
-                  </div>
-                ))
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => navigate('/food')}
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Sparkles size={18} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div
               style={{
-                width: '100%',
-                padding: '11px',
-                borderRadius: '12px',
-                background: 'transparent',
-                border: '1.5px solid var(--brand-petrol, #174A55)',
+                fontSize: '11px',
+                fontWeight: 800,
                 color: 'var(--brand-petrol, #174A55)',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                transition: 'background 0.15s ease',
+                letterSpacing: '0.8px',
+                textTransform: 'uppercase',
+                marginBottom: '4px',
               }}
             >
-              <Plus size={15} />
-              <span>Log a meal</span>
-            </button>
+              What Would Help
+            </div>
+            <div
+              style={{
+                fontSize: '14px',
+                color: 'var(--brand-text, #111A20)',
+                fontWeight: 500,
+                lineHeight: 1.5,
+              }}
+            >
+              {recommendationText}
+            </div>
           </div>
-        </>
-      )}
+        </div>
 
-      {/* ─── 5. BODY RHYTHM & TELEMETRY (If non-nutrition tab or auxiliary) ─── */}
-      <div style={{ padding: '0 20px', display: healthTab === 'nutrition' ? 'none' : 'block' }}>
+        {/* ─── 5. CIRCADIAN BODY RHYTHM WAVE ─── */}
         <BodyRhythmVisualizer
           sleepHours={healthState.sleep?.hours ?? 0}
           mealLogs={mealLogs}
           waterLogs={waterLogs}
           moveLogs={moveLogs}
-          healthState={healthState}
         />
-      </div>
 
-      {/* ─── 4. WHAT WOULD HELP? (CONTEXTUAL INTELLIGENCE) ─── */}
-      <div style={{ padding: '0 20px', marginTop: '16px' }}>
-        <div style={{
-          background: '#15161B',
-          border: '1px solid #26272D',
-          borderRadius: '16px',
-          padding: '16px',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '12px',
-        }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '10px',
-            background: 'rgba(56, 189, 248, 0.12)',
-            color: '#38BDF8',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '15px',
-            flexShrink: 0,
-          }}>
-            ✦
-          </div>
-          <div>
-            <div style={{
-              fontSize: '11px',
-              fontWeight: 800,
-              color: '#38BDF8',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              marginBottom: '3px',
-            }}>
-              What would help
-            </div>
-            <div style={{
-              fontSize: '13px',
-              color: '#ECE8DF',
-              fontWeight: 500,
-              lineHeight: 1.5,
-            }}>
-              {recommendationText}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── 5. COMPACT CAPTURE BAR ─── */}
-      <div style={{ padding: '20px 20px 0' }}>
-        <div style={{
-          fontSize: '11px',
-          fontWeight: 800,
-          color: '#6B7280',
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          marginBottom: '10px',
-        }}>
-          Capture
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-          {/* Water */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => handleLogWater(250)}
-              style={{
-                padding: '10px 8px',
-                borderRadius: '12px',
-                background: 'rgba(96, 165, 250, 0.1)',
-                border: '1px solid rgba(96, 165, 250, 0.25)',
-                color: '#60A5FA',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '2px',
-              }}
-            >
-              <span>💧 Water</span>
-              <span style={{ fontSize: '10px', opacity: 0.8 }}>+250ml</span>
-            </button>
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => handleLogWater(500)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#60A5FA',
-                fontSize: '10px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                padding: '2px',
-              }}
-            >
-              +500ml
-            </button>
-          </div>
-
-          {/* Meal */}
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={() => navigate('/food')}
-            style={{
-              padding: '10px 8px',
-              borderRadius: '12px',
-              background: 'rgba(245, 158, 11, 0.1)',
-              border: '1px solid rgba(245, 158, 11, 0.25)',
-              color: '#F59E0B',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              height: '52px',
-            }}
-          >
-            <span>🍲 Meal</span>
-            <span style={{ fontSize: '10px', opacity: 0.8 }}>Log food</span>
-          </button>
-
-          {/* Sleep */}
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={() => handleLogSleep(7.5, 3)}
-            style={{
-              padding: '10px 8px',
-              borderRadius: '12px',
-              background: 'rgba(31, 163, 111, 0.1)',
-              border: '1px solid rgba(31, 163, 111, 0.25)',
-              color: '#1FA36F',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              height: '52px',
-            }}
-          >
-            <span>😴 Sleep</span>
-            <span style={{ fontSize: '10px', opacity: 0.8 }}>+7.5h</span>
-          </button>
-
-          {/* Movement */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => handleLogWorkout('Workout', 30, 7)}
-              style={{
-                padding: '10px 8px',
-                borderRadius: '12px',
-                background: 'rgba(167, 139, 250, 0.1)',
-                border: '1px solid rgba(167, 139, 250, 0.25)',
-                color: '#A78BFA',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '2px',
-              }}
-            >
-              <span>⚡ Move</span>
-              <span style={{ fontSize: '10px', opacity: 0.8 }}>+30m</span>
-            </button>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handleLogWorkout('Workout', 15, 6)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#A78BFA',
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  padding: '2px',
-                }}
-              >
-                +15m
-              </button>
-              <span style={{ color: '#6B7280', fontSize: '10px' }}>·</span>
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handleLogWorkout('Workout', 60, 8)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#A78BFA',
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  padding: '2px',
-                }}
-              >
-                +60m
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── 6. PROGRESSIVE DISCLOSURE: 90-DAY BIO CONSISTENCY ─── */}
-      <div style={{ padding: '24px 20px 120px' }}>
-        <button
-          type="button"
-          onClick={() => setShowDetailedLogs((p) => !p)}
+        {/* ─── 6. RESPONSIVE TWO-COLUMN / SINGLE-COLUMN GRID ─── */}
+        <div
           style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#6B7280',
-            fontSize: '12px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            padding: '8px 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            outline: 'none',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '20px',
+            alignItems: 'start',
           }}
         >
-          <span>{showDetailedLogs ? '▲ Hide bio consistency history' : '▼ View 90-day bio consistency'}</span>
-        </button>
+          {/* Column 1: Sleep, Movement, Weight */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <SleepCard
+              sleepLogs={sleepLogs}
+              sleepDebt={healthState.sleep?.debtHours || 0}
+              onLogSleep={handleLogSleep}
+              onDeleteSleep={_handleDeleteSleep}
+              isSubmitting={isSubmitting}
+            />
 
-        {showDetailedLogs && (
-          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Heatmap */}
-            <div style={{
-              background: '#15161B',
-              border: '1px solid #1C1D21',
-              borderRadius: '16px',
-              padding: '16px',
-            }}>
-              <HeatmapGrid color="#1FA36F" dataMap={heatmapData} label="Bio Consistency (90 Days)" />
+            <ActivityCard
+              moveLogs={moveLogs}
+              onLogWorkout={handleLogWorkout}
+              onDeleteWorkout={_handleDeleteWorkout}
+              isSubmitting={isSubmitting}
+            />
+
+            <WeightCard
+              weightLogs={weightLogs}
+              onLogWeight={_handleLogWeight}
+              onDeleteWeight={_handleDeleteWeight}
+              isSubmitting={isSubmitting}
+            />
+          </div>
+
+          {/* Column 2: Water, Nutrition Snapshot, 90-Day Bio Consistency */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <WaterCard
+              todayWater={waterLogs.reduce((sum, w) => sum + (Number(w.amount_ml) || 0), 0)}
+              dynamicTarget={healthState.hydration?.targetMl || 3000}
+              onLogWater={handleLogWater}
+              onDeleteWater={_handleDeleteWater}
+              waterLogs={waterLogs}
+              isSubmitting={isSubmitting}
+            />
+
+            {/* Nutrition Snapshot Card */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1.5px solid var(--brand-border, #E5E0D8)',
+                borderLeft: '4px solid var(--brand-petrol, #174A55)',
+                borderRadius: '18px',
+                padding: '18px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                boxShadow: '0 2px 8px rgba(17,26,32,0.03)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <Utensils size={16} color="var(--brand-petrol, #174A55)" />
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--brand-text, #111A20)', letterSpacing: '0.8px' }}>
+                    NUTRITION SNAPSHOT
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSettingsModal(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--brand-muted, #68777B)',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: '2px 4px',
+                  }}
+                >
+                  Target: {calorieGoal} kcal
+                </button>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                  <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--brand-text, #111A20)', lineHeight: 1 }}>
+                    {totalCalories.toLocaleString()}
+                  </span>
+                  <span style={{ fontSize: '13px', color: 'var(--brand-muted, #68777B)', fontWeight: 500 }}>
+                    / {calorieGoal.toLocaleString()} kcal
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--brand-petrol, #174A55)', fontWeight: 700, marginLeft: 'auto' }}>
+                    {caloriePercent}%
+                  </span>
+                </div>
+
+                <div style={{ marginTop: '8px' }}>
+                  <ProgressBar value={totalCalories} max={calorieGoal} color="var(--brand-petrol, #174A55)" height={6} />
+                </div>
+
+                {/* Macro Pills */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', borderTop: '1px solid #F0ECE4', paddingTop: '10px', fontSize: '12px' }}>
+                  <div>
+                    <span style={{ color: 'var(--brand-petrol, #174A55)', fontWeight: 800 }}>•</span> Protein: <strong>{Math.round(totalProtein)}g</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#D97706', fontWeight: 800 }}>•</span> Carbs: <strong>{Math.round(totalCarbs)}g</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#E11D48', fontWeight: 800 }}>•</span> Fats: <strong>{Math.round(totalFat)}g</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Today's Meals Snippet */}
+              {mealLogs.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--brand-border, #E5E0D8)', paddingTop: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--brand-muted, #68777B)', fontWeight: 700 }}>
+                    <span>Today's Meals ({mealLogs.length})</span>
+                  </div>
+                  {mealLogs.slice(-3).map((m) => (
+                    <div
+                      key={m.id}
+                      onClick={() => setInspectingMealLog(m)}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '12px',
+                        color: 'var(--brand-text, #111A20)',
+                        cursor: 'pointer',
+                        padding: '4px 0',
+                      }}
+                    >
+                      <span style={{ fontWeight: 600 }}>🍱 {m.food_name}</span>
+                      <span style={{ color: 'var(--brand-muted, #68777B)', fontSize: '11px' }}>
+                        {m.calories} kcal · {m.protein}g P
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Action: Link to Food Module */}
+              <button
+                type="button"
+                onClick={() => navigate('/food')}
+                style={{
+                  width: '100%',
+                  minHeight: '44px',
+                  padding: '11px',
+                  borderRadius: '12px',
+                  background: 'rgba(23, 74, 85, 0.08)',
+                  border: '1.5px solid var(--brand-petrol, #174A55)',
+                  color: 'var(--brand-petrol, #174A55)',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>Manage Nutrition & Meals in Food</span>
+                <ArrowRight size={14} />
+              </button>
             </div>
 
-            {/* Saved Meal Templates (if any) */}
-            {savedMeals && savedMeals.length > 0 && (
-              <SavedMealsSection
-                savedMeals={savedMeals}
-                onLogSavedMeal={handleLogSavedMeal}
-                onDelete={handleDeleteSavedMeal}
-              />
-            )}
+            {/* 90-Day Bio Consistency */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1.5px solid var(--brand-border, #E5E0D8)',
+                borderRadius: '18px',
+                padding: '18px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                boxShadow: '0 2px 8px rgba(17,26,32,0.03)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--brand-text, #111A20)', letterSpacing: '0.8px' }}>
+                  90-DAY BIO CONSISTENCY
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowDetailedLogs((p) => !p)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--brand-muted, #68777B)',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {showDetailedLogs ? 'Hide History ▲' : 'View History ▼'}
+                </button>
+              </div>
+
+              <div>
+                <HeatmapGrid color="#174A55" dataMap={heatmapData} label="Consistency Heatmap" />
+              </div>
+
+              {showDetailedLogs && savedMeals && savedMeals.length > 0 && (
+                <div style={{ borderTop: '1px solid var(--brand-border, #E5E0D8)', paddingTop: '12px' }}>
+                  <SavedMealsSection
+                    savedMeals={savedMeals}
+                    onLogSavedMeal={handleLogSavedMeal}
+                    onDelete={handleDeleteSavedMeal}
+                  />
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* ─── 3. MODALS ──────────────────────────────────────────────────────── */}
+      {/* ─── 7. MODALS ─── */}
 
       {/* Food Picker Modal */}
       {activePickerMealType && (
@@ -1361,8 +1190,8 @@ export default function Health() {
         />
       )}
 
-      {/* ─── 4. BOTTOM NAVIGATION (4 TABS) ──────────────────────────────────── */}
-      <BottomNav activeTab="health" onTabChange={(t) => navigate(`/${t}`)} />
+      {/* ─── 8. BOTTOM NAVIGATION (TRACK TAB HIGHLIGHTED) ─── */}
+      <BottomNav activeTab="track" onTabChange={(t) => navigate(`/${t}`)} />
     </div>
   );
 }

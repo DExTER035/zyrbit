@@ -111,7 +111,7 @@ export default function PlanTab({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
           <div>
             <SectionLabel>Active Projects ({projects.length})</SectionLabel>
-            <div style={{ fontSize: '11px', color: C.muted, marginTop: '-6px' }}>
+            <div style={{ fontSize: '11px', color: C.sub, marginTop: '-6px' }}>
               Initiatives you are currently building
             </div>
           </div>
@@ -119,9 +119,9 @@ export default function PlanTab({
             type="button"
             onClick={() => setModalProject(true)}
             style={{
-              background: 'rgba(31, 163, 111, 0.15)',
-              border: '1px solid rgba(31, 163, 111, 0.35)',
-              color: '#1FA36F',
+              background: 'rgba(23, 74, 85, 0.1)',
+              border: '1px solid rgba(23, 74, 85, 0.25)',
+              color: 'var(--brand-petrol, #174A55)',
               borderRadius: '10px',
               padding: '6px 12px',
               fontSize: '11px',
@@ -168,9 +168,9 @@ export default function PlanTab({
                         <div style={{ fontSize: '14px', fontWeight: 800, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {p.name}
                         </div>
-                        <div style={{ fontSize: '10px', color: C.muted, marginTop: '2px' }}>
+                        <div style={{ fontSize: '10px', color: C.sub, marginTop: '2px' }}>
                           {days !== null ? (
-                            <span style={{ fontWeight: 700, color: isOverdue ? C.danger : isUrgent ? C.warn : C.muted }}>
+                            <span style={{ fontWeight: 700, color: isOverdue ? C.danger : isUrgent ? C.warn : C.sub }}>
                               {isOverdue ? '⚠ Overdue' : days === 1 ? '⏰ Tomorrow' : `📅 ${days}d left`}
                             </span>
                           ) : (
@@ -181,15 +181,15 @@ export default function PlanTab({
                     </div>
 
                     <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
-                      <div style={{ fontSize: '18px', fontWeight: 900, color: '#1FA36F' }}>{s.pct}%</div>
-                      <div style={{ fontSize: '10px', color: C.muted }}>{s.done}/{s.total} done</div>
+                      <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--brand-petrol, #174A55)' }}>{s.pct}%</div>
+                      <div style={{ fontSize: '10px', color: C.sub }}>{s.done}/{s.total} done</div>
                     </div>
                   </div>
 
                   <ProgressBar
                     value={s.done}
                     max={Math.max(s.total, 1)}
-                    color={isOverdue ? C.danger : isUrgent ? C.warn : '#1FA36F'}
+                    color={isOverdue ? C.danger : isUrgent ? C.warn : 'var(--brand-petrol, #174A55)'}
                     height={4}
                   />
                 </Card>
@@ -204,7 +204,7 @@ export default function PlanTab({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
           <div>
             <SectionLabel>Task Backlog</SectionLabel>
-            <div style={{ fontSize: '11px', color: C.muted, marginTop: '-6px' }}>
+            <div style={{ fontSize: '11px', color: C.sub, marginTop: '-6px' }}>
               Execution tasks with dependency awareness
             </div>
           </div>
@@ -248,13 +248,13 @@ export default function PlanTab({
                 type="button"
                 onClick={() => setTaskFilter(f.id)}
                 style={{
-                  background: isSel ? 'rgba(31, 163, 111, 0.15)' : C.surface,
-                  border: `1px solid ${isSel ? '#1FA36F' : C.border}`,
+                  background: isSel ? 'rgba(23, 74, 85, 0.1)' : C.surface,
+                  border: `1px solid ${isSel ? 'var(--brand-petrol, #174A55)' : C.border}`,
                   borderRadius: '10px',
                   padding: '6px 12px',
                   fontSize: '11px',
                   fontWeight: 700,
-                  color: isSel ? '#1FA36F' : C.muted,
+                  color: isSel ? 'var(--brand-petrol, #174A55)' : C.sub,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.15s ease',
@@ -276,6 +276,7 @@ export default function PlanTab({
           flexDirection: 'column',
           gap: '10px',
           marginBottom: '16px',
+          boxShadow: '0 2px 8px rgba(17, 26, 32, 0.03)',
         }}>
           <div style={{ display: 'flex', gap: '8px' }}>
             <input
@@ -285,11 +286,11 @@ export default function PlanTab({
               onChange={e => setTaskInput(e.target.value)}
               style={{
                 flex: 1,
-                background: '#0B0D0F',
-                border: `1px solid ${C.border2}`,
-                borderRadius: '12px',
+                background: '#FFFFFF',
+                border: `1px solid ${C.border}`,
+                borderRadius: '10px',
                 color: C.text,
-                padding: '10px 14px',
+                padding: '9px 12px',
                 fontSize: '13px',
                 outline: 'none',
               }}
@@ -298,14 +299,14 @@ export default function PlanTab({
               type="submit"
               disabled={!taskInput.trim()}
               style={{
-                padding: '10px 16px',
-                borderRadius: '12px',
-                background: taskInput.trim() ? '#1FA36F' : C.dim,
+                padding: '9px 16px',
+                borderRadius: '10px',
+                background: taskInput.trim() ? 'var(--brand-petrol, #174A55)' : '#DDE9EB',
                 border: 'none',
-                color: taskInput.trim() ? '#0B0D0F' : C.muted,
+                color: taskInput.trim() ? '#FFFFFF' : '#8A9CA3',
                 fontWeight: 800,
                 fontSize: '12px',
-                cursor: taskInput.trim() ? 'pointer' : 'not-allowed',
+                cursor: taskInput.trim() ? 'pointer' : 'default',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '5px',
@@ -322,8 +323,8 @@ export default function PlanTab({
                 value={taskTargetProject}
                 onChange={e => setTaskTargetProject(e.target.value)}
                 style={{
-                  background: '#0B0D0F',
-                  border: `1px solid ${C.border2}`,
+                  background: '#FFFFFF',
+                  border: `1px solid ${C.border}`,
                   borderRadius: '8px',
                   color: C.sub,
                   padding: '5px 8px',
@@ -345,7 +346,7 @@ export default function PlanTab({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: C.muted,
+                color: C.sub,
                 fontSize: '11px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -357,17 +358,17 @@ export default function PlanTab({
           </div>
 
           {showAdvanced && (
-            <div style={{ display: 'flex', gap: '8px', paddingTop: '6px', borderTop: `1px solid ${C.border2}` }}>
+            <div style={{ display: 'flex', gap: '8px', paddingTop: '6px', borderTop: `1px solid ${C.border}` }}>
               <div style={{ flex: 1 }}>
-                <span style={{ fontSize: '10px', color: C.muted, display: 'block', marginBottom: '4px' }}>Due Date</span>
+                <span style={{ fontSize: '10px', color: C.sub, display: 'block', marginBottom: '4px' }}>Due Date</span>
                 <input
                   type="date"
                   value={taskDueDate}
                   onChange={e => setTaskDueDate(e.target.value)}
                   style={{
                     width: '100%',
-                    background: '#0B0D0F',
-                    border: `1px solid ${C.border2}`,
+                    background: '#FFFFFF',
+                    border: `1px solid ${C.border}`,
                     borderRadius: '8px',
                     color: C.text,
                     padding: '6px 8px',
@@ -377,14 +378,14 @@ export default function PlanTab({
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <span style={{ fontSize: '10px', color: C.muted, display: 'block', marginBottom: '4px' }}>Priority</span>
+                <span style={{ fontSize: '10px', color: C.sub, display: 'block', marginBottom: '4px' }}>Priority</span>
                 <select
                   value={taskPriority}
                   onChange={e => setTaskPriority(Number(e.target.value))}
                   style={{
                     width: '100%',
-                    background: '#0B0D0F',
-                    border: `1px solid ${C.border2}`,
+                    background: '#FFFFFF',
+                    border: `1px solid ${C.border}`,
                     borderRadius: '8px',
                     color: C.text,
                     padding: '6px 8px',

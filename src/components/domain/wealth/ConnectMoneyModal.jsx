@@ -16,20 +16,20 @@ import { importStatement, confirmImportTransactions, getImportBatches, rollbackI
 import { showToast } from '../../ui/Toast.jsx';
 
 const C = {
-  bg: '#0E0F13',
-  surface: '#15181B',
-  elev: '#1B1F24',
-  border: '#23272E',
-  borderSubtle: 'rgba(255, 255, 255, 0.08)',
-  text: '#ECE8DF',
-  sub: '#9A978F',
-  muted: '#6B7280',
-  accent: '#1FA36F',
-  gold: '#E9B44C',
-  blue: '#38BDF8',
-  purple: '#8B7FFF',
-  danger: '#EF4444',
-  warn: '#F59E0B',
+  bg: '#F4F0E8',
+  surface: '#FFFFFF',
+  elev: '#FAF7F2',
+  border: '#E5E0D8',
+  borderSubtle: '#EDE8E0',
+  text: '#111A20',
+  sub: '#68777B',
+  muted: '#8A9CA3',
+  accent: '#174A55',
+  gold: '#D97706',
+  blue: '#0284C7',
+  purple: '#7C3AED',
+  danger: '#DC2626',
+  warn: '#D97706',
 };
 
 export default function ConnectMoneyModal({
@@ -222,8 +222,8 @@ export default function ConnectMoneyModal({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(5, 7, 9, 0.85)',
-        backdropFilter: 'blur(16px)',
+        background: 'rgba(17, 26, 32, 0.45)',
+        backdropFilter: 'blur(4px)',
         zIndex: 250,
         display: 'flex',
         alignItems: 'flex-end',
@@ -241,6 +241,7 @@ export default function ConnectMoneyModal({
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          boxShadow: '0 -20px 48px -12px rgba(17, 26, 32, 0.25)',
           animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
@@ -261,8 +262,8 @@ export default function ConnectMoneyModal({
                 width: '32px',
                 height: '32px',
                 borderRadius: '10px',
-                background: 'rgba(31, 163, 111, 0.12)',
-                border: '1px solid rgba(31, 163, 111, 0.25)',
+                background: '#DDE9EB',
+                border: '1px solid #C4D9DC',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -431,7 +432,7 @@ export default function ConnectMoneyModal({
                     style={{
                       marginTop: '6px',
                       background: C.accent,
-                      color: '#0B0D0F',
+                      color: '#FFFFFF',
                       border: 'none',
                       borderRadius: '10px',
                       padding: '8px 18px',
@@ -879,7 +880,7 @@ export default function ConnectMoneyModal({
                 style={{
                   marginTop: '12px',
                   background: C.accent,
-                  color: '#0B0D0F',
+                  color: '#FFFFFF',
                   border: 'none',
                   borderRadius: '12px',
                   padding: '12px 28px',
@@ -948,7 +949,7 @@ export default function ConnectMoneyModal({
                   padding: '12px',
                   fontSize: '13px',
                   fontWeight: 800,
-                  color: selectedIds.size > 0 ? '#0B0D0F' : C.muted,
+                  color: selectedIds.size > 0 ? '#FFFFFF' : C.muted,
                   cursor: isProcessing || selectedIds.size === 0 ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',

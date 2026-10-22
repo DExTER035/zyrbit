@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase/index.js';
 import BottomNav from '../../components/layout/BottomNav.jsx';
 import { showToast } from '../../components/ui/Toast.jsx';
-import { CheckCircle2, ArrowRight, Bell, Utensils, Timer, CreditCard, Receipt, ChevronRight, Activity, Flame, Target } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Bell, Utensils, Timer, CreditCard, Receipt, ChevronRight, Activity, Flame, Target, Sparkles, Clock, Plus, X, RotateCcw, Play } from 'lucide-react';
 import HabitCard from '../../components/domain/zenith/HabitCard.jsx';
 import ZoneTab from '../../components/domain/zenith/ZoneTab.jsx';
 import HeatmapGrid from '../../components/common/HeatmapGrid.jsx';
@@ -1121,39 +1121,35 @@ export default function Zenith() {
   if (loading && habits.length === 0 && tasks.length === 0 && sleepLogs.length === 0 && expenses.length === 0) {
     return (
       <div className="app-container page-enter" style={{
-        background: 'var(--bg-root, #080E0B)',
+        background: 'var(--brand-ivory, #F4F0E8)',
         minHeight: '100vh',
-        color: 'var(--text-primary, #F1F5F3)',
+        color: 'var(--brand-charcoal, #111A20)',
+        display: 'flex',
+        flexDirection: 'column',
       }}>
-        <div style={{ padding: '24px 20px 120px' }}>
+        <div style={{ maxWidth: '480px', width: '100%', margin: '0 auto', padding: '20px 20px 120px', boxSizing: 'border-box' }}>
           {/* Header Skeleton */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: 'var(--brand-petrol, #174A55)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontWeight: 900 }}>Z</div>
-              <div>
-                <div style={{ fontSize: '15px', fontWeight: 900, color: '#F1F5F3' }}>ZYRBIT</div>
-                <div style={{ fontSize: '9px', color: '#7E948A', fontWeight: 700 }}>PERSONAL OS</div>
-              </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'var(--brand-petrol, #174A55)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontWeight: 800, fontSize: '14px' }}>Z</div>
+              <div style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '0.12em', color: '#111A20' }}>ZYRBIT</div>
             </div>
-            <div style={{ width: '100px', height: '24px', borderRadius: '9999px', background: '#111A15', border: '1px solid #1A2B23' }} />
+            <div style={{ width: '80px', height: '14px', borderRadius: '4px', background: '#E5E0D8' }} />
           </div>
 
           {/* Headline Skeleton */}
-          <div style={{ marginBottom: '22px' }}>
-            <div style={{ width: '110px', height: '10px', borderRadius: '4px', background: '#15221C', marginBottom: '8px' }} />
-            <h1 style={{ fontSize: '30px', fontWeight: 900, color: '#F1F5F3', margin: '0 0 6px' }}>Make today count.</h1>
-            <p style={{ margin: 0, fontSize: '14px', color: '#7E948A' }}>A little progress, in every direction.</p>
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ width: '160px', height: '26px', borderRadius: '6px', background: '#E5E0D8', marginBottom: '6px' }} />
+            <div style={{ width: '120px', height: '14px', borderRadius: '4px', background: '#E5E0D8' }} />
           </div>
 
-          {/* Hero Card Skeleton */}
-          <div style={{ background: '#111A15', border: '1px solid #1A2B23', borderRadius: '24px', padding: '22px 20px', height: '140px', marginBottom: '22px' }} className="skeleton-box" />
+          {/* Intention Card Skeleton */}
+          <div style={{ background: '#174A55', borderRadius: '20px', padding: '22px 20px', height: '120px', marginBottom: '24px', opacity: 0.9 }} />
 
-          {/* Anchors Skeleton */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '22px' }}>
-            <div style={{ background: '#111A15', border: '1px solid #1A2B23', borderRadius: '18px', height: '80px' }} className="skeleton-box" />
-            <div style={{ background: '#111A15', border: '1px solid #1A2B23', borderRadius: '18px', height: '80px' }} className="skeleton-box" />
-            <div style={{ background: '#111A15', border: '1px solid #1A2B23', borderRadius: '18px', height: '80px' }} className="skeleton-box" />
-            <div style={{ background: '#111A15', border: '1px solid #1A2B23', borderRadius: '18px', height: '80px' }} className="skeleton-box" />
+          {/* Priorities Skeleton */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
+            <div style={{ height: '64px', borderRadius: '16px', background: '#FFFFFF', border: '1.5px solid #E5E0D8' }} />
+            <div style={{ height: '64px', borderRadius: '16px', background: '#FFFFFF', border: '1.5px solid #E5E0D8' }} />
           </div>
         </div>
       </div>
@@ -1163,10 +1159,23 @@ export default function Zenith() {
   const totalHabitsCount = habits.length;
   const completedHabitsCount = habits.filter(h => activity.some(l => l.habit_id === h.id && l.status === 'completed' && l.completed_date === today)).length;
   const totalFocusMinutes = focusSessions.filter(f => f.session_date === today).reduce((sum, f) => sum + (f.duration_minutes || 0), 0);
-  const totalCaloriesCount = foodLogs.reduce((sum, f) => sum + (Number(f.calories) || 0), 0);
-  const dailyExecutionRate = totalHabitsCount > 0
-    ? Math.round((completedHabitsCount / totalHabitsCount) * 100)
-    : (tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'done').length / tasks.length) * 100) : 88);
+
+  // Completed habit IDs set for O(1) lookups
+  const completedHabitIds = new Set(
+    activity.filter(l => l.completed_date === today && l.status === 'completed').map(l => l.habit_id)
+  );
+
+  // Real task priority selection
+  const topTaskPriority = priorities.find(p => p.type === 'task' && !p.done)
+    || tasks.find(t => t.status === 'todo' && t.due_date === today)
+    || tasks.find(t => t.status === 'todo')
+    || null;
+
+  // Keystone habit selection (first uncompleted or highest streak)
+  const keystoneHabit = habits.find(h => !completedHabitIds.has(h.id)) || habits[0] || null;
+
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const dateFormatted = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <div className="app-container page-enter" style={{
@@ -1176,569 +1185,801 @@ export default function Zenith() {
       position: 'relative',
       fontFamily: "'Inter', sans-serif",
     }}>
-      <div style={{ padding: '20px 20px calc(100px + env(safe-area-inset-bottom, 24px))', display: 'flex', flexDirection: 'column', gap: '0' }}>
+      <div style={{
+        maxWidth: '480px',
+        width: '100%',
+        margin: '0 auto',
+        padding: '20px 20px calc(110px + env(safe-area-inset-bottom, 24px))',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
 
-        {/* ── Top Header Row (Matching Screen 7) ── */}
+        {/* ── Top Header ── */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '20px',
+          marginBottom: '24px',
         }}>
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{
-              fontSize: '18px',
-              fontWeight: 800,
-              color: 'var(--brand-charcoal, #111A20)',
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              lineHeight: 1,
-            }}>
-              ZYRBIT
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Notification Bell */}
-            <button
-              type="button"
-              onClick={() => showToast('All systems synchronized', 'info')}
-              aria-label="Notifications"
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                background: '#FFFFFF',
-                border: '1.5px solid var(--brand-border, #E5E0D8)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: 'var(--brand-charcoal, #111A20)',
-                position: 'relative',
-              }}
-            >
-              <Bell size={17} strokeWidth={2} />
-              <div style={{
-                position: 'absolute',
-                top: '8px',
-                right: '8px',
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                background: 'var(--brand-petrol, #174A55)',
-              }} />
-            </button>
-
-            {/* Circular Z Avatar Badge */}
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
+              width: '28px',
+              height: '28px',
+              borderRadius: '8px',
               background: 'var(--brand-petrol, #174A55)',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '15px',
-              boxShadow: '0 2px 8px rgba(23, 74, 85, 0.25)',
-              cursor: 'pointer',
-            }}
-            onClick={() => navigate('/profile')}
-            >
+              fontWeight: 800,
+              fontSize: '14px',
+              boxShadow: '0 2px 6px rgba(23, 74, 85, 0.2)',
+            }}>
               Z
             </div>
+            <span style={{
+              fontSize: '15px',
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: 'var(--brand-charcoal, #111A20)',
+            }}>
+              ZYRBIT
+            </span>
+          </div>
+
+          <div style={{
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--brand-text-sub, #6B7B82)',
+          }}>
+            PERSONAL OS
           </div>
         </div>
 
-        {/* ── Zenith Content Grid ── */}
-        <div className="zenith-content-grid">
-          {/* ── Primary Column: Daily Signal, Next Best Move & Synthesis ── */}
-          <div className="zenith-col-hero">
-            {/* Subtitle / Headline Section (Screen 7 Reference) */}
-            <div style={{ marginBottom: '18px' }}>
-              <div style={{
-                fontSize: '12px',
-                fontWeight: 600,
-                color: 'var(--brand-text-sub, #6B7B82)',
-                marginBottom: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}>
-                <span>📅</span> {new Date().toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-              </div>
-              <h1 style={{
-                fontSize: '30px',
-                fontWeight: 800,
-                letterSpacing: '-0.025em',
-                color: 'var(--brand-charcoal, #111A20)',
-                margin: '0 0 4px',
-                lineHeight: 1.15,
-              }}>
-                Make today count.
-              </h1>
-              <p style={{
-                margin: 0,
-                fontSize: '14px',
-                color: 'var(--brand-text-sub, #6B7B82)',
-                fontWeight: 450,
-              }}>
-                A little progress, in every direction.
-              </p>
-            </div>
+        {/* ── Greeting & Date ── */}
+        <div style={{ marginBottom: '20px' }}>
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            color: 'var(--brand-charcoal, #111A20)',
+            margin: '0 0 4px',
+            lineHeight: 1.2,
+          }}>
+            {greeting}
+          </h1>
+          <p style={{
+            margin: 0,
+            fontSize: '13px',
+            color: 'var(--brand-text-sub, #6B7B82)',
+            fontWeight: 500,
+          }}>
+            {dateFormatted}
+          </p>
+        </div>
 
-            {/* DAILY MOMENTUM HERO CARD (Screen 7 Reference) */}
-            <div style={{
-              background: 'linear-gradient(135deg, #174A55 0%, #112F37 100%)',
-              borderRadius: '20px',
-              padding: '22px 20px',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 6px 20px rgba(23, 74, 85, 0.22)',
-              marginBottom: '16px',
+        {/* ── Intention Hero Card (Petrol Teal #174A55) ── */}
+        <div style={{
+          background: 'var(--brand-petrol, #174A55)',
+          borderRadius: '20px',
+          padding: '22px 20px',
+          color: '#FFFFFF',
+          boxShadow: '0 8px 24px rgba(23, 74, 85, 0.16)',
+          marginBottom: '24px',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '10px',
+          }}>
+            <span style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--brand-soft-teal, #DDE9EB)',
+              opacity: 0.9,
             }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '8px',
-              }}>
-                <div style={{
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  color: 'var(--brand-soft-teal, #DDE9EB)',
-                  letterSpacing: '0.02em',
-                }}>
-                  Daily Momentum
-                </div>
-                <ChevronRight size={16} color="#DDE9EB" style={{ transform: 'rotate(90deg)' }} />
-              </div>
+              YOUR DAY, WITH INTENTION
+            </span>
+            <Target size={18} strokeWidth={2} color="#DDE9EB" style={{ opacity: 0.8 }} />
+          </div>
 
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '14px' }}>
-                <span style={{
-                  fontSize: '44px',
-                  fontWeight: 800,
-                  color: '#FFFFFF',
-                  lineHeight: 1,
-                  letterSpacing: '-0.02em',
-                }}>
-                  {typeof osScore === 'number' ? Math.round(osScore) : (Number(osScore) || 0)}
-                </span>
-                <span style={{
-                  fontSize: '18px',
-                  fontWeight: 600,
-                  color: 'rgba(255, 255, 255, 0.75)',
-                }}>
-                  / 100
-                </span>
-              </div>
+          <div style={{
+            fontSize: '22px',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.25,
+            marginBottom: '16px',
+            color: '#FFFFFF',
+          }}>
+            Make room for what matters.
+          </div>
 
-              {/* Progress track */}
-              <div style={{
-                width: '100%',
-                height: '7px',
-                borderRadius: '9999px',
-                background: 'rgba(255, 255, 255, 0.22)',
-                overflow: 'hidden',
-                position: 'relative',
-              }}>
-                <div style={{
-                  width: `${Math.max(0, Math.min(100, typeof osScore === 'number' ? Math.round(osScore) : (Number(osScore) || 0)))}%`,
-                  height: '100%',
-                  borderRadius: '9999px',
-                  background: '#FFFFFF',
-                  transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-                }} />
-              </div>
-            </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (topTaskPriority?.taskObj || topTaskPriority?.id) {
+                navigate('/growth');
+              } else {
+                window.dispatchEvent(new CustomEvent('dexos:start-focus', { detail: { duration: 25, mode: 'timed' } }));
+                navigate('/growth');
+              }
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              color: '#FFFFFF',
+              fontSize: '14px',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+            }}
+          >
+            <span>Choose your next step</span>
+            <ArrowRight size={15} strokeWidth={2.4} />
+          </button>
+        </div>
 
-            {/* YOUR FOUR ANCHORS (Screen 7 Reference) */}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: 'var(--brand-muted, #5A6D75)',
-                marginBottom: '10px',
-              }}>
-                YOUR FOUR ANCHORS
-              </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '12px',
-              }}>
-                {/* Habits Anchor */}
-                <div
-                  onClick={() => setShowAllZenith(p => !p)}
-                  style={{
-                    background: '#FFFFFF',
-                    border: '1.5px solid var(--brand-border, #E5E0D8)',
-                    borderRadius: '16px',
-                    padding: '14px 16px',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--brand-border, #E5E0D8)'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{
-                      width: '26px',
-                      height: '26px',
-                      borderRadius: '50%',
-                      background: 'var(--brand-soft-teal, #DDE9EB)',
-                      color: 'var(--brand-petrol, #174A55)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                    }}>
-                      H
-                    </div>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-muted, #5A6D75)' }}>Habits</span>
-                  </div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--brand-text, #111A20)' }}>
-                    {completedHabitsCount}/{totalHabitsCount}
-                  </div>
-                </div>
+        {/* ── Today's Priorities ── */}
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '10px',
+          }}>
+            <h2 style={{
+              fontSize: '16px',
+              fontWeight: 700,
+              color: 'var(--brand-charcoal, #111A20)',
+              margin: 0,
+            }}>
+              Today's priorities
+            </h2>
+            <span style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--brand-text-sub, #6B7B82)',
+            }}>
+              SUGGESTED
+            </span>
+          </div>
 
-                {/* Growth Anchor */}
-                <div
-                  onClick={() => navigate('/growth')}
-                  style={{
-                    background: '#FFFFFF',
-                    border: '1.5px solid var(--brand-border, #E5E0D8)',
-                    borderRadius: '16px',
-                    padding: '14px 16px',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--brand-border, #E5E0D8)'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{
-                      width: '26px',
-                      height: '26px',
-                      borderRadius: '50%',
-                      background: 'var(--brand-soft-teal, #DDE9EB)',
-                      color: 'var(--brand-petrol, #174A55)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                    }}>
-                      G
-                    </div>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-muted, #5A6D75)' }}>Growth</span>
-                  </div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--brand-text, #111A20)' }}>
-                    {tasks.filter(t => t.status !== 'done').length} tasks
-                  </div>
-                </div>
-
-                {/* Health Anchor */}
-                <div
-                  onClick={() => navigate('/food')}
-                  style={{
-                    background: '#FFFFFF',
-                    border: '1.5px solid var(--brand-border, #E5E0D8)',
-                    borderRadius: '16px',
-                    padding: '14px 16px',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--brand-border, #E5E0D8)'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{
-                      width: '26px',
-                      height: '26px',
-                      borderRadius: '50%',
-                      background: 'var(--brand-soft-teal, #DDE9EB)',
-                      color: 'var(--brand-petrol, #174A55)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                    }}>
-                      H
-                    </div>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-muted, #5A6D75)' }}>Health</span>
-                  </div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--brand-text, #111A20)' }}>
-                    {totalCaloriesCount > 0 ? `${totalCaloriesCount.toLocaleString()} kcal` : '0 kcal'}
-                  </div>
-                </div>
-
-                {/* Wealth Anchor */}
-                <div
-                  onClick={() => navigate('/wealth')}
-                  style={{
-                    background: '#FFFFFF',
-                    border: '1.5px solid var(--brand-border, #E5E0D8)',
-                    borderRadius: '16px',
-                    padding: '14px 16px',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--brand-border, #E5E0D8)'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{
-                      width: '26px',
-                      height: '26px',
-                      borderRadius: '50%',
-                      background: 'var(--brand-soft-teal, #DDE9EB)',
-                      color: 'var(--brand-petrol, #174A55)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                    }}>
-                      W
-                    </div>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-muted, #5A6D75)' }}>Wealth</span>
-                  </div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--brand-petrol, #174A55)' }}>
-                    On track
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* NEXT BEST MOVE (Screen 7 Reference) */}
-            <div style={{ marginBottom: '16px' }}>
-              <div
-                onClick={() => {
-                  if (priorities.length > 0 && priorities[0].taskObj) {
-                    navigate('/growth');
-                  } else {
-                    window.dispatchEvent(new CustomEvent('dexos:start-focus', { detail: { duration: 25, mode: 'timed' } }));
-                    navigate('/growth');
-                  }
-                }}
-                style={{
-                  background: 'linear-gradient(135deg, #174A55 0%, #112F37 100%)',
-                  borderRadius: '18px',
-                  padding: '16px 18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  boxShadow: '0 4px 16px rgba(23, 74, 85, 0.18)',
-                }}
-              >
-                <div>
-                  <div style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
-                    color: 'var(--brand-soft-teal, #DDE9EB)',
-                    marginBottom: '4px',
-                  }}>
-                    Next Best Move
-                  </div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
-                    {priorities[0]?.name || 'Finish one focus sprint'}
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.75)', marginTop: '2px' }}>
-                    25 min · Deep work
-                  </div>
-                </div>
-
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.18)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#FFFFFF',
-                  flexShrink: 0,
-                }}>
-                  <ChevronRight size={18} strokeWidth={2.4} />
-                </div>
-              </div>
-            </div>
-
-            {/* DAY RECEIPT SYNTHESIS ENTRY */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Priority Item 1: Real Task Priority or Actionable Prompt */}
             <div
-              onClick={() => setShowDayReceipt(true)}
               style={{
-                padding: '14px 18px',
-                borderRadius: '16px',
                 background: '#FFFFFF',
                 border: '1.5px solid var(--brand-border, #E5E0D8)',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                borderRadius: '16px',
+                padding: '12px 14px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                 transition: 'all 0.15s ease',
-                marginBottom: '16px',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--brand-petrol, #174A55)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--brand-border, #E5E0D8)';
-              }}
+              onClick={() => navigate('/growth')}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--brand-petrol, #174A55)' }} />
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--brand-petrol, #174A55)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                    DAY RECEIPT SYNTHESIS
-                  </span>
-                </div>
-                <div style={{ fontSize: '13px', color: 'var(--brand-muted, #5A6D75)' }}>
-                  {timeline.length > 0 ? 'Your day is synthesized. View daily receipt →' : 'View daily receipt artifact →'}
-                </div>
-              </div>
-              <div
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '8px',
-                  background: 'var(--brand-petrol, #174A55)',
-                  color: '#FFFFFF',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  letterSpacing: '0.04em',
-                }}
-              >
-                RECEIPT
-              </div>
-            </div>
-
-            {/* QUICK CAPTURE / BRAIN DUMP */}
-            <div>
-              <BrainDumpEntry
-                userId={user?.id}
-                onStateChange={() => user?.id && loadData(user.id)}
-              />
-            </div>
-          </div>
-
-          {/* ── Secondary Column: Four Anchors, Recent Activity & Arc ── */}
-          <div className="zenith-col-anchors">
-
-            {/* NEXT UP 3 ITEMS (if habits view expanded) */}
-            {showAllZenith && (
-              <div>
-                <ZenithNextUp
-                  tasks={tasks}
-                  habits={habits}
-                  onViewAll={() => setShowAllZenith(prev => !prev)}
-                />
-              </div>
-            )}
-
-            {/* RECENT ACTIVITY STREAM (Flat List Items) */}
-            <div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '12px',
-              }}>
-                <h3 style={{
-                  margin: 0,
-                  fontSize: '15px',
-                  fontWeight: 800,
-                  color: '#F1F5F3',
-                  letterSpacing: '-0.01em',
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  background: 'var(--brand-soft-teal, #DDE9EB)',
+                  color: 'var(--brand-petrol, #174A55)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
                 }}>
-                  Recent Activity
-                </h3>
-                <span style={{ fontSize: '12px', color: '#7E948A', fontWeight: 500 }}>
-                  {timeline.length} events today
-                </span>
+                  <Clock size={16} strokeWidth={2.2} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: 'var(--brand-charcoal, #111A20)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
+                    {topTaskPriority?.name || 'Plan the next study session'}
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: 'var(--brand-text-sub, #6B7B82)',
+                    marginTop: '1px',
+                  }}>
+                    {topTaskPriority?.growth_projects?.name || topTaskPriority?.taskObj?.growth_projects?.name
+                      ? `${topTaskPriority?.growth_projects?.name || topTaskPriority?.taskObj?.growth_projects?.name} • Focus`
+                      : 'Growth • Focus'}
+                  </div>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {timeline.length > 0 ? (
-                  timeline.slice(0, 4).map((evt, idx) => {
-                    const typeColor = evt.type === 'expense' ? '#EC4899'
-                      : evt.type === 'food' ? '#EAB308'
-                      : evt.type === 'focus' ? '#A855F7'
-                      : evt.type === 'sleep' ? '#818CF8'
-                      : evt.type === 'water' ? '#38BDF8'
-                      : 'var(--brand-petrol, #174A55)';
-                    return (
-                      <div
-                        key={idx}
-                        style={{
-                          background: '#111A15',
-                          border: '1px solid #1A2B23',
-                          borderRadius: '16px',
-                          padding: '12px 14px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '10px',
-                            background: `${typeColor}18`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}>
-                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: typeColor }} />
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '14px', fontWeight: 700, color: '#F1F5F3' }}>
-                              {evt.text}
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#7E948A', marginTop: '1px' }}>
-                              {evt.time} • Verified
-                            </div>
-                          </div>
-                        </div>
-                        <ChevronRight size={16} color="#7E948A" />
-                      </div>
-                    );
-                  })
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: '8px' }}>
+                {topTaskPriority ? (
+                  <button
+                    type="button"
+                    aria-label="Complete priority task"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePriority(topTaskPriority);
+                    }}
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      border: topTaskPriority.done ? 'none' : '1.5px solid var(--brand-border, #E5E0D8)',
+                      background: topTaskPriority.done ? 'var(--brand-petrol, #174A55)' : 'transparent',
+                      color: topTaskPriority.done ? '#FFFFFF' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <CheckCircle2 size={16} strokeWidth={2.4} color={topTaskPriority.done ? '#FFFFFF' : '#B5C2BC'} />
+                  </button>
                 ) : (
-                  <div style={{
-                    background: '#111A15',
-                    border: '1px dashed #1A2B23',
-                    borderRadius: '16px',
-                    padding: '20px',
-                    textAlign: 'center',
-                    color: '#7E948A',
-                    fontSize: '13px',
-                  }}>
-                    No activities logged yet today. Tap Quick Add (+) to start!
-                  </div>
+                  <ChevronRight size={16} color="var(--brand-text-sub, #6B7B82)" />
                 )}
               </div>
             </div>
 
+            {/* Priority Item 2: Keystone Habit Check-in or Actionable Prompt */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1.5px solid var(--brand-border, #E5E0D8)',
+                borderRadius: '16px',
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                transition: 'all 0.15s ease',
+              }}
+              onClick={() => {
+                if (keystoneHabit) {
+                  handleToggle(keystoneHabit);
+                } else {
+                  setEditHabit(null);
+                  setForm({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
+                  setShowModal(true);
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  background: 'var(--brand-soft-teal, #DDE9EB)',
+                  color: 'var(--brand-petrol, #174A55)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <Flame size={16} strokeWidth={2.2} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: 'var(--brand-charcoal, #111A20)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
+                    {keystoneHabit ? keystoneHabit.name : 'Log a habit'}
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: 'var(--brand-text-sub, #6B7B82)',
+                    marginTop: '1px',
+                  }}>
+                    {keystoneHabit
+                      ? `${streaks[keystoneHabit.id] || 0}d streak • ${keystoneHabit.zone ? keystoneHabit.zone.charAt(0).toUpperCase() + keystoneHabit.zone.slice(1) : 'Habit'}`
+                      : 'Start with one small, repeatable step'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: '8px' }}>
+                {keystoneHabit ? (
+                  <button
+                    type="button"
+                    aria-label="Toggle habit"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggle(keystoneHabit);
+                    }}
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      border: completedHabitIds.has(keystoneHabit.id) ? 'none' : '1.5px solid var(--brand-border, #E5E0D8)',
+                      background: completedHabitIds.has(keystoneHabit.id) ? 'var(--brand-petrol, #174A55)' : 'transparent',
+                      color: completedHabitIds.has(keystoneHabit.id) ? '#FFFFFF' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <CheckCircle2 size={16} strokeWidth={2.4} color={completedHabitIds.has(keystoneHabit.id) ? '#FFFFFF' : '#B5C2BC'} />
+                  </button>
+                ) : (
+                  <ChevronRight size={16} color="var(--brand-text-sub, #6B7B82)" />
+                )}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* ── Your Daily Pulse ── */}
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '10px',
+          }}>
+            <h2 style={{
+              fontSize: '16px',
+              fontWeight: 700,
+              color: 'var(--brand-charcoal, #111A20)',
+              margin: 0,
+            }}>
+              Your daily pulse
+            </h2>
+            <span style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--brand-text-sub, #6B7B82)',
+            }}>
+              FROM YOUR RECORDS
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+            {/* Habits Pulse Card */}
+            <div style={{
+              background: '#FFFFFF',
+              border: '1.5px solid var(--brand-border, #E5E0D8)',
+              borderRadius: '16px',
+              padding: '14px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minHeight: '105px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--brand-charcoal, #111A20)' }}>Habits</span>
+                  <RotateCcw size={14} color="var(--brand-text-sub, #6B7B82)" />
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--brand-text-sub, #6B7B82)', lineHeight: 1.35 }}>
+                  {totalHabitsCount > 0 ? `${completedHabitsCount} of ${totalHabitsCount} completed` : 'Your consistency starts here.'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditHabit(null);
+                  setForm({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
+                  setShowModal(true);
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--brand-petrol, #174A55)',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  marginTop: '10px',
+                }}
+              >
+                <span>Add a habit</span>
+                <span>→</span>
+              </button>
+            </div>
+
+            {/* Continue Focus Pulse Card */}
+            <div style={{
+              background: '#FFFFFF',
+              border: '1.5px solid var(--brand-border, #E5E0D8)',
+              borderRadius: '16px',
+              padding: '14px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minHeight: '105px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--brand-charcoal, #111A20)' }}>Continue</span>
+                  <Play size={14} color="var(--brand-text-sub, #6B7B82)" />
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--brand-text-sub, #6B7B82)', lineHeight: 1.35 }}>
+                  {totalFocusMinutes > 0 ? `${totalFocusMinutes}m focused today` : 'No recent session to resume.'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('dexos:start-focus', { detail: { duration: 25, mode: 'timed' } }));
+                  navigate('/growth');
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--brand-petrol, #174A55)',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  marginTop: '10px',
+                }}
+              >
+                <span>Start focus</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Quick Action Chips Row ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px',
+          marginBottom: '20px',
+        }}>
+          <button
+            type="button"
+            onClick={() => {
+              setEditHabit(null);
+              setForm({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
+              setShowModal(true);
+            }}
+            style={{
+              flex: 1,
+              padding: '10px 14px',
+              background: '#FFFFFF',
+              border: '1.5px solid var(--brand-border, #E5E0D8)',
+              borderRadius: '9999px',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--brand-charcoal, #111A20)',
+              cursor: 'pointer',
+              textAlign: 'center',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            + Habit
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/food')}
+            style={{
+              flex: 1,
+              padding: '10px 14px',
+              background: '#FFFFFF',
+              border: '1.5px solid var(--brand-border, #E5E0D8)',
+              borderRadius: '9999px',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--brand-charcoal, #111A20)',
+              cursor: 'pointer',
+              textAlign: 'center',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            + Meal
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/wealth')}
+            style={{
+              flex: 1,
+              padding: '10px 14px',
+              background: '#FFFFFF',
+              border: '1.5px solid var(--brand-border, #E5E0D8)',
+              borderRadius: '9999px',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--brand-charcoal, #111A20)',
+              cursor: 'pointer',
+              textAlign: 'center',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            + Expense
+          </button>
+        </div>
+
+        {/* ── Subtle Dex Prompt ── */}
+        <div
+          onClick={() => window.dispatchEvent(new CustomEvent('dexos:open-dex'))}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            padding: '10px 12px',
+            color: 'var(--brand-petrol, #174A55)',
+            fontSize: '13px',
+            fontWeight: 600,
+            borderRadius: '12px',
+            transition: 'background 0.15s ease',
+          }}
+        >
+          <Sparkles size={14} color="var(--brand-petrol, #174A55)" />
+          <span>Need a starting point? Plan with Dex ↗</span>
+        </div>
       </div>
+
+      {/* ── ADD / EDIT HABIT MODAL ── */}
+      {showModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(17, 26, 32, 0.45)',
+          backdropFilter: 'blur(3px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          zIndex: 100,
+        }}
+        onClick={() => setShowModal(false)}
+        >
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '20px',
+            padding: '24px 20px',
+            width: '100%',
+            maxWidth: '380px',
+            boxShadow: '0 12px 36px rgba(0,0,0,0.12)',
+            border: '1.5px solid var(--brand-border, #E5E0D8)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: 'var(--brand-charcoal, #111A20)' }}>
+                {editHabit ? 'Edit Habit' : 'Create Habit'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand-text-sub, #6B7B82)' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--brand-text-sub, #6B7B82)', marginBottom: '6px' }}>
+                  Habit Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Read 15 pages, Drink water"
+                  value={form.name}
+                  onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--brand-border, #E5E0D8)',
+                    fontSize: '14px',
+                    color: 'var(--brand-charcoal, #111A20)',
+                    background: '#FFFFFF',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--brand-text-sub, #6B7B82)', marginBottom: '6px' }}>
+                  Zone
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                  {ZONE_OPTIONS.map(z => {
+                    const isSelected = form.zone === z.id;
+                    return (
+                      <button
+                        key={z.id}
+                        type="button"
+                        onClick={() => setForm(prev => ({ ...prev, zone: z.id }))}
+                        style={{
+                          padding: '7px 4px',
+                          borderRadius: '10px',
+                          border: isSelected ? '1.5px solid var(--brand-petrol, #174A55)' : '1.5px solid var(--brand-border, #E5E0D8)',
+                          background: isSelected ? 'var(--brand-soft-teal, #DDE9EB)' : '#FFFFFF',
+                          color: isSelected ? 'var(--brand-petrol, #174A55)' : 'var(--brand-text-sub, #6B7B82)',
+                          fontSize: '12px',
+                          fontWeight: isSelected ? 700 : 500,
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                        }}
+                      >
+                        {z.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  disabled={!form.name.trim() || isSubmittingForm}
+                  onClick={saveHabit}
+                  style={{
+                    flex: 1,
+                    padding: '11px',
+                    borderRadius: '12px',
+                    background: form.name.trim() && !isSubmittingForm ? 'var(--brand-petrol, #174A55)' : '#A1B5BC',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    cursor: form.name.trim() && !isSubmittingForm ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  {isSubmittingForm ? 'Saving...' : editHabit ? 'Update Habit' : 'Save Habit'}
+                </button>
+                {editHabit && (
+                  <button
+                    type="button"
+                    onClick={() => confirmDelete()}
+                    style={{
+                      padding: '11px 16px',
+                      borderRadius: '12px',
+                      background: '#FEE2E2',
+                      color: '#EF4444',
+                      border: 'none',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DAILY REFLECTION MODAL ── */}
+      {showReflection && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(17, 26, 32, 0.45)',
+          backdropFilter: 'blur(3px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          zIndex: 100,
+        }}
+        onClick={() => setShowReflection(false)}
+        >
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '20px',
+            padding: '24px 20px',
+            width: '100%',
+            maxWidth: '380px',
+            boxShadow: '0 12px 36px rgba(0,0,0,0.12)',
+            border: '1.5px solid var(--brand-border, #E5E0D8)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: 'var(--brand-charcoal, #111A20)' }}>
+                Daily Reflection
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowReflection(false)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand-text-sub, #6B7B82)' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ margin: '0 0 12px', fontSize: '14px', color: 'var(--brand-charcoal, #111A20)', fontWeight: 600 }}>
+              {reflectionQuestion || 'What gave you energy today?'}
+            </p>
+
+            <textarea
+              rows={4}
+              placeholder="A few thoughts on today..."
+              value={reflectionText}
+              onChange={(e) => setReflectionText(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '12px',
+                border: '1.5px solid var(--brand-border, #E5E0D8)',
+                fontSize: '13px',
+                color: 'var(--brand-charcoal, #111A20)',
+                background: '#FFFFFF',
+                boxSizing: 'border-box',
+                outline: 'none',
+                resize: 'none',
+                marginBottom: '14px',
+              }}
+            />
+
+            <button
+              type="button"
+              disabled={!reflectionText.trim() || isSubmittingForm}
+              onClick={saveReflection}
+              style={{
+                width: '100%',
+                padding: '11px',
+                borderRadius: '12px',
+                background: reflectionText.trim() && !isSubmittingForm ? 'var(--brand-petrol, #174A55)' : '#A1B5BC',
+                color: '#FFFFFF',
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: 700,
+                cursor: reflectionText.trim() && !isSubmittingForm ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {isSubmittingForm ? 'Saving...' : 'Save Reflection'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── DAY RECEIPT MODAL ── */}
       <DayReceiptModal
@@ -1762,7 +2003,11 @@ export default function Zenith() {
         }}
       />
 
-      <BottomNav activeTab="zenith" onTabChange={(t) => navigate(`/${t}`)} />
+      {/* ── FIXED BOTTOM NAVIGATION ── */}
+      <BottomNav
+        activeTab="zenith"
+        onTabChange={(t) => navigate(t === 'zenith' ? '/zenith' : t === 'track' ? '/track' : t === 'insights' ? '/insights' : t === 'profile' || t === 'you' || t === 'space' ? '/profile' : `/${t}`)}
+      />
     </div>
   );
 }

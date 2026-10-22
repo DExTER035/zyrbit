@@ -29,9 +29,9 @@ import { FEATURES, FOOD_AMBIGUITY_CALORIE_THRESHOLD } from '../../../config/feat
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 const ACCENT_PETROL = '#174A55';
-const ACCENT_MUTED_TEAL = '#367887';
-const SURFACE_CARD = '#12161A';
-const BORDER_SUBTLE = '#1E252D';
+const ACCENT_MUTED_TEAL = '#2A6570';
+const SURFACE_CARD = '#FFFFFF';
+const BORDER_SUBTLE = '#E5E0D8';
 
 // ── Browse Categories for All Foods Tab (Flow 8) ──────────────────────────────
 const BROWSE_CATEGORIES = [
@@ -511,7 +511,8 @@ export default function FoodPicker({
                       width: '40px',
                       height: '40px',
                       borderRadius: '12px',
-                      background: 'rgba(255,255,255,0.06)',
+                      background: FC.dim,
+                      border: `1px solid ${BORDER_SUBTLE}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -532,7 +533,7 @@ export default function FoodPicker({
                     width: '20px',
                     height: '20px',
                     borderRadius: '50%',
-                    border: `2px solid ${BORDER_SUBTLE}`,
+                    border: `1.5px solid ${BORDER_SUBTLE}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -636,7 +637,7 @@ export default function FoodPicker({
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '44px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+              boxShadow: '0 4px 16px rgba(17,26,32,0.06)',
             }}>
               {selectedFood.emoji || '🍽️'}
             </div>
@@ -650,13 +651,13 @@ export default function FoodPicker({
                 </span>
                 {selectedFood.preparationState && selectedFood.preparationState !== 'raw' && (
                   <span style={{
-                    background: 'rgba(23,74,85,0.25)',
-                    border: '1px solid rgba(54,120,135,0.3)',
+                    background: 'rgba(23,74,85,0.08)',
+                    border: '1px solid rgba(23,74,85,0.2)',
                     borderRadius: '6px',
                     padding: '1px 6px',
                     fontSize: '11px',
                     fontWeight: 700,
-                    color: ACCENT_MUTED_TEAL,
+                    color: ACCENT_PETROL,
                     textTransform: 'capitalize',
                   }}>
                     {selectedFood.preparationState}
@@ -700,9 +701,9 @@ export default function FoodPicker({
                     style={{
                       padding: '8px 4px',
                       borderRadius: '10px',
-                      background: isSelected ? 'rgba(23,74,85,0.25)' : SURFACE_CARD,
-                      border: `1px solid ${isSelected ? ACCENT_MUTED_TEAL : BORDER_SUBTLE}`,
-                      color: isSelected ? '#F4F0E8' : FC.sub,
+                      background: isSelected ? 'rgba(23,74,85,0.08)' : SURFACE_CARD,
+                      border: `1px solid ${isSelected ? ACCENT_PETROL : BORDER_SUBTLE}`,
+                      color: isSelected ? ACCENT_PETROL : FC.sub,
                       fontSize: '12px',
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -738,8 +739,8 @@ export default function FoodPicker({
                       justifyContent: 'space-between',
                       padding: '12px 16px',
                       borderRadius: '14px',
-                      background: isSelected ? 'rgba(23,74,85,0.2)' : SURFACE_CARD,
-                      border: `1px solid ${isSelected ? ACCENT_MUTED_TEAL : BORDER_SUBTLE}`,
+                      background: isSelected ? 'rgba(23,74,85,0.06)' : SURFACE_CARD,
+                      border: `1px solid ${isSelected ? ACCENT_PETROL : BORDER_SUBTLE}`,
                       cursor: 'pointer',
                       textAlign: 'left',
                     }}
@@ -771,8 +772,8 @@ export default function FoodPicker({
               {/* Custom Amount Option */}
               <div style={{
                 borderRadius: '14px',
-                background: isCustomMode ? 'rgba(23,74,85,0.2)' : SURFACE_CARD,
-                border: `1px solid ${isCustomMode ? ACCENT_MUTED_TEAL : BORDER_SUBTLE}`,
+                background: isCustomMode ? 'rgba(23,74,85,0.06)' : SURFACE_CARD,
+                border: `1px solid ${isCustomMode ? ACCENT_PETROL : BORDER_SUBTLE}`,
                 padding: '12px 16px',
               }}>
                 <button
@@ -847,7 +848,7 @@ export default function FoodPicker({
       <FBottomSheet title={editingPersonalFood ? 'Edit Personal Food' : 'Create Personal Food'} onClose={() => setView('picker')}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '10px' }}>
           {/* Segmented Control: Single Food vs Recipe */}
-          <div style={{ display: 'flex', background: SURFACE_CARD, borderRadius: '12px', padding: '3px' }}>
+          <div style={{ display: 'flex', background: FC.dim, borderRadius: '12px', padding: '3px', border: `1px solid ${BORDER_SUBTLE}` }}>
             <button
               type="button"
               onClick={() => setPersonalTab('single')}
@@ -856,7 +857,7 @@ export default function FoodPicker({
                 padding: '8px',
                 borderRadius: '10px',
                 background: personalTab === 'single' ? ACCENT_PETROL : 'transparent',
-                color: personalTab === 'single' ? '#FFF' : FC.sub,
+                color: personalTab === 'single' ? '#FFFFFF' : FC.sub,
                 border: 'none',
                 fontSize: '12px',
                 fontWeight: 700,
@@ -873,7 +874,7 @@ export default function FoodPicker({
                 padding: '8px',
                 borderRadius: '10px',
                 background: personalTab === 'recipe' ? ACCENT_PETROL : 'transparent',
-                color: personalTab === 'recipe' ? '#FFF' : FC.sub,
+                color: personalTab === 'recipe' ? '#FFFFFF' : FC.sub,
                 border: 'none',
                 fontSize: '12px',
                 fontWeight: 700,
@@ -913,7 +914,7 @@ export default function FoodPicker({
               }}
             >
               {BROWSE_CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id} style={{ background: '#15181B' }}>
+                <option key={c.id} value={c.id} style={{ background: '#FFFFFF', color: FC.text }}>
                   {c.emoji} {c.label}
                 </option>
               ))}
@@ -1069,8 +1070,8 @@ export default function FoodPicker({
                     padding: '10px 0',
                     background: 'transparent',
                     border: 'none',
-                    borderBottom: `2px solid ${isActive ? ACCENT_MUTED_TEAL : 'transparent'}`,
-                    color: isActive ? '#F4F0E8' : FC.sub,
+                    borderBottom: `2px solid ${isActive ? ACCENT_PETROL : 'transparent'}`,
+                    color: isActive ? ACCENT_PETROL : FC.sub,
                     fontSize: '13px',
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -1415,7 +1416,8 @@ function FoodItemRow({
           width: '40px',
           height: '40px',
           borderRadius: '12px',
-          background: 'rgba(255,255,255,0.06)',
+          background: FC.dim,
+          border: `1px solid ${BORDER_SUBTLE}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1444,8 +1446,8 @@ function FoodItemRow({
               <span style={{
                 fontSize: '10px',
                 fontWeight: 700,
-                color: ACCENT_MUTED_TEAL,
-                background: 'rgba(23,74,85,0.25)',
+                color: ACCENT_PETROL,
+                background: 'rgba(23,74,85,0.08)',
                 padding: '1px 6px',
                 borderRadius: '4px',
               }}>
@@ -1457,7 +1459,8 @@ function FoodItemRow({
             </span>
             {food.preparationState && food.preparationState !== 'raw' && !isPersonal && (
               <span style={{
-                background: 'rgba(255,255,255,0.06)',
+                background: FC.dim,
+                border: `1px solid ${BORDER_SUBTLE}`,
                 borderRadius: '4px',
                 padding: '0 4px',
                 fontSize: '10px',
@@ -1506,8 +1509,8 @@ function FoodItemRow({
               height: '28px',
               borderRadius: '50%',
               border: `1.5px solid ${BORDER_SUBTLE}`,
-              background: 'rgba(23, 74, 85, 0.25)',
-              color: '#F4F0E8',
+              background: 'rgba(23, 74, 85, 0.08)',
+              color: ACCENT_PETROL,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

@@ -3,7 +3,7 @@ import {
   X,
   Utensils,
   CreditCard,
-  Timer,
+  TrendingUp,
   CheckCircle2,
   Activity,
   Sparkles,
@@ -29,7 +29,7 @@ export default function QuickAddSheet({ isOpen, onClose, onSelectAction }) {
       id: 'growth',
       title: 'Growth',
       subtitle: 'Tasks, focus sprints, and goals',
-      icon: Timer,
+      icon: TrendingUp,
       color: '#174A55',
       bgColor: '#DDE9EB',
       route: '/growth',
@@ -105,7 +105,7 @@ export default function QuickAddSheet({ isOpen, onClose, onSelectAction }) {
         style={{
           width: '100%',
           maxWidth: '430px',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: '#FAF7F2',
           borderRadius: '24px 24px 0 0',
           borderTop: '1px solid var(--brand-border, #E5E0D8)',
           boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.12)',
@@ -146,7 +146,7 @@ export default function QuickAddSheet({ isOpen, onClose, onSelectAction }) {
                 fontFamily: "'Inter', sans-serif",
               }}
             >
-              Quick Action
+              Quick Add
             </h2>
             <p
               style={{

@@ -48,17 +48,18 @@ export default function HabitsTab({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* ── State sentence & Subtle Single-Line Summary ── */}
       <div style={{
-        background: '#15161B',
-        border: '1px solid #26272D',
-        borderRadius: '16px',
-        padding: '14px 16px',
+        background: '#FFFFFF',
+        border: '1px solid var(--brand-border, #E5E0D8)',
+        borderRadius: '18px',
+        padding: '16px 18px',
         display: 'flex',
         flexDirection: 'column',
         gap: '4px',
+        boxShadow: '0 2px 8px rgba(17, 26, 32, 0.03)',
       }}>
         <div style={{
           fontSize: '12px',
-          color: '#9A978F',
+          color: '#68777B',
           fontWeight: 500,
         }}>
           "Small actions, repeated."
@@ -66,7 +67,7 @@ export default function HabitsTab({
         <div style={{
           fontSize: '14px',
           fontWeight: 700,
-          color: '#ECE8DF',
+          color: '#111A20',
           letterSpacing: '-0.01em',
         }}>
           {completedTodayCount} of {habits.length} habits complete · {bestStreak}d best streak
@@ -84,11 +85,11 @@ export default function HabitsTab({
                 type="button"
                 onClick={() => setSelectedZone(z.id)}
                 style={{
-                  background: isSel ? 'rgba(31, 163, 111, 0.15)' : '#15161B',
-                  border: `1px solid ${isSel ? '#1FA36F' : '#26272D'}`,
+                  background: isSel ? 'rgba(23, 74, 85, 0.1)' : '#FFFFFF',
+                  border: `1px solid ${isSel ? 'var(--brand-petrol, #174A55)' : 'var(--brand-border, #E5E0D8)'}`,
                   borderRadius: '10px',
                   padding: '6px 12px',
-                  color: isSel ? '#1FA36F' : '#9A978F',
+                  color: isSel ? 'var(--brand-petrol, #174A55)' : '#68777B',
                   fontSize: '12px',
                   fontWeight: isSel ? 700 : 500,
                   cursor: 'pointer',
@@ -106,11 +107,11 @@ export default function HabitsTab({
           type="button"
           onClick={onAddHabit}
           style={{
-            background: '#1FA36F',
-            color: '#0B0D0F',
+            background: 'var(--brand-petrol, #174A55)',
+            color: '#FFFFFF',
             border: 'none',
             borderRadius: '10px',
-            padding: '7px 12px',
+            padding: '7px 14px',
             fontSize: '12px',
             fontWeight: 800,
             cursor: 'pointer',
@@ -132,27 +133,27 @@ export default function HabitsTab({
         <div style={{
           textAlign: 'center',
           padding: '36px 20px',
-          border: '1px dashed #26272D',
+          border: '1px dashed var(--brand-border, #E5E0D8)',
           borderRadius: '18px',
-          background: '#15161B',
+          background: '#FFFFFF',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           gap: '10px',
         }}>
           <div style={{ fontSize: '32px' }}>🌱</div>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: '#ECE8DF' }}>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#111A20' }}>
             {selectedZone === 'all' ? 'What do you want to make automatic?' : `No habits in ${selectedZone}`}
           </div>
-          <div style={{ fontSize: '12px', color: '#9A978F', maxWidth: '320px', lineHeight: 1.5 }}>
+          <div style={{ fontSize: '12px', color: '#68777B', maxWidth: '320px', lineHeight: 1.5 }}>
             Optional examples: Read 20 mins, Train, Drink water, Sleep before 11.
           </div>
           <button
             type="button"
             onClick={onAddHabit}
             style={{
-              background: '#E9B44C',
-              color: '#0B0D0F',
+              background: 'var(--brand-petrol, #174A55)',
+              color: '#FFFFFF',
               border: 'none',
               borderRadius: '10px',
               padding: '9px 16px',
@@ -182,21 +183,22 @@ export default function HabitsTab({
                 style={{
                   background: isDone
                     ? 'rgba(31, 163, 111, 0.06)'
-                    : isSkipped ? 'rgba(245, 158, 11, 0.06)' : '#15161B',
-                  border: `1px solid ${isDone ? 'rgba(31, 163, 111, 0.35)' : isSkipped ? 'rgba(245, 158, 11, 0.35)' : '#26272D'}`,
+                    : isSkipped ? 'rgba(245, 158, 11, 0.06)' : '#FFFFFF',
+                  border: `1px solid ${isDone ? 'rgba(31, 163, 111, 0.35)' : isSkipped ? 'rgba(245, 158, 11, 0.35)' : 'var(--brand-border, #E5E0D8)'}`,
                   borderRadius: '16px',
                   padding: '12px 14px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(17, 26, 32, 0.02)',
                   transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = isDone ? 'rgba(31, 163, 111, 0.5)' : '#3A3B40';
+                  e.currentTarget.style.borderColor = isDone ? 'rgba(31, 163, 111, 0.5)' : 'var(--brand-petrol, #174A55)';
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = isDone ? 'rgba(31, 163, 111, 0.35)' : isSkipped ? 'rgba(245, 158, 11, 0.35)' : '#26272D';
+                  e.currentTarget.style.borderColor = isDone ? 'rgba(31, 163, 111, 0.35)' : isSkipped ? 'rgba(245, 158, 11, 0.35)' : 'var(--brand-border, #E5E0D8)';
                 }}
               >
                 {/* Primary Completion Button + Label */}
@@ -213,12 +215,12 @@ export default function HabitsTab({
                       height: '28px',
                       borderRadius: '50%',
                       background: isDone ? '#1FA36F' : 'transparent',
-                      border: `1.5px solid ${isDone ? '#1FA36F' : isSkipped ? '#F59E0B' : '#4B5563'}`,
+                      border: `1.5px solid ${isDone ? '#1FA36F' : isSkipped ? '#F59E0B' : '#CBD5E1'}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: isSubmitting ? 'wait' : 'pointer',
-                      color: isDone ? '#0B0D0F' : '#9CA3AF',
+                      color: isDone ? '#FFFFFF' : '#9CA3AF',
                       transition: 'all 0.15s ease',
                       flexShrink: 0,
                     }}
@@ -230,7 +232,7 @@ export default function HabitsTab({
                     <div style={{
                       fontSize: '14px',
                       fontWeight: 700,
-                      color: isDone ? '#9CA3AF' : '#ECE8DF',
+                      color: isDone ? '#8A9CA3' : '#111A20',
                       textDecoration: isDone ? 'line-through' : 'none',
                       transition: 'all 0.15s ease',
                     }}>
@@ -246,8 +248,8 @@ export default function HabitsTab({
                       }}>
                         {zoneMeta.label}
                       </span>
-                      <span style={{ fontSize: '10px', color: '#6B7280' }}>·</span>
-                      <span style={{ fontSize: '11px', color: '#9A978F' }}>
+                      <span style={{ fontSize: '10px', color: '#CBD5E1' }}>·</span>
+                      <span style={{ fontSize: '11px', color: '#68777B' }}>
                         {habitStreak > 0 ? `${habitStreak} day streak` : '0 days'}
                       </span>
                     </div>
@@ -260,7 +262,7 @@ export default function HabitsTab({
                     <span style={{
                       fontSize: '12px',
                       fontWeight: 700,
-                      color: '#F59E0B',
+                      color: '#D97706',
                       background: 'rgba(245, 158, 11, 0.12)',
                       padding: '2px 7px',
                       borderRadius: '8px',
@@ -268,7 +270,7 @@ export default function HabitsTab({
                       🔥 {habitStreak}d
                     </span>
                   )}
-                  <ChevronRight size={14} color="#6B7280" />
+                  <ChevronRight size={14} color="#8A9CA3" />
                 </div>
               </div>
             );
@@ -284,7 +286,7 @@ export default function HabitsTab({
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#6B7280',
+            color: '#68777B',
             fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -301,13 +303,14 @@ export default function HabitsTab({
         {showGlobalHeatmap && (
           <div style={{
             marginTop: '12px',
-            background: '#15161B',
-            border: '1px solid #26272D',
+            background: '#FFFFFF',
+            border: '1px solid var(--brand-border, #E5E0D8)',
             borderRadius: '16px',
             padding: '16px',
+            boxShadow: '0 2px 8px rgba(17, 26, 32, 0.03)',
           }}>
             <HeatmapGrid
-              color="#1FA36F"
+              color="#174A55"
               dataMap={yearlyCompletionsMap}
               label="Habit Consistency (90 Days)"
               days={91}
@@ -323,9 +326,9 @@ export default function HabitsTab({
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.82)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
+            background: 'rgba(17, 26, 32, 0.45)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             zIndex: 200,
             display: 'flex',
             alignItems: 'flex-end',
@@ -335,14 +338,14 @@ export default function HabitsTab({
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: '#15161B',
-              border: '1px solid #26272D',
+              background: '#FFFFFF',
+              border: '1px solid var(--brand-border, #E5E0D8)',
               borderRadius: '24px 24px 0 0',
               width: '100%',
-              maxWidth: '430px',
+              maxWidth: '480px',
               padding: '24px 20px 36px',
               animation: 'slideUpSheet 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-              boxShadow: '0 -8px 40px rgba(0, 0, 0, 0.5)',
+              boxShadow: '0 -8px 30px rgba(17, 26, 32, 0.12)',
               maxHeight: '90vh',
               overflowY: 'auto',
             }}
@@ -353,8 +356,8 @@ export default function HabitsTab({
                 <div style={{
                   fontSize: '11px',
                   fontWeight: 800,
-                  color: '#1FA36F',
-                  letterSpacing: '0.12em',
+                  color: 'var(--brand-petrol, #174A55)',
+                  letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                   marginBottom: '3px',
                 }}>
@@ -363,12 +366,12 @@ export default function HabitsTab({
                 <div style={{
                   fontSize: '18px',
                   fontWeight: 800,
-                  color: '#ECE8DF',
+                  color: '#111A20',
                   letterSpacing: '-0.02em',
                 }}>
                   {selectedHabitDetail.habit.name}
                 </div>
-                <div style={{ fontSize: '12px', color: '#9A978F', marginTop: '2px', textTransform: 'capitalize' }}>
+                <div style={{ fontSize: '12px', color: '#68777B', marginTop: '2px', textTransform: 'capitalize' }}>
                   {selectedHabitDetail.habit.zone} Zone · {selectedHabitDetail.habit.frequency || 'Daily'}
                 </div>
               </div>
@@ -377,8 +380,8 @@ export default function HabitsTab({
                 type="button"
                 onClick={() => setSelectedHabitDetail(null)}
                 style={{
-                  background: '#1F2026',
-                  border: '1px solid #26272D',
+                  background: '#FAF7F2',
+                  border: '1px solid var(--brand-border, #E5E0D8)',
                   borderRadius: '50%',
                   width: '32px',
                   height: '32px',
@@ -386,7 +389,7 @@ export default function HabitsTab({
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: '#9A978F',
+                  color: '#68777B',
                 }}
               >
                 <X size={15} />
@@ -401,24 +404,24 @@ export default function HabitsTab({
               marginBottom: '16px',
             }}>
               <div style={{
-                background: '#0E0F13',
-                border: '1px solid #26272D',
+                background: '#FAF7F2',
+                border: '1px solid var(--brand-border, #E5E0D8)',
                 borderRadius: '14px',
                 padding: '12px 14px',
               }}>
-                <div style={{ fontSize: '11px', color: '#9A978F', fontWeight: 600 }}>Current Streak</div>
-                <div style={{ fontSize: '20px', fontWeight: 800, color: '#F59E0B', marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', color: '#68777B', fontWeight: 600 }}>Current Streak</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#D97706', marginTop: '2px' }}>
                   🔥 {selectedHabitDetail.streak} days
                 </div>
               </div>
 
               <div style={{
-                background: '#0E0F13',
-                border: '1px solid #26272D',
+                background: '#FAF7F2',
+                border: '1px solid var(--brand-border, #E5E0D8)',
                 borderRadius: '14px',
                 padding: '12px 14px',
               }}>
-                <div style={{ fontSize: '11px', color: '#9A978F', fontWeight: 600 }}>Longest Streak</div>
+                <div style={{ fontSize: '11px', color: '#68777B', fontWeight: 600 }}>Longest Streak</div>
                 <div style={{ fontSize: '20px', fontWeight: 800, color: '#1FA36F', marginTop: '2px' }}>
                   ⭐ {longestStreaks[selectedHabitDetail.habit.id] || selectedHabitDetail.streak} days
                 </div>
@@ -428,8 +431,8 @@ export default function HabitsTab({
             {/* Impact Insight */}
             {habitImpacts[selectedHabitDetail.habit.id]?.explanation && (
               <div style={{
-                background: '#0E0F13',
-                border: '1px solid #26272D',
+                background: '#FAF7F2',
+                border: '1px solid var(--brand-border, #E5E0D8)',
                 borderRadius: '12px',
                 padding: '10px 14px',
                 marginBottom: '16px',
@@ -438,7 +441,7 @@ export default function HabitsTab({
                 gap: '8px',
               }}>
                 <span style={{ fontSize: '14px' }}>⚡</span>
-                <span style={{ fontSize: '12px', color: '#9CA3AF' }}>
+                <span style={{ fontSize: '12px', color: '#111A20' }}>
                   {habitImpacts[selectedHabitDetail.habit.id].explanation}
                 </span>
               </div>
@@ -446,17 +449,17 @@ export default function HabitsTab({
 
             {/* Habit-specific Heatmap */}
             <div style={{
-              background: '#0E0F13',
-              border: '1px solid #26272D',
+              background: '#FAF7F2',
+              border: '1px solid var(--brand-border, #E5E0D8)',
               borderRadius: '16px',
               padding: '14px',
               marginBottom: '18px',
             }}>
-              <div style={{ fontSize: '11px', color: '#9A978F', fontWeight: 700, marginBottom: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#68777B', fontWeight: 700, marginBottom: '8px' }}>
                 Consistency History (90 Days)
               </div>
               <HeatmapGrid
-                color="#1FA36F"
+                color="#174A55"
                 dataMap={(() => {
                   const m = {};
                   selectedHabitDetail.logs.forEach(l => {
@@ -484,9 +487,9 @@ export default function HabitsTab({
                     flex: 1,
                     padding: '12px',
                     borderRadius: '14px',
-                    background: '#1F2026',
-                    border: '1px solid #26272D',
-                    color: '#ECE8DF',
+                    background: '#FFFFFF',
+                    border: '1px solid var(--brand-border, #E5E0D8)',
+                    color: '#111A20',
                     fontSize: '13px',
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -511,9 +514,9 @@ export default function HabitsTab({
                     flex: 1,
                     padding: '12px',
                     borderRadius: '14px',
-                    background: '#1F2026',
-                    border: '1px solid #26272D',
-                    color: '#F59E0B',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    border: '1px solid rgba(245, 158, 11, 0.25)',
+                    color: '#D97706',
                     fontSize: '13px',
                     fontWeight: 700,
                     cursor: 'pointer',

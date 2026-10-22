@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Plus, Trash2, CheckCircle2 } from 'lucide-react';
+import { X, Calendar, Plus, Trash2, CheckCircle2, ArrowRight, Users } from 'lucide-react';
 
 const W = {
-  bg: '#0E0F13',
-  surface: '#15161B',
-  border: '#26272D',
-  borderFocus: '#3A3B40',
-  text: '#ECE8DF',
-  sub: '#9A978F',
-  muted: '#6B7280',
-  dim: '#1F2026',
-  accent: '#E9B44C',
-  emerald: '#1FA36F',
+  canvas: '#F4F0E8',
+  card: '#FFFFFF',
+  border: '#E5E0D8',
+  elevated: '#FAF7F2',
+  petrol: '#174A55',
+  softTeal: '#DDE9EB',
+  text: '#111A20',
+  sub: '#68777B',
+  muted: '#8A9CA3',
   danger: '#EF4444',
-  purple: '#A78BFA',
+  emerald: '#1FA36F',
 };
 
 const getLocalYMD = (d = new Date()) => {
@@ -121,348 +120,206 @@ export default function PromiseFormModal({
   return (
     <div
       onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.82)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        zIndex: 200,
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-      }}
+      className="fixed inset-0 z-[200] bg-black/45 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-150"
     >
       <div
         onClick={e => e.stopPropagation()}
+        className="w-full max-w-sm rounded-t-3xl md:rounded-3xl p-6 pb-8 md:pb-6 flex flex-col gap-4 max-h-[92vh] overflow-y-auto"
         style={{
-          background: W.surface,
-          border: `1px solid ${W.border}`,
-          borderRadius: '24px 24px 0 0',
-          width: '100%',
-          maxWidth: '430px',
-          padding: '24px 20px 36px',
-          animation: 'slideUpSheet 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          boxShadow: '0 -8px 40px rgba(0, 0, 0, 0.5)',
+          background: W.canvas,
+          border: `1.5px solid ${W.border}`,
+          boxShadow: '0 24px 48px -12px rgba(17, 26, 32, 0.25)',
         }}
       >
-        {/* ── Header & Purpose Sentence ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
-          <div>
-            <div style={{
-              fontSize: '11px',
-              fontWeight: 800,
-              color: isOwedToMe ? W.emerald : '#F43F5E',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              marginBottom: '3px',
-            }}>
-              {activePromise ? 'Edit Promise' : 'Promise'}
+        {/* Top bar with icon badge, title/breadcrumbs, and close button */}
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+              style={{ background: W.softTeal, color: W.petrol }}
+            >
+              <Users size={20} className="stroke-[2.2]" />
             </div>
-            <div style={{
-              fontSize: '15px',
-              fontWeight: 600,
-              color: W.text,
-              letterSpacing: '-0.01em',
-            }}>
-              Who owes whom?
+            <div>
+              <h2 style={{ color: W.text }} className="text-base font-bold leading-snug">
+                {activePromise ? 'Edit promise' : 'Peer promise'}
+              </h2>
+              <p className="text-[11px] font-medium text-[#68777B]">
+                Wealth · Plan & Promises
+              </p>
             </div>
           </div>
-
           <button
             type="button"
             onClick={onClose}
-            style={{
-              background: W.dim,
-              border: `1px solid ${W.border}`,
-              borderRadius: '50%',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: W.sub,
-              transition: 'all 0.15s ease',
-            }}
+            aria-label="Close"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[#68777B] hover:text-[#111A20] hover:bg-black/5 transition cursor-pointer"
           >
-            <X size={15} />
+            <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          {/* ── Large Direction Toggle: OWED TO ME / I OWE ── */}
-          <div style={{
-            background: W.bg,
-            border: `1px solid ${W.border}`,
-            borderRadius: '16px',
-            padding: '4px',
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '4px',
-          }}>
-            <button
-              type="button"
-              onClick={() => setType('owed_to_me')}
-              style={{
-                padding: '10px 12px',
-                borderRadius: '12px',
-                background: isOwedToMe ? 'rgba(31, 163, 111, 0.18)' : 'transparent',
-                border: isOwedToMe ? `1px solid ${W.emerald}` : '1px solid transparent',
-                color: isOwedToMe ? W.emerald : W.sub,
-                fontSize: '12px',
-                fontWeight: isOwedToMe ? 800 : 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-              }}
-            >
-              <span>↑</span>
-              <span>OWED TO ME</span>
-            </button>
+        {/* Section Heading & Subtitle */}
+        <div>
+          <h3 style={{ color: W.text }} className="text-lg font-bold tracking-tight">
+            {isOwedToMe ? 'Who owes you money?' : 'Who do you owe money to?'}
+          </h3>
+          <p className="text-xs text-[#68777B] mt-1 leading-relaxed">
+            Record informal peer loans, shared tabs, and expected returns.
+          </p>
+        </div>
 
-            <button
-              type="button"
-              onClick={() => setType('i_owe')}
-              style={{
-                padding: '10px 12px',
-                borderRadius: '12px',
-                background: !isOwedToMe ? 'rgba(239, 68, 68, 0.18)' : 'transparent',
-                border: !isOwedToMe ? '1px solid #EF4444' : '1px solid transparent',
-                color: !isOwedToMe ? '#EF4444' : W.sub,
-                fontSize: '12px',
-                fontWeight: !isOwedToMe ? 800 : 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-              }}
-            >
-              <span>↓</span>
-              <span>I OWE</span>
-            </button>
-          </div>
+        {/* Direction Toggle: Owed to me vs I owe */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setType('owed_to_me')}
+            className="py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+            style={{
+              background: isOwedToMe ? W.softTeal : W.elevated,
+              borderColor: isOwedToMe ? W.petrol : W.border,
+              color: isOwedToMe ? W.petrol : W.sub,
+            }}
+          >
+            <span>↓ Owed to me</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setType('i_owe')}
+            className="py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+            style={{
+              background: !isOwedToMe ? W.softTeal : W.elevated,
+              borderColor: !isOwedToMe ? W.petrol : W.border,
+              color: !isOwedToMe ? W.petrol : W.sub,
+            }}
+          >
+            <span>↑ I owe</span>
+          </button>
+        </div>
 
-          {/* Contextual Phrasing Pill */}
-          <div style={{
-            fontSize: '12px',
-            fontWeight: 600,
-            color: isOwedToMe ? W.emerald : '#EF4444',
-            background: isOwedToMe ? 'rgba(31, 163, 111, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            textAlign: 'center',
-          }}>
-            {relationshipSummary}
-          </div>
-
-          {/* ── Person Input ── */}
-          <div style={{
-            background: W.bg,
-            border: `1px solid ${W.border}`,
-            borderRadius: '16px',
-            padding: '12px 14px',
-          }}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+          {/* Person Name Card */}
+          <div
+            className="p-3.5 rounded-2xl flex flex-col gap-1.5"
+            style={{
+              background: W.card,
+              border: `1px solid ${W.border}`,
+            }}
+          >
+            <label className="text-xs font-medium text-[#68777B]">
+              Person name
+            </label>
             <input
               type="text"
-              required
-              placeholder="Person name (e.g. Ninad, Vasu, Alex)"
+              placeholder="e.g. Ninad, Vasu, Ananya"
               value={person}
-              onChange={e => setPerson(e.target.value)}
+              onChange={(e) => setPerson(e.target.value)}
               autoFocus
-              style={{
-                width: '100%',
-                background: 'transparent',
-                border: 'none',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: W.text,
-                outline: 'none',
-                padding: 0,
-              }}
+              className="w-full text-sm font-semibold text-[#111A20] outline-none bg-transparent placeholder:text-[#8A9CA3]"
             />
           </div>
 
-          {/* ── Primary Hero Input: Large Amount ── */}
-          <div style={{
-            background: W.bg,
-            border: `1px solid ${W.border}`,
-            borderRadius: '20px',
-            padding: '16px 18px',
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: '8px',
-          }}>
-            <span style={{
-              fontSize: '28px',
-              fontWeight: 800,
-              color: amount ? W.text : W.muted,
-              lineHeight: 1,
-            }}>
-              {currencySymbol}
-            </span>
-            <input
-              type="number"
-              step="any"
-              inputMode="decimal"
-              placeholder="0"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              style={{
-                flex: 1,
-                background: 'transparent',
-                border: 'none',
-                fontSize: '36px',
-                fontWeight: 900,
-                color: W.text,
-                outline: 'none',
-                padding: 0,
-                margin: 0,
-                lineHeight: 1,
-                fontFamily: 'inherit',
-                letterSpacing: '-0.03em',
-                MozAppearance: 'textfield',
-                WebkitAppearance: 'none',
-              }}
-            />
-          </div>
-
-          {/* ── Expected by Date & Note Disclosure ── */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: W.bg,
+          {/* Amount Input Card */}
+          <div
+            className="p-4 rounded-2xl flex flex-col gap-2"
+            style={{
+              background: W.card,
               border: `1px solid ${W.border}`,
-              borderRadius: '10px',
-              padding: '6px 10px',
-              position: 'relative',
-            }}>
-              <Calendar size={13} color={W.sub} />
-              <span style={{ fontSize: '11px', fontWeight: 600, color: W.text }}>
-                Expected: {isToday ? 'Today' : dueDate}
+            }}
+          >
+            <label className="text-xs font-medium text-[#68777B]">
+              Amount
+            </label>
+            <div className="flex items-center gap-2 pb-1" style={{ borderBottom: `1px solid ${W.border}` }}>
+              <span className="text-2xl font-bold text-[#174A55] select-none">
+                {currencySymbol}
               </span>
               <input
-                type="date"
-                value={dueDate}
-                onChange={e => setDueDate(e.target.value)}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  opacity: 0,
-                  cursor: 'pointer',
-                  width: '100%',
-                }}
+                type="number"
+                step="any"
+                inputMode="decimal"
+                placeholder="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full text-2xl font-bold text-[#111A20] outline-none bg-transparent placeholder:text-[#8A9CA3]"
               />
             </div>
+          </div>
 
-            {!showNote && (
+          {/* Due date and Note row */}
+          <div
+            className="p-3.5 rounded-2xl flex flex-col gap-2.5"
+            style={{
+              background: W.card,
+              border: `1px solid ${W.border}`,
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-[#68777B]">
+                Expected date
+              </label>
+              <div className="relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#FAF7F2] border border-[#E5E0D8]">
+                <Calendar size={13} className="text-[#68777B]" />
+                <span className="text-xs font-semibold text-[#111A20]">
+                  {isToday ? 'Today' : dueDate}
+                </span>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                />
+              </div>
+            </div>
+
+            {/* Note toggle or field */}
+            {!showNote ? (
               <button
                 type="button"
                 onClick={() => setShowNote(true)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: W.sub,
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 4px',
-                }}
+                className="pt-1 flex items-center gap-1 text-xs font-medium text-[#174A55] hover:underline cursor-pointer"
               >
                 <Plus size={13} />
                 <span>Add note</span>
               </button>
+            ) : (
+              <div className="pt-2 border-t border-[#E5E0D8]/60 flex flex-col gap-1">
+                <label className="text-[11px] font-medium text-[#68777B]">
+                  Optional note
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Dinner split, trip expenses"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="w-full text-xs font-medium text-[#111A20] outline-none bg-transparent placeholder:text-[#8A9CA3]"
+                />
+              </div>
             )}
           </div>
 
-          {/* Collapsible Note Input */}
-          {showNote && (
-            <div style={{
-              background: W.bg,
-              border: `1px solid ${W.border}`,
-              borderRadius: '14px',
-              padding: '10px 14px',
-            }}>
-              <input
-                type="text"
-                placeholder="Optional note (e.g. Dinner split, Weekend trip)"
-                value={note}
-                onChange={e => setNote(e.target.value)}
-                autoFocus
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: '13px',
-                  color: W.text,
-                  outline: 'none',
-                  padding: 0,
-                }}
-              />
-            </div>
-          )}
-
-          {/* ── Action Buttons ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+          {/* Action buttons */}
+          <div className="flex flex-col gap-2 pt-1">
             <button
               type="submit"
               disabled={!person.trim() || !amount || parseFloat(amount) <= 0 || saving}
-              style={{
-                width: '100%',
-                padding: '14px',
-                borderRadius: '16px',
-                background: isOwedToMe ? W.emerald : '#F43F5E',
-                border: 'none',
-                color: '#0E0F13',
-                fontSize: '14px',
-                fontWeight: 800,
-                letterSpacing: '0.01em',
-                cursor: (!person.trim() || !amount || parseFloat(amount) <= 0 || saving) ? 'not-allowed' : 'pointer',
-                opacity: (!person.trim() || !amount || parseFloat(amount) <= 0 || saving) ? 0.45 : 1,
-                transition: 'all 0.15s ease',
-              }}
+              className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-95 disabled:opacity-50 cursor-pointer shadow-sm"
+              style={{ background: W.petrol }}
             >
-              {saving ? 'Recording...' : (activePromise ? 'Save changes' : 'Record promise')}
+              <span>{saving ? 'Recording...' : activePromise ? 'Save changes' : 'Record promise'}</span>
+              <ArrowRight size={15} />
             </button>
 
-            {/* Resolve button for existing promises */}
+            {/* Mark as settled if existing */}
             {activePromise && onResolve && (
               <button
                 type="button"
                 onClick={handleResolve}
                 disabled={saving}
+                className="w-full py-2.5 rounded-2xl font-bold text-xs text-[#174A55] hover:opacity-90 transition cursor-pointer flex items-center justify-center gap-1.5"
                 style={{
-                  width: '100%',
-                  padding: '11px',
-                  borderRadius: '12px',
-                  background: 'rgba(31, 163, 111, 0.12)',
-                  border: `1px solid ${W.emerald}`,
-                  color: W.emerald,
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease',
+                  background: W.softTeal,
+                  border: `1px solid ${W.border}`,
                 }}
               >
                 <CheckCircle2 size={14} />
@@ -470,33 +327,34 @@ export default function PromiseFormModal({
               </button>
             )}
 
-            {/* Delete button */}
+            {/* Delete button if existing */}
             {activePromise && onDelete && (
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={saving}
+                className="w-full py-2.5 rounded-2xl font-semibold text-xs text-[#EF4444] hover:bg-red-50 transition cursor-pointer flex items-center justify-center gap-1.5"
                 style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '12px',
                   background: 'transparent',
                   border: '1px solid rgba(239, 68, 68, 0.25)',
-                  color: '#EF4444',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease',
                 }}
               >
                 <Trash2 size={13} />
                 <span>Delete promise</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-3 rounded-2xl font-bold text-sm text-[#68777B] hover:text-[#111A20] transition cursor-pointer"
+              style={{
+                background: W.elevated,
+                border: `1px solid ${W.border}`,
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </form>
       </div>

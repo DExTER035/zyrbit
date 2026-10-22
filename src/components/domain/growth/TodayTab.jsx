@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { Plus, ArrowRight, Play } from 'lucide-react';
 import { todayStr } from './shared.jsx';
 import { getAvailableTasks, getBlockedTasks } from '../../../engines/growth/index.js';
-import GrowthPathHero from './GrowthPathHero.jsx';
 
 export default function TodayTab({
   goals = [],
@@ -64,10 +63,10 @@ export default function TodayTab({
       {/* ── CARD 1: TODAY'S TASKS (Screen 8 Reference) ── */}
       <div style={{
         background: '#FFFFFF',
-        borderRadius: '20px',
-        padding: '20px',
-        border: '1.5px solid var(--brand-border, #E5E0D8)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        borderRadius: '18px',
+        padding: '18px 20px',
+        border: '1px solid var(--brand-border, #E5E0D8)',
+        boxShadow: '0 2px 8px rgba(17, 26, 32, 0.03)',
       }}>
         <div style={{
           display: 'flex',
@@ -84,7 +83,7 @@ export default function TodayTab({
           }}>
             Today's Tasks
           </h2>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: '#8A9CA3' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#68777B' }}>
             {availableTasks.length} pending
           </span>
         </div>
@@ -95,7 +94,7 @@ export default function TodayTab({
             <div style={{
               padding: '20px 10px',
               textAlign: 'center',
-              color: '#8A9CA3',
+              color: '#68777B',
               fontSize: '13px',
             }}>
               No tasks pending. Tap + Add task to get started.
@@ -240,10 +239,10 @@ export default function TodayTab({
       {/* ── CARD 2: FOCUS SESSION (Screen 8 Reference) ── */}
       <div style={{
         background: '#FFFFFF',
-        borderRadius: '20px',
+        borderRadius: '18px',
         padding: '20px',
-        border: '1.5px solid var(--brand-border, #E5E0D8)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        border: '1px solid var(--brand-border, #E5E0D8)',
+        boxShadow: '0 2px 8px rgba(17, 26, 32, 0.03)',
       }}>
         <div style={{ fontSize: '15px', fontWeight: 800, color: '#111A20' }}>
           Focus Session

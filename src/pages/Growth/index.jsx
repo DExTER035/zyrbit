@@ -880,27 +880,29 @@ export default function Growth() {
 
   if (loading && projects.length === 0 && tasks.length === 0) {
     return (
-      <div className="app-container" style={{
-        background: 'var(--bg-root, #080E0B)',
+      <div className="page-enter" style={{
+        background: 'var(--brand-ivory, #F4F0E8)',
         minHeight: '100vh',
         padding: '24px 20px 120px',
         display: 'flex',
         flexDirection: 'column',
         gap: '20px',
+        maxWidth: '720px',
+        margin: '0 auto',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ width: '110px', height: '28px', borderRadius: '8px', background: '#111A15', border: '1px solid #1A2B23' }} />
-          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#111A15', border: '1px solid #1A2B23' }} />
+          <div style={{ width: '110px', height: '28px', borderRadius: '8px', background: '#EAE5DB', border: '1px solid #DDD8CE' }} />
+          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#EAE5DB', border: '1px solid #DDD8CE' }} />
         </div>
-        <div style={{ width: '180px', height: '32px', borderRadius: '8px', background: '#111A15', border: '1px solid #1A2B23' }} />
+        <div style={{ width: '180px', height: '32px', borderRadius: '8px', background: '#EAE5DB', border: '1px solid #DDD8CE' }} />
         <div style={{ display: 'flex', gap: '8px' }}>
           {[80, 70, 60, 70].map((w, i) => (
-            <div key={i} style={{ width: `${w}px`, height: '32px', borderRadius: '9999px', background: '#111A15', border: '1px solid #1A2B23' }} />
+            <div key={i} style={{ width: `${w}px`, height: '32px', borderRadius: '9999px', background: '#EAE5DB', border: '1px solid #DDD8CE' }} />
           ))}
         </div>
-        <div style={{ height: '140px', borderRadius: '24px', background: '#111A15', border: '1px solid #1A2B23' }} />
-        <div style={{ height: '72px', borderRadius: '18px', background: '#111A15', border: '1px solid #1A2B23' }} />
-        <div style={{ height: '72px', borderRadius: '18px', background: '#111A15', border: '1px solid #1A2B23' }} />
+        <div style={{ height: '140px', borderRadius: '18px', background: '#FFFFFF', border: '1px solid var(--brand-border, #E5E0D8)' }} />
+        <div style={{ height: '72px', borderRadius: '18px', background: '#FFFFFF', border: '1px solid var(--brand-border, #E5E0D8)' }} />
+        <div style={{ height: '72px', borderRadius: '18px', background: '#FFFFFF', border: '1px solid var(--brand-border, #E5E0D8)' }} />
       </div>
     );
   }
@@ -957,96 +959,128 @@ export default function Growth() {
     );
   }
 
-  // ─── RENDER — Main Growth Screen (Screen 2 Reference) ─────────────────
+  // ─── RENDER — Main Growth Screen ──────────────────────────────────────────
   return (
-    <div className="app-container page-enter" style={{
-      background: 'var(--brand-deep-charcoal, #0F191C)',
+    <div className="page-enter" style={{
+      background: 'var(--brand-ivory, #F4F0E8)',
       minHeight: '100vh',
-      color: '#FFFFFF',
+      color: '#111A20',
       position: 'relative',
     }}>
-
-      {/* ── Top Header Row (Matching Screen 8 Reference) ── */}
       <div style={{
-        padding: '24px 20px 0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '20px',
+        maxWidth: '720px',
+        margin: '0 auto',
+        width: '100%',
+        boxSizing: 'border-box',
       }}>
-        <div>
-          <h1 style={{
-            margin: 0,
-            fontSize: '22px',
-            fontWeight: 800,
-            color: '#FFFFFF',
-            letterSpacing: '-0.02em',
-            fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-          }}>
-            Growth
-          </h1>
-          <p style={{
-            margin: '3px 0 0',
-            fontSize: '13px',
-            color: '#8A9CA3',
-          }}>
-            Execute. Improve. Level up.
-          </p>
+        {/* ── Back Link to Track ── */}
+        <div style={{ padding: '20px 20px 0' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/track')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              fontSize: '13px',
+              fontWeight: 700,
+              color: 'var(--brand-petrol, #174A55)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            ← Track
+          </button>
         </div>
 
+        {/* ── Top Header Row ── */}
         <div style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '50%',
-          background: 'var(--brand-petrol, #174A55)',
-          color: '#FFFFFF',
+          padding: '12px 20px 0',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 800,
-          fontSize: '13px',
+          justifyContent: 'space-between',
+          marginBottom: '18px',
         }}>
-          Z
+          <div>
+            <h1 style={{
+              margin: 0,
+              fontSize: '24px',
+              fontWeight: 800,
+              color: '#111A20',
+              letterSpacing: '-0.02em',
+              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+            }}>
+              Growth
+            </h1>
+            <p style={{
+              margin: '3px 0 0',
+              fontSize: '13px',
+              color: '#68777B',
+            }}>
+              Build capability. Protect your attention.
+            </p>
+          </div>
+
+          <div style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            background: 'var(--brand-petrol, #174A55)',
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 800,
+            fontSize: '13px',
+          }}>
+            Z
+          </div>
         </div>
-      </div>
 
-      {/* ── PILL FILTER BAR (Screen 8 Reference: Tasks, Goals, Habits) ── */}
-      <div style={{
-        padding: '0 20px',
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '20px',
-      }}>
-        {[
-          { id: 'today',  label: 'Tasks' },
-          { id: 'goals',  label: 'Goals' },
-          { id: 'habits', label: 'Habits' },
-        ].map(t => {
-          const isActive = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              style={{
-                background: isActive ? '#FFFFFF' : '#1A262B',
-                border: `1px solid ${isActive ? '#FFFFFF' : 'rgba(255,255,255,0.08)'}`,
-                borderRadius: '9999px',
-                padding: '6px 18px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: 600,
-                color: isActive ? '#111A20' : 'rgba(255,255,255,0.7)',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+        {/* ── PILL FILTER BAR (Tasks, Projects, Goals, Habits) ── */}
+        <div style={{
+          padding: '0 20px',
+          display: 'flex',
+          gap: '8px',
+          marginBottom: '18px',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+        }}>
+          {[
+            { id: 'today',  label: 'Tasks' },
+            { id: 'plan',   label: 'Projects' },
+            { id: 'goals',  label: 'Goals' },
+            { id: 'habits', label: 'Habits' },
+          ].map(t => {
+            const isActive = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  background: isActive ? 'var(--brand-petrol, #174A55)' : '#FFFFFF',
+                  border: `1px solid ${isActive ? 'var(--brand-petrol, #174A55)' : 'var(--brand-border, #E5E0D8)'}`,
+                  borderRadius: '9999px',
+                  padding: '7px 18px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: isActive ? '#FFFFFF' : '#68777B',
+                  boxShadow: isActive ? '0 2px 6px rgba(23, 74, 85, 0.2)' : '0 1px 3px rgba(17, 26, 32, 0.02)',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
 
-      {/* ── CONTENT ─────────────────────────────────────────────────── */}
-      <div style={{ padding: '18px 20px calc(130px + env(safe-area-inset-bottom, 24px))' }}>
+        {/* ── CONTENT ─────────────────────────────────────────────────── */}
+        <div style={{ padding: '0 20px calc(130px + env(safe-area-inset-bottom, 24px))' }}>
         {tab === 'today' && (
           <TodayTab
             goals={goals}
@@ -1332,10 +1366,10 @@ export default function Growth() {
                       style={{
                         flex: 1,
                         padding: '8px',
-                        background: isSel ? 'rgba(31, 163, 111, 0.15)' : '#1B1F23',
-                        border: `1px solid ${isSel ? '#1FA36F' : '#26272C'}`,
+                        background: isSel ? 'rgba(23, 74, 85, 0.1)' : '#FFFFFF',
+                        border: `1px solid ${isSel ? 'var(--brand-petrol, #174A55)' : 'var(--brand-border, #E5E0D8)'}`,
                         borderRadius: '8px',
-                        color: isSel ? '#1FA36F' : '#9CA3AF',
+                        color: isSel ? 'var(--brand-petrol, #174A55)' : '#68777B',
                         fontSize: '12px',
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -1352,20 +1386,21 @@ export default function Growth() {
             {/* Optional Reminder */}
             <div>
               {formHabit.reminder_enabled ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1B1F23', border: '1px solid #26272C', borderRadius: '10px', padding: '8px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#FAF7F2', border: '1px solid var(--brand-border, #E5E0D8)', borderRadius: '10px', padding: '8px 12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '12px', color: '#ECE8DF', fontWeight: 600 }}>⏰ Reminder</span>
+                    <span style={{ fontSize: '12px', color: '#111A20', fontWeight: 600 }}>⏰ Reminder</span>
                     <input
                       type="time"
                       value={formHabit.reminder_time || '08:00'}
                       onChange={e => setFormHabit(p => ({ ...p, reminder_time: e.target.value }))}
                       style={{
-                        background: '#0B0D0F',
-                        border: '1px solid #3A3B40',
+                        background: '#FFFFFF',
+                        border: '1px solid var(--brand-border, #E5E0D8)',
                         borderRadius: '6px',
-                        color: '#ECE8DF',
+                        color: '#111A20',
                         padding: '4px 8px',
-                        fontSize: '12px'
+                        fontSize: '12px',
+                        outline: 'none',
                       }}
                     />
                   </div>
@@ -1384,7 +1419,7 @@ export default function Growth() {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#1FA36F',
+                    color: 'var(--brand-petrol, #174A55)',
                     fontSize: '12px',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -1413,14 +1448,14 @@ export default function Growth() {
         <Modal title="Delete Habit?" onClose={() => setDeleteHabitTarget(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center' }}>
             <div style={{ fontSize: '36px' }}>🗑️</div>
-            <div style={{ fontSize: '14px', color: '#A1A1AA' }}>
+            <div style={{ fontSize: '14px', color: '#68777B' }}>
               Are you sure you want to delete "{deleteHabitTarget.name}"? This cannot be undone.
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 type="button"
                 onClick={() => setDeleteHabitTarget(null)}
-                style={{ flex: 1, padding: '10px', background: '#2E2F35', border: 'none', borderRadius: '8px', color: '#FFF', fontWeight: 700, cursor: 'pointer' }}
+                style={{ flex: 1, padding: '10px', background: '#FAF7F2', border: '1px solid var(--brand-border, #E5E0D8)', borderRadius: '8px', color: '#68777B', fontWeight: 700, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -1436,7 +1471,9 @@ export default function Growth() {
         </Modal>
       )}
 
-      <BottomNav activeTab="growth" onTabChange={t => navigate(`/${t}`)} />
+      </div>
+
+      <BottomNav activeTab="track" onTabChange={t => navigate(`/${t}`)} />
     </div>
   );
 }

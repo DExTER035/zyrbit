@@ -102,19 +102,19 @@ export default function GoalSettingsModal({ userId, currentSettings, onSave, onC
     }
   };
 
-  const labelStyle  = { fontSize: '10px', color: FC.muted, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '6px' };
+  const labelStyle  = { fontSize: '11px', color: FC.sub, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '6px' };
   const rowStyle    = { display: 'flex', flexDirection: 'column', gap: '2px' };
   const gridStyle   = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' };
-  const chipBase    = { padding: '7px 12px', borderRadius: '10px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', border: 'none' };
+  const chipBase    = { padding: '8px 12px', borderRadius: '10px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s ease', border: 'none' };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(16px)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div style={{ background: FC.surface, border: `1px solid ${FC.border2}`, borderRadius: '24px 24px 0 0', width: '100%', maxWidth: '430px', padding: '24px 20px 40px', maxHeight: '92vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0', animation: 'slideUpModal 0.25s cubic-bezier(0.4,0,0.2,1)' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(17, 26, 32, 0.45)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div style={{ background: '#FFFFFF', border: `1px solid ${FC.border}`, borderRadius: '24px 24px 0 0', width: '100%', maxWidth: '460px', padding: '24px 20px 40px', maxHeight: '92vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0', animation: 'slideUpModal 0.22s cubic-bezier(0.16,1,0.3,1)', boxShadow: '0 -8px 30px rgba(17, 26, 32, 0.12)' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <span style={{ fontSize: '16px', fontWeight: 800, color: FC.text }}>Daily Goals</span>
-          <button onClick={onClose} style={{ background: FC.dim, border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: FC.sub }}>
-            <X size={14} />
+          <span style={{ fontSize: '17px', fontWeight: 800, color: FC.text, letterSpacing: '-0.01em' }}>Daily Goals</span>
+          <button onClick={onClose} style={{ background: '#FAF7F2', border: `1px solid ${FC.border}`, borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: FC.sub }}>
+            <X size={15} />
           </button>
         </div>
 
@@ -136,7 +136,7 @@ export default function GoalSettingsModal({ userId, currentSettings, onSave, onC
                 { label: 'Fiber (g)',   val: fiber,    set: setFiber,   color: FC.fiber   },
               ].map(({ label, val, set, color }) => (
                 <div key={label} style={rowStyle}>
-                  <div style={{ fontSize: '10px', color, fontWeight: 700, marginBottom: '4px' }}>{label}</div>
+                  <div style={{ fontSize: '11px', color, fontWeight: 700, marginBottom: '4px' }}>{label}</div>
                   <FInput type="number" placeholder="g" value={val} onChange={e => set(e.target.value)} />
                 </div>
               ))}
@@ -146,15 +146,15 @@ export default function GoalSettingsModal({ userId, currentSettings, onSave, onC
           {/* Calorie calculator toggle */}
           <button
             onClick={() => setShowCalc(c => !c)}
-            style={{ background: 'transparent', border: `1px solid ${FC.border2}`, borderRadius: '12px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: FC.petrolMuted, fontSize: '12px', fontWeight: 700, transition: 'all 0.15s' }}
+            style={{ background: '#FAF7F2', border: `1px solid ${FC.border}`, borderRadius: '12px', padding: '11px 14px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: FC.food, fontSize: '12px', fontWeight: 700, transition: 'all 0.15s ease' }}
           >
-            <Calculator size={14} />
+            <Calculator size={15} />
             TDEE Calculator (optional)
-            {showCalc ? <ChevronUp size={12} style={{ marginLeft: 'auto' }} /> : <ChevronDown size={12} style={{ marginLeft: 'auto' }} />}
+            {showCalc ? <ChevronUp size={13} style={{ marginLeft: 'auto' }} /> : <ChevronDown size={13} style={{ marginLeft: 'auto' }} />}
           </button>
 
           {showCalc && (
-            <div style={{ background: FC.elev, borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeSlideUp 0.2s ease' }}>
+            <div style={{ background: '#FAF7F2', border: `1px solid ${FC.border}`, borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeSlideUp 0.2s ease' }}>
               <div style={gridStyle}>
                 <div style={rowStyle}>
                   <div style={labelStyle}>Weight (kg)</div>
@@ -172,7 +172,7 @@ export default function GoalSettingsModal({ userId, currentSettings, onSave, onC
                   <div style={labelStyle}>Sex</div>
                   <div style={{ display: 'flex', gap: '6px' }}>
                     {['male', 'female'].map(s => (
-                      <button key={s} onClick={() => setSex(s)} style={{ ...chipBase, flex: 1, background: sex === s ? FC.food : FC.dim, color: sex === s ? '#FFFFFF' : FC.sub }}>
+                      <button key={s} onClick={() => setSex(s)} style={{ ...chipBase, flex: 1, background: sex === s ? FC.food : '#FFFFFF', border: `1px solid ${sex === s ? FC.food : FC.border}`, color: sex === s ? '#FFFFFF' : FC.sub }}>
                         {s === 'male' ? '♂' : '♀'} {s.charAt(0).toUpperCase() + s.slice(1)}
                       </button>
                     ))}
@@ -184,9 +184,9 @@ export default function GoalSettingsModal({ userId, currentSettings, onSave, onC
                 <div style={labelStyle}>Activity Level</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {ACTIVITY_LEVELS.map(lvl => (
-                    <button key={lvl.id} onClick={() => setActivity(lvl.id)} style={{ ...chipBase, textAlign: 'left', background: activity === lvl.id ? `${FC.food}33` : FC.dim, border: `1px solid ${activity === lvl.id ? FC.petrolMuted : 'transparent'}`, color: activity === lvl.id ? '#F4F0E8' : FC.sub, padding: '8px 12px' }}>
+                    <button key={lvl.id} onClick={() => setActivity(lvl.id)} style={{ ...chipBase, textAlign: 'left', background: activity === lvl.id ? 'rgba(23, 74, 85, 0.1)' : '#FFFFFF', border: `1px solid ${activity === lvl.id ? FC.food : FC.border}`, color: activity === lvl.id ? FC.food : FC.sub, padding: '8px 12px' }}>
                       <span style={{ fontWeight: 800 }}>{lvl.label}</span>
-                      <span style={{ fontSize: '10px', marginLeft: '6px', opacity: 0.7 }}>{lvl.desc}</span>
+                      <span style={{ fontSize: '10px', marginLeft: '6px', opacity: 0.8 }}>{lvl.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -196,7 +196,7 @@ export default function GoalSettingsModal({ userId, currentSettings, onSave, onC
                 <div style={labelStyle}>Goal</div>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   {GOALS.map(g => (
-                    <button key={g.id} onClick={() => setGoalAdj(g.id)} style={{ ...chipBase, flex: 1, background: goalAdj === g.id ? FC.food : FC.dim, color: goalAdj === g.id ? '#FFFFFF' : FC.sub }}>
+                    <button key={g.id} onClick={() => setGoalAdj(g.id)} style={{ ...chipBase, flex: 1, background: goalAdj === g.id ? FC.food : '#FFFFFF', border: `1px solid ${goalAdj === g.id ? FC.food : FC.border}`, color: goalAdj === g.id ? '#FFFFFF' : FC.sub }}>
                       {g.label}
                     </button>
                   ))}

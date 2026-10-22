@@ -4,23 +4,24 @@ import { CheckCircle2, Circle, Flame, X, Play, Lock } from 'lucide-react';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 export const C = {
-  bg:      'var(--bg-page, #F5F8FC)',
-  surface: 'var(--bg-card, #FFFFFF)',
-  elev:    '#F8FAFC',
-  border:  'var(--border-primary, #E4EAF2)',
-  border2: 'var(--border-secondary, #EDF2F7)',
-  growth:  '#08B878', // emerald
-  project: '#08B878',
-  goal:    '#08B878',
-  sprint:  '#3296F4',
-  skill:   '#FFB300',
-  focus:   '#8866E9', // violet
+  bg:      'var(--brand-ivory, #F4F0E8)',
+  surface: '#FFFFFF',
+  elev:    '#FAF7F2',
+  border:  'var(--brand-border, #E5E0D8)',
+  border2: '#DDD8CE',
+  growth:  '#174A55', // petrol teal
+  project: '#174A55',
+  goal:    '#1FA36F',
+  sprint:  '#174A55',
+  skill:   '#F59E0B',
+  focus:   '#174A55',
   danger:  '#EF4444',
   warn:    '#F59E0B',
-  text:    'var(--text-primary, #172033)',
-  sub:     'var(--text-secondary, #68758A)',
-  muted:   '#94A3B8',
-  dim:     '#E2E8F0',
+  success: '#1FA36F',
+  text:    'var(--brand-charcoal, #111A20)',
+  sub:     'var(--brand-sub, #68777B)',
+  muted:   '#8A9CA3',
+  dim:     '#EAE5DB',
 };
 
 export function fmtTime(secs) {
@@ -50,21 +51,21 @@ export function todayStr() {
 
 // ─── Shared UI Primitives ─────────────────────────────────────────────────────
 export const Pill = ({ label, color = C.muted }) => (
-  <span style={{ fontSize: '9px', fontWeight: 800, color, background: `${color}18`, border: `1px solid ${color}40`, borderRadius: '6px', padding: '2px 7px', letterSpacing: '0.5px' }}>
+  <span style={{ fontSize: '10px', fontWeight: 700, color, background: `${color}14`, border: `1px solid ${color}35`, borderRadius: '6px', padding: '2px 7px', letterSpacing: '0.04em' }}>
     {label.toUpperCase()}
   </span>
 );
 
 export const SectionLabel = ({ children }) => (
-  <div style={{ fontSize: '10px', color: C.muted, fontWeight: 800, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '10px' }}>{children}</div>
+  <div style={{ fontSize: '11px', color: C.sub, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>{children}</div>
 );
 
 export const SectionHeader = ({ title, action, actionLabel, actionIcon: ActionIcon }) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
     <SectionLabel>{title}</SectionLabel>
     {action && (
-      <button onClick={action} style={{ background: 'transparent', border: 'none', color: C.growth, fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-        {ActionIcon ? <ActionIcon size={12} /> : <span>+</span>}
+      <button onClick={action} style={{ background: 'transparent', border: 'none', color: C.growth, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+        {ActionIcon ? <ActionIcon size={13} /> : <span>+</span>}
         {actionLabel || 'Add'}
       </button>
     )}
@@ -74,7 +75,7 @@ export const SectionHeader = ({ title, action, actionLabel, actionIcon: ActionIc
 export const ProgressBar = ({ value, max = 100, color = C.growth, height = 4 }) => {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
-    <div style={{ background: C.dim, borderRadius: height, height, overflow: 'hidden', width: '100%' }}>
+    <div style={{ background: '#EAE5DB', borderRadius: height, height, overflow: 'hidden', width: '100%' }}>
       <div style={{ background: color, height: '100%', width: `${pct}%`, borderRadius: height, transition: 'width 0.4s ease-out' }} />
     </div>
   );
@@ -82,11 +83,12 @@ export const ProgressBar = ({ value, max = 100, color = C.growth, height = 4 }) 
 
 export const Card = ({ children, accent, onClick, style = {} }) => (
   <div onClick={onClick} style={{
-    background: C.surface, border: `1px solid ${C.border}`,
+    background: '#FFFFFF', border: `1px solid ${C.border}`,
     borderLeft: accent ? `3px solid ${accent}` : `1px solid ${C.border}`,
-    borderRadius: '16px', padding: '14px 16px',
+    borderRadius: '16px', padding: '16px',
+    boxShadow: '0 2px 8px rgba(17, 26, 32, 0.03)',
     cursor: onClick ? 'pointer' : 'default',
-    transition: 'border-color 0.2s', ...style,
+    transition: 'border-color 0.15s ease, transform 0.15s ease', ...style,
   }}>
     {children}
   </div>
@@ -95,30 +97,30 @@ export const Card = ({ children, accent, onClick, style = {} }) => (
 export const EmptyState = ({ icon, title, sub, action, actionLabel, examples = [] }) => (
   <div style={{
     textAlign: 'center', padding: '32px 20px',
-    background: C.surface, borderRadius: '16px', border: `1px solid ${C.border}`,
-    borderLeft: `3px solid ${C.border2}`,
+    background: '#FFFFFF', borderRadius: '16px', border: `1px solid ${C.border}`,
+    boxShadow: '0 2px 8px rgba(17, 26, 32, 0.03)',
   }}>
     <div style={{ fontSize: '32px', marginBottom: '12px' }}>{icon}</div>
     <div style={{ fontSize: '15px', fontWeight: 700, color: C.text, marginBottom: '6px' }}>{title}</div>
-    <div style={{ fontSize: '12px', color: C.muted, lineHeight: 1.6, marginBottom: examples.length > 0 ? '14px' : (action ? '18px' : 0) }}>{sub}</div>
+    <div style={{ fontSize: '12.5px', color: C.sub, lineHeight: 1.5, marginBottom: examples.length > 0 ? '14px' : (action ? '18px' : 0) }}>{sub}</div>
     {examples.length > 0 && (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center', marginBottom: action ? '18px' : 0 }}>
         {examples.map((ex, i) => (
           <span key={i} onClick={action} style={{
-            fontSize: '10px', fontWeight: 700, color: C.growth,
-            background: `${C.growth}10`, border: `1px solid ${C.growth}30`,
+            fontSize: '11px', fontWeight: 650, color: C.growth,
+            background: '#DDE9EB', border: '1px solid #C4DCE0',
             borderRadius: '8px', padding: '5px 10px', cursor: 'pointer',
-            transition: 'all 0.2s',
+            transition: 'all 0.15s ease',
           }}>{ex}</span>
         ))}
       </div>
     )}
     {action && (
       <button onClick={action} style={{
-        background: C.growth, color: '#000', border: 'none', borderRadius: '12px',
-        padding: '10px 24px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
-        boxShadow: `0 4px 16px ${C.growth}30`,
-        transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+        background: C.growth, color: '#FFFFFF', border: 'none', borderRadius: '12px',
+        padding: '10px 24px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer',
+        boxShadow: '0 2px 8px rgba(23, 74, 85, 0.25)',
+        transition: 'opacity 0.15s',
       }}>
         {actionLabel}
       </button>
@@ -127,16 +129,16 @@ export const EmptyState = ({ icon, title, sub, action, actionLabel, examples = [
 );
 
 export const Modal = ({ title, subtitle, onClose, children }) => (
-  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '20px 20px 0 0', width: '100%', maxWidth: '430px', padding: '20px 20px 36px', animation: 'slideUpModal 0.25s cubic-bezier(0.4,0,0.2,1)', maxHeight: '90vh', overflowY: 'auto' }}>
+  <div style={{ position: 'fixed', inset: 0, background: 'rgba(17, 26, 32, 0.65)', backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+    <div style={{ background: '#FAF7F2', border: `1px solid ${C.border}`, borderRadius: '24px 24px 0 0', width: '100%', maxWidth: '440px', padding: '20px 20px calc(36px + env(safe-area-inset-bottom, 0px))', animation: 'slideUpModal 0.25s cubic-bezier(0.4,0,0.2,1)', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 -4px 24px rgba(0,0,0,0.12)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
         <div>
-          <div style={{ fontSize: '12px', fontWeight: 800, color: C.growth, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{title}</div>
+          <div style={{ fontSize: '13px', fontWeight: 800, color: C.growth, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{title}</div>
           {subtitle && (
-            <div style={{ fontSize: '13px', color: '#9CA3AF', marginTop: '2px', fontWeight: 400 }}>{subtitle}</div>
+            <div style={{ fontSize: '12.5px', color: C.sub, marginTop: '2px', fontWeight: 400 }}>{subtitle}</div>
           )}
         </div>
-        <button onClick={onClose} style={{ background: C.dim, border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: C.sub }}>
+        <button onClick={onClose} style={{ background: '#EAE5DB', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: C.text }}>
           <X size={14} />
         </button>
       </div>
@@ -147,23 +149,23 @@ export const Modal = ({ title, subtitle, onClose, children }) => (
 
 export const FInput = ({ placeholder, value, onChange, type = 'text', style = {} }) => (
   <input type={type} placeholder={placeholder} value={value} onChange={onChange}
-    style={{ background: C.elev, border: `1px solid ${C.border2}`, borderRadius: '12px', color: C.text, padding: '12px 14px', fontSize: '14px', width: '100%', outline: 'none', ...style }} />
+    style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: '12px', color: C.text, padding: '12px 14px', fontSize: '13.5px', width: '100%', outline: 'none', boxSizing: 'border-box', ...style }} />
 );
 
 export const FLabel = ({ children }) => (
-  <div style={{ fontSize: '10px', color: C.muted, fontWeight: 700, marginBottom: '6px', letterSpacing: '0.5px' }}>{children}</div>
+  <div style={{ fontSize: '11px', color: C.sub, fontWeight: 700, marginBottom: '6px', letterSpacing: '0.04em' }}>{children}</div>
 );
 
 export const BtnPrimary = ({ label, onClick, color = C.growth, disabled = false, style = {} }) => (
   <button onClick={onClick} disabled={disabled}
-    style={{ background: disabled ? C.dim : color, color: disabled ? C.muted : '#000', border: 'none', borderRadius: '14px', padding: '14px', width: '100%', fontSize: '14px', fontWeight: 800, cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.2s', ...style }}>
+    style={{ background: disabled ? C.dim : color, color: disabled ? C.muted : '#FFFFFF', border: 'none', borderRadius: '12px', padding: '13px 16px', width: '100%', fontSize: '13.5px', fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s ease', boxShadow: disabled ? 'none' : '0 2px 8px rgba(23, 74, 85, 0.25)', ...style }}>
     {label}
   </button>
 );
 
 export const FSelect = ({ value, onChange, children }) => (
   <select value={value} onChange={onChange}
-    style={{ width: '100%', background: C.elev, border: `1px solid ${C.border2}`, borderRadius: '10px', color: value ? C.text : C.muted, padding: '10px 12px', fontSize: '13px', outline: 'none' }}>
+    style={{ width: '100%', background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: '12px', color: value ? C.text : C.muted, padding: '11px 12px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}>
     {children}
   </select>
 );
@@ -187,32 +189,45 @@ export function TaskRow({
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: '10px',
-      background: done ? 'transparent' : C.surface,
-      border: `1px solid ${isBlocked ? `${C.warn}40` : isOverdue ? `${C.danger}60` : done ? C.border : C.border2}`,
+      display: 'flex', alignItems: 'center', gap: '12px',
+      background: done ? 'transparent' : '#FFFFFF',
+      border: `1px solid ${isBlocked ? `${C.warn}60` : isOverdue ? `${C.danger}60` : done ? C.border : '#E5E0D8'}`,
       borderRadius: '14px', padding: '12px 14px',
-      opacity: done ? 0.45 : isBlocked ? 0.8 : 1, transition: 'all 0.2s',
+      boxShadow: done ? 'none' : '0 2px 6px rgba(17, 26, 32, 0.02)',
+      opacity: done ? 0.45 : isBlocked ? 0.8 : 1, transition: 'all 0.15s ease',
     }}>
-      <div
+      <button
+        type="button"
         onClick={() => !done && !isBlocked && onComplete && onComplete(task)}
-        style={{ cursor: done ? 'default' : isBlocked ? 'not-allowed' : 'pointer', flexShrink: 0 }}
+        disabled={done || isBlocked}
+        aria-label={done ? 'Completed' : `Complete ${task.name}`}
+        style={{
+          cursor: done ? 'default' : isBlocked ? 'not-allowed' : 'pointer',
+          flexShrink: 0,
+          background: 'transparent',
+          border: 'none',
+          padding: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
         {done ? (
-          <CheckCircle2 size={18} color={C.goal} />
+          <CheckCircle2 size={19} color="#1FA36F" />
         ) : isBlocked ? (
           <Lock size={16} color={C.warn} />
         ) : (
-          <Circle size={18} color={C.border2} />
+          <Circle size={19} color="#8A9CA3" />
         )}
-      </div>
+      </button>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: '13px',
-          fontWeight: 600,
+          fontSize: '13.5px',
+          fontWeight: 650,
           color: isBlocked ? C.sub : C.text,
           textDecoration: done ? 'line-through' : 'none',
-          lineHeight: 1.4,
+          lineHeight: 1.35,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap'
@@ -220,8 +235,8 @@ export function TaskRow({
           {task.name}
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {projectName && <span style={{ fontSize: '10px', color: C.muted }}>📁 {projectName}</span>}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '3px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {projectName && <span style={{ fontSize: '10.5px', color: C.sub }}>📁 {projectName}</span>}
           {isOverdue && <span style={{ fontSize: '10px', fontWeight: 800, color: C.danger }}>{Math.abs(days)}d overdue</span>}
           {isDueToday && <span style={{ fontSize: '10px', fontWeight: 800, color: C.warn }}>Due today</span>}
           {isDueSoon && <span style={{ fontSize: '10px', fontWeight: 700, color: C.warn }}>In {days}d</span>}
@@ -233,8 +248,8 @@ export function TaskRow({
         </div>
       </div>
 
-      {task.priority === 1 && !done && <Flame size={13} color={C.danger} style={{ flexShrink: 0 }} />}
-      {task.priority === 2 && !done && <Flame size={13} color={C.warn} style={{ flexShrink: 0 }} />}
+      {task.priority === 1 && !done && <Flame size={14} color={C.danger} style={{ flexShrink: 0 }} />}
+      {task.priority === 2 && !done && <Flame size={14} color={C.warn} style={{ flexShrink: 0 }} />}
 
       {/* Optional 1-tap focus session button */}
       {onFocus && !done && !isBlocked && (
@@ -242,21 +257,22 @@ export function TaskRow({
           type="button"
           onClick={(e) => { e.stopPropagation(); onFocus(task); }}
           style={{
-            background: 'rgba(31, 163, 111, 0.12)',
-            border: '1px solid rgba(31, 163, 111, 0.35)',
-            color: '#1FA36F',
+            background: '#DDE9EB',
+            border: '1px solid #C4DCE0',
+            color: '#174A55',
             borderRadius: '8px',
-            padding: '5px 9px',
+            padding: '5px 10px',
             fontSize: '11px',
-            fontWeight: 800,
+            fontWeight: 700,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
             flexShrink: 0,
+            transition: 'opacity 0.15s ease',
           }}
         >
-          <Play size={11} fill="#1FA36F" /> Focus
+          <Play size={10} fill="#174A55" /> Focus
         </button>
       )}
 
@@ -266,7 +282,7 @@ export function TaskRow({
           style={{
             background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
             color: C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            outline: 'none', transition: 'color 0.2s', flexShrink: 0
+            outline: 'none', transition: 'color 0.15s ease', flexShrink: 0
           }}
           onMouseEnter={e => e.currentTarget.style.color = C.danger}
           onMouseLeave={e => e.currentTarget.style.color = C.muted}

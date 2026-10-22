@@ -25,7 +25,7 @@ export default function GoalsTab({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <SectionLabel>Strategic Goals ({activeGoals.length})</SectionLabel>
-          <div style={{ fontSize: '11px', color: C.muted, marginTop: '-6px' }}>
+          <div style={{ fontSize: '11px', color: C.sub, marginTop: '-6px' }}>
             Where you are going and what connects to execution
           </div>
         </div>
@@ -34,9 +34,9 @@ export default function GoalsTab({
           type="button"
           onClick={onAddGoal}
           style={{
-            background: 'rgba(233, 180, 76, 0.15)',
-            border: '1px solid rgba(233, 180, 76, 0.35)',
-            color: '#E9B44C',
+            background: 'rgba(23, 74, 85, 0.1)',
+            border: '1px solid rgba(23, 74, 85, 0.25)',
+            color: 'var(--brand-petrol, #174A55)',
             borderRadius: '10px',
             padding: '6px 12px',
             fontSize: '11px',
@@ -80,7 +80,7 @@ export default function GoalsTab({
             return (
               <Card
                 key={g.id}
-                accent={isComplete ? C.success : '#E9B44C'}
+                accent={isComplete ? C.success : C.growth}
                 style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}
               >
                 {/* Header line */}
@@ -90,11 +90,11 @@ export default function GoalsTab({
                       width: '36px',
                       height: '36px',
                       borderRadius: '50%',
-                      background: isComplete ? 'rgba(16, 185, 129, 0.15)' : 'rgba(233, 180, 76, 0.15)',
+                      background: isComplete ? 'rgba(31, 163, 111, 0.12)' : 'rgba(23, 74, 85, 0.1)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: isComplete ? '#10B981' : '#E9B44C',
+                      color: isComplete ? '#1FA36F' : '#174A55',
                       flexShrink: 0,
                     }}>
                       <Target size={18} />
@@ -103,11 +103,11 @@ export default function GoalsTab({
                       <div style={{ fontSize: '15px', fontWeight: 800, color: C.text, letterSpacing: '-0.01em' }}>
                         {g.name}
                       </div>
-                      <div style={{ fontSize: '11px', color: C.muted, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ fontSize: '11px', color: C.sub, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {project ? (
                           <span
                             onClick={() => onOpenProject && onOpenProject(project)}
-                            style={{ color: '#E9B44C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+                            style={{ color: 'var(--brand-petrol, #174A55)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 600 }}
                           >
                             📁 {project.name} <ArrowUpRight size={10} />
                           </span>
@@ -122,10 +122,10 @@ export default function GoalsTab({
 
                   {/* Right stats & action */}
                   <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                    <div style={{ fontSize: '18px', fontWeight: 900, color: isComplete ? '#10B981' : '#E9B44C' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 900, color: isComplete ? '#1FA36F' : '#174A55' }}>
                       {pct}%
                     </div>
-                    <div style={{ fontSize: '10px', color: C.muted }}>
+                    <div style={{ fontSize: '10px', color: C.sub }}>
                       {current} / {target} {g.unit || ''}
                     </div>
                   </div>
@@ -135,7 +135,7 @@ export default function GoalsTab({
                 <ProgressBar
                   value={current}
                   max={target}
-                  color={isComplete ? '#10B981' : '#E9B44C'}
+                  color={isComplete ? '#1FA36F' : '#174A55'}
                   height={6}
                 />
 
@@ -143,21 +143,21 @@ export default function GoalsTab({
                 {connectedTasks.length > 0 && (
                   <div style={{
                     paddingTop: '10px',
-                    borderTop: '1px solid #1C1D21',
+                    borderTop: `1px solid ${C.border}`,
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '6px',
                   }}>
-                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: C.sub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       Connected Milestones
                     </div>
                     {connectedTasks.map(t => (
-                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: '#ECE8DF' }}>
+                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: C.text }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#E9B44C' }} />
+                          <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#174A55', flexShrink: 0 }} />
                           <span>{t.name}</span>
                         </div>
-                        <span style={{ fontSize: '10px', color: '#6B7280' }}>Priority {t.priority || 3}</span>
+                        <span style={{ fontSize: '10px', color: C.sub }}>Priority {t.priority || 3}</span>
                       </div>
                     ))}
                   </div>
@@ -174,7 +174,7 @@ export default function GoalsTab({
                       style={{
                         background: 'transparent',
                         border: 'none',
-                        color: '#6B7280',
+                        color: C.muted,
                         cursor: 'pointer',
                         padding: '4px 6px',
                         borderRadius: '6px',
@@ -185,7 +185,7 @@ export default function GoalsTab({
                         transition: 'color 0.15s ease',
                       }}
                       onMouseEnter={e => e.currentTarget.style.color = '#EF4444'}
-                      onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}
+                      onMouseLeave={e => e.currentTarget.style.color = C.muted}
                     >
                       <Trash2 size={13} />
                     </button>
@@ -197,11 +197,11 @@ export default function GoalsTab({
                         type="button"
                         onClick={() => onUpdateGoalProgress && onUpdateGoalProgress(g, Math.min(target, current + 1))}
                         style={{
-                          background: '#1D1E24',
-                          border: '1px solid #26272D',
-                          color: '#ECE8DF',
-                          borderRadius: '6px',
-                          padding: '4px 10px',
+                          background: '#FAF7F2',
+                          border: `1px solid ${C.border}`,
+                          color: C.text,
+                          borderRadius: '8px',
+                          padding: '5px 12px',
                           fontSize: '11px',
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -213,11 +213,11 @@ export default function GoalsTab({
                         type="button"
                         onClick={() => onUpdateGoalProgress && onUpdateGoalProgress(g, target)}
                         style={{
-                          background: 'rgba(16, 185, 129, 0.1)',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
-                          color: '#10B981',
-                          borderRadius: '6px',
-                          padding: '4px 10px',
+                          background: 'rgba(31, 163, 111, 0.1)',
+                          border: '1px solid rgba(31, 163, 111, 0.25)',
+                          color: '#1FA36F',
+                          borderRadius: '8px',
+                          padding: '5px 12px',
                           fontSize: '11px',
                           fontWeight: 700,
                           cursor: 'pointer',

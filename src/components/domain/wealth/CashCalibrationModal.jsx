@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { X, Wallet, Check } from 'lucide-react';
+import { X, Wallet, ShieldCheck, ArrowRight } from 'lucide-react';
 
 const W = {
-  surface: '#15181B',
-  border: '#23272E',
-  borderSubtle: 'rgba(255, 255, 255, 0.07)',
-  text: '#F5F5F5',
-  sub: '#9CA3AF',
-  accent: '#1FA36F',
+  canvas: '#F4F0E8',
+  card: '#FFFFFF',
+  border: '#E5E0D8',
+  elevated: '#FAF7F2',
+  petrol: '#174A55',
+  softTeal: '#DDE9EB',
+  text: '#111A20',
+  sub: '#68777B',
+  muted: '#8A9CA3',
 };
 
 export default function CashCalibrationModal({
@@ -47,43 +50,69 @@ export default function CashCalibrationModal({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-[200] bg-black/45 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-150"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-t-3xl md:rounded-2xl p-6 flex flex-col"
+        className="w-full max-w-sm rounded-t-3xl md:rounded-3xl p-6 pb-8 md:pb-6 flex flex-col gap-4 max-h-[92vh] overflow-y-auto"
         style={{
-          background: W.surface,
-          border: `1px solid ${W.border}`,
-          boxShadow: '0 20px 48px rgba(0, 0, 0, 0.6)',
+          background: W.canvas,
+          border: `1.5px solid ${W.border}`,
+          boxShadow: '0 24px 48px -12px rgba(17, 26, 32, 0.25)',
         }}
       >
-        <div className="flex items-center justify-between pb-3 border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <Wallet size={16} className="text-[#1FA36F]" />
-            <h2 className="text-base font-bold text-[#F5F5F5]">
-              Calibrate Cash Balance
-            </h2>
+        {/* Top bar with icon badge, title/breadcrumbs, and close button */}
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+              style={{ background: W.softTeal, color: W.petrol }}
+            >
+              <Wallet size={20} className="stroke-[2.2]" />
+            </div>
+            <div>
+              <h2 style={{ color: W.text }} className="text-base font-bold leading-snug">
+                Calibrate cash
+              </h2>
+              <p className="text-[11px] font-medium text-[#68777B]">
+                Wealth · Balance settings
+              </p>
+            </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#9CA3AF] hover:text-white transition cursor-pointer"
+            aria-label="Close"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[#68777B] hover:text-[#111A20] hover:bg-black/5 transition cursor-pointer"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
-          <p className="text-xs text-[#9CA3AF] leading-relaxed">
-            Enter your total liquid cash (bank account + wallet) so Zyrbit knows your starting position honestly.
+        {/* Section Heading & Subtitle */}
+        <div>
+          <h3 style={{ color: W.text }} className="text-lg font-bold tracking-tight">
+            What’s your actual balance?
+          </h3>
+          <p className="text-xs text-[#68777B] mt-1 leading-relaxed">
+            Enter the total cash in your bank accounts and wallet.
           </p>
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-semibold text-[#9CA3AF]">
-              Current Liquid Cash ({currencySymbol})
+        {/* White Card with Input and Reconciled Note */}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div
+            className="p-4 rounded-2xl flex flex-col gap-2.5"
+            style={{
+              background: W.card,
+              border: `1px solid ${W.border}`,
+            }}
+          >
+            <label className="text-xs font-medium text-[#68777B]">
+              Total liquid cash
             </label>
-            <div className="relative">
-              <span className="absolute left-3.5 top-3 text-lg font-bold text-[#1FA36F]">
+            <div className="flex items-center gap-2 pb-2" style={{ borderBottom: `1px solid ${W.border}` }}>
+              <span className="text-2xl font-bold text-[#174A55] select-none">
                 {currencySymbol}
               </span>
               <input
@@ -94,31 +123,37 @@ export default function CashCalibrationModal({
                 autoFocus
                 value={cashAmount}
                 onChange={(e) => setCashAmount(e.target.value)}
-                placeholder="18500"
-                className="w-full pl-9 pr-3.5 py-3 rounded-xl text-xl font-bold font-mono text-[#F5F5F5] outline-none"
-                style={{
-                  background: '#0B0D0F',
-                  border: `1px solid ${W.borderSubtle}`,
-                }}
+                placeholder="18,500"
+                className="w-full text-2xl font-bold text-[#111A20] outline-none bg-transparent placeholder:text-[#8A9CA3]"
               />
+            </div>
+            <div className="flex items-center gap-1.5 pt-1 text-[11px] text-[#68777B]">
+              <ShieldCheck size={14} className="text-[#174A55] shrink-0" />
+              <span>Your recorded balance will be reconciled.</span>
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 rounded-xl bg-white/5 text-[#9CA3AF] font-bold text-xs hover:text-white transition cursor-pointer"
-            >
-              Cancel
-            </button>
+          {/* Action buttons */}
+          <div className="flex flex-col gap-2 pt-1">
             <button
               type="submit"
               disabled={saving || !cashAmount}
-              className="flex-1 py-3 rounded-xl bg-[#1FA36F] text-[#0B0D0F] font-bold text-xs flex items-center justify-center gap-1.5 hover:opacity-90 transition disabled:opacity-40 cursor-pointer"
+              className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-95 disabled:opacity-50 cursor-pointer shadow-sm"
+              style={{ background: W.petrol }}
             >
-              <Check size={14} className="stroke-[3]" />
-              <span>{saving ? 'Saving...' : 'Set Cash Balance'}</span>
+              <span>{saving ? 'Saving...' : 'Confirm cash balance'}</span>
+              <ArrowRight size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-3 rounded-2xl font-bold text-sm text-[#68777B] hover:text-[#111A20] transition cursor-pointer"
+              style={{
+                background: W.elevated,
+                border: `1px solid ${W.border}`,
+              }}
+            >
+              Cancel
             </button>
           </div>
         </form>

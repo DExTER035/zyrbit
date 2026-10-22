@@ -78,7 +78,7 @@ export default function EditLogModal({ log, onSave, onClose }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Meal Type selection */}
         <div>
-          <div style={{ fontSize: '10px', color: FC.muted, fontWeight: 700, letterSpacing: '0.8px', marginBottom: '8px', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: '11px', color: FC.sub, fontWeight: 700, letterSpacing: '0.06em', marginBottom: '8px', textTransform: 'uppercase' }}>
             Meal Period
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
@@ -88,15 +88,15 @@ export default function EditLogModal({ log, onSave, onClose }) {
                 type="button"
                 onClick={() => setMealType(opt.value)}
                 style={{
-                  padding: '8px 4px',
+                  padding: '9px 4px',
                   borderRadius: '10px',
-                  background: mealType === opt.value ? FC.food : FC.elev,
-                  border: `1px solid ${mealType === opt.value ? FC.food : FC.border2}`,
+                  background: mealType === opt.value ? FC.food : '#FFFFFF',
+                  border: `1px solid ${mealType === opt.value ? FC.food : FC.border}`,
                   color: mealType === opt.value ? '#FFFFFF' : FC.text,
                   fontSize: '11px',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  transition: 'all 0.15s',
+                  transition: 'all 0.15s ease',
                   textAlign: 'center',
                 }}
               >
@@ -109,10 +109,10 @@ export default function EditLogModal({ log, onSave, onClose }) {
         {/* Portion Stepper & Multipliers */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '10px', color: FC.muted, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '11px', color: FC.sub, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               Portion
             </span>
-            <span style={{ fontSize: '11px', color: FC.petrolMuted, fontWeight: 700 }}>
+            <span style={{ fontSize: '12px', color: FC.food, fontWeight: 700 }}>
               {quantityG} grams
             </span>
           </div>
@@ -122,8 +122,8 @@ export default function EditLogModal({ log, onSave, onClose }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: FC.elev,
-            border: `1px solid ${FC.border2}`,
+            background: '#FAF7F2',
+            border: `1px solid ${FC.border}`,
             borderRadius: '12px',
             padding: '6px 10px',
             marginBottom: '10px',
@@ -135,8 +135,8 @@ export default function EditLogModal({ log, onSave, onClose }) {
                 width: '36px',
                 height: '36px',
                 borderRadius: '8px',
-                background: FC.dim,
-                border: 'none',
+                background: '#FFFFFF',
+                border: `1px solid ${FC.border}`,
                 color: FC.text,
                 display: 'flex',
                 alignItems: 'center',
@@ -148,7 +148,7 @@ export default function EditLogModal({ log, onSave, onClose }) {
               <Minus size={15} />
             </button>
 
-            <span style={{ fontSize: '15px', fontWeight: 800, color: FC.text }}>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: FC.text }}>
               {quantityG}g
             </span>
 
@@ -159,8 +159,8 @@ export default function EditLogModal({ log, onSave, onClose }) {
                 width: '36px',
                 height: '36px',
                 borderRadius: '8px',
-                background: FC.dim,
-                border: 'none',
+                background: '#FFFFFF',
+                border: `1px solid ${FC.border}`,
                 color: FC.text,
                 display: 'flex',
                 alignItems: 'center',
@@ -186,13 +186,13 @@ export default function EditLogModal({ log, onSave, onClose }) {
                   style={{
                     padding: '8px 4px',
                     borderRadius: '10px',
-                    background: isActive ? `${FC.food}33` : FC.elev,
-                    border: `1px solid ${isActive ? FC.petrolMuted : FC.border2}`,
-                    color: isActive ? '#F4F0E8' : FC.sub,
+                    background: isActive ? 'rgba(23, 74, 85, 0.1)' : '#FFFFFF',
+                    border: `1px solid ${isActive ? FC.food : FC.border}`,
+                    color: isActive ? FC.food : FC.sub,
                     fontSize: '11px',
                     fontWeight: 800,
                     cursor: 'pointer',
-                    transition: 'all 0.15s',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   {label}
@@ -213,28 +213,28 @@ export default function EditLogModal({ log, onSave, onClose }) {
         {/* Live Scaled Preview */}
         {preview && (
           <div style={{
-            background: `${FC.food}0D`,
-            border: `1px solid ${FC.food}22`,
+            background: '#FAF7F2',
+            border: `1px solid ${FC.border}`,
             borderRadius: '14px',
             padding: '12px 14px',
             display: 'flex',
             justifyContent: 'space-around',
           }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '16px', fontWeight: 900, color: '#F4F0E8' }}>{preview.calories}</div>
-              <div style={{ fontSize: '9px', color: FC.muted, fontWeight: 700 }}>kcal</div>
+              <div style={{ fontSize: '17px', fontWeight: 900, color: FC.text }}>{preview.calories}</div>
+              <div style={{ fontSize: '10px', color: FC.sub, fontWeight: 700 }}>kcal</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '15px', fontWeight: 800, color: FC.protein }}>{preview.protein}g</div>
-              <div style={{ fontSize: '9px', color: FC.muted, fontWeight: 600 }}>Protein</div>
+              <div style={{ fontSize: '10px', color: FC.sub, fontWeight: 600 }}>Protein</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '15px', fontWeight: 800, color: FC.carbs }}>{preview.carbs}g</div>
-              <div style={{ fontSize: '9px', color: FC.muted, fontWeight: 600 }}>Carbs</div>
+              <div style={{ fontSize: '10px', color: FC.sub, fontWeight: 600 }}>Carbs</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '15px', fontWeight: 800, color: FC.fat }}>{preview.fat}g</div>
-              <div style={{ fontSize: '9px', color: FC.muted, fontWeight: 600 }}>Fat</div>
+              <div style={{ fontSize: '10px', color: FC.sub, fontWeight: 600 }}>Fat</div>
             </div>
           </div>
         )}

@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Plus, Trash2 } from 'lucide-react';
+import { X, Calendar, Plus, Trash2, ArrowRight, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 
 const W = {
-  bg: '#0E0F13',
-  surface: '#15161B',
-  border: '#26272D',
-  borderFocus: '#3A3B40',
-  text: '#ECE8DF',
-  sub: '#9A978F',
-  muted: '#6B7280',
-  dim: '#1F2026',
-  accent: '#E9B44C',
-  emerald: '#1FA36F',
+  canvas: '#F4F0E8',
+  card: '#FFFFFF',
+  border: '#E5E0D8',
+  elevated: '#FAF7F2',
+  petrol: '#174A55',
+  softTeal: '#DDE9EB',
+  text: '#111A20',
+  sub: '#68777B',
+  muted: '#8A9CA3',
   danger: '#EF4444',
+  emerald: '#1FA36F',
 };
 
 const EXPENSE_CHIPS = [
@@ -126,79 +126,76 @@ export default function TransactionFormModal({
 
   return (
     <div
-      className="zyrbit-modal-backdrop"
       onClick={onClose}
+      className="fixed inset-0 z-[200] bg-black/45 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-150"
     >
       <div
-        className="zyrbit-modal-sheet"
         onClick={e => e.stopPropagation()}
+        className="w-full max-w-sm rounded-t-3xl md:rounded-3xl p-6 pb-8 md:pb-6 flex flex-col gap-4 max-h-[92vh] overflow-y-auto"
         style={{
-          padding: '24px 22px 32px',
+          background: W.canvas,
+          border: `1.5px solid ${W.border}`,
+          boxShadow: '0 24px 48px -12px rgba(17, 26, 32, 0.25)',
         }}
       >
-        {/* ── Compact Header & Purpose Sentence ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-          <div>
-            <div style={{
-              fontSize: '11px',
-              fontWeight: 800,
-              color: isExpense ? '#F43F5E' : W.emerald,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              marginBottom: '3px',
-            }}>
-              {activeItem ? `Edit ${isExpense ? 'Expense' : 'Income'}` : (isExpense ? 'Log Expense' : 'Log Income')}
+        {/* Top bar with icon badge, title/breadcrumbs, and close button */}
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+              style={{ background: W.softTeal, color: W.petrol }}
+            >
+              {isExpense ? (
+                <ArrowUpRight size={20} className="stroke-[2.2]" />
+              ) : (
+                <ArrowDownLeft size={20} className="stroke-[2.2]" />
+              )}
             </div>
-            <div style={{
-              fontSize: '15px',
-              fontWeight: 600,
-              color: W.text,
-              letterSpacing: '-0.01em',
-            }}>
-              {isExpense ? 'What did you spend?' : 'What came in?'}
+            <div>
+              <h2 style={{ color: W.text }} className="text-base font-bold leading-snug">
+                {activeItem ? `Edit ${isExpense ? 'expense' : 'income'}` : (isExpense ? 'Log expense' : 'Log income')}
+              </h2>
+              <p className="text-[11px] font-medium text-[#68777B]">
+                Wealth · {isExpense ? 'Spending entry' : 'Cash flow'}
+              </p>
             </div>
           </div>
-
           <button
             type="button"
             onClick={onClose}
-            style={{
-              background: W.dim,
-              border: `1px solid ${W.border}`,
-              borderRadius: '50%',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: W.sub,
-              transition: 'all 0.15s ease',
-            }}
+            aria-label="Close"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[#68777B] hover:text-[#111A20] hover:bg-black/5 transition cursor-pointer"
           >
-            <X size={15} />
+            <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* ── Primary Hero Input: Large Amount ── */}
-          <div style={{
-            background: W.bg,
-            border: `1px solid ${W.border}`,
-            borderRadius: '20px',
-            padding: '16px 18px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            transition: 'border-color 0.15s ease',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-              <span style={{
-                fontSize: '28px',
-                fontWeight: 800,
-                color: amount ? W.text : W.muted,
-                lineHeight: 1,
-              }}>
+        {/* Section Heading & Subtitle */}
+        <div>
+          <h3 style={{ color: W.text }} className="text-lg font-bold tracking-tight">
+            {isExpense ? 'What did you spend?' : 'What came in?'}
+          </h3>
+          <p className="text-xs text-[#68777B] mt-1 leading-relaxed">
+            {isExpense
+              ? 'Enter amount and select a category to keep spending pace honest.'
+              : 'Record salary, client payments, or side income into cash balance.'}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+          {/* Amount Input Card & Presets */}
+          <div
+            className="p-4 rounded-2xl flex flex-col gap-2.5"
+            style={{
+              background: W.card,
+              border: `1px solid ${W.border}`,
+            }}
+          >
+            <label className="text-xs font-medium text-[#68777B]">
+              Amount
+            </label>
+            <div className="flex items-center gap-2 pb-1" style={{ borderBottom: `1px solid ${W.border}` }}>
+              <span className="text-2xl font-bold text-[#174A55] select-none">
                 {currencySymbol}
               </span>
               <input
@@ -207,212 +204,134 @@ export default function TransactionFormModal({
                 inputMode="decimal"
                 placeholder="0"
                 value={amount}
-                onChange={e => setAmount(e.target.value)}
+                onChange={(e) => setAmount(e.target.value)}
                 autoFocus
-                style={{
-                  flex: 1,
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: '36px',
-                  fontWeight: 900,
-                  color: W.text,
-                  outline: 'none',
-                  padding: 0,
-                  margin: 0,
-                  lineHeight: 1,
-                  fontFamily: 'inherit',
-                  letterSpacing: '-0.03em',
-                  MozAppearance: 'textfield',
-                  WebkitAppearance: 'none',
-                }}
+                className="w-full text-2xl font-bold text-[#111A20] outline-none bg-transparent placeholder:text-[#8A9CA3]"
               />
             </div>
 
             {/* Quick Amount Presets */}
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {presets.map(p => (
+            <div className="flex gap-1.5 pt-1">
+              {presets.map((p) => (
                 <button
                   key={p.val}
                   type="button"
                   onClick={() => setAmount(String(p.val))}
+                  className="flex-1 py-1 rounded-lg text-xs font-semibold transition cursor-pointer text-center"
                   style={{
-                    flex: 1,
-                    padding: '7px 4px',
-                    borderRadius: '10px',
-                    background: W.dim,
+                    background: W.elevated,
                     border: `1px solid ${W.border}`,
                     color: W.sub,
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = W.borderFocus;
-                    e.currentTarget.style.color = W.text;
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = W.border;
-                    e.currentTarget.style.color = W.sub;
                   }}
                 >
-                  +{p.label}
+                  +{p.val}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* ── Compact Category / Source Selector Chips ── */}
-          <div>
-            <div style={{
-              display: 'flex',
-              gap: '6px',
-              flexWrap: 'wrap',
-            }}>
-              {chips.map(chip => {
-                const isSelected = category.toLowerCase() === chip.id.toLowerCase();
-                const activeColor = isExpense ? '#F43F5E' : W.emerald;
+          {/* Category Chips Card */}
+          <div
+            className="p-3.5 rounded-2xl flex flex-col gap-2"
+            style={{
+              background: W.card,
+              border: `1px solid ${W.border}`,
+            }}
+          >
+            <label className="text-xs font-medium text-[#68777B]">
+              Category
+            </label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {chips.map((c) => {
+                const isSelected = category.toLowerCase() === c.id.toLowerCase();
                 return (
                   <button
-                    key={chip.id}
+                    key={c.id}
                     type="button"
-                    onClick={() => setCategory(chip.id)}
+                    onClick={() => setCategory(c.id)}
+                    className="py-2 px-2 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
                     style={{
-                      padding: '8px 12px',
-                      borderRadius: '12px',
-                      background: isSelected ? `${activeColor}1A` : W.bg,
-                      border: `1px solid ${isSelected ? activeColor : W.border}`,
-                      color: isSelected ? activeColor : W.sub,
-                      fontSize: '12px',
-                      fontWeight: isSelected ? 700 : 500,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      transition: 'all 0.15s ease',
+                      background: isSelected ? W.softTeal : W.elevated,
+                      border: `1px solid ${isSelected ? W.petrol : W.border}`,
+                      color: isSelected ? W.petrol : W.sub,
                     }}
                   >
-                    <span>{chip.icon}</span>
-                    <span>{chip.label}</span>
+                    <span>{c.icon}</span>
+                    <span>{c.label}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* ── Date Indicator & Progressive Note ── */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            paddingTop: '4px',
-          }}>
-            {/* Date selector */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: W.bg,
+          {/* Date & Note Row Card */}
+          <div
+            className="p-3.5 rounded-2xl flex flex-col gap-2.5"
+            style={{
+              background: W.card,
               border: `1px solid ${W.border}`,
-              borderRadius: '10px',
-              padding: '6px 10px',
-              position: 'relative',
-            }}>
-              <Calendar size={13} color={W.sub} />
-              <span style={{ fontSize: '11px', fontWeight: 600, color: W.text }}>
-                {isToday ? 'Today' : date}
-              </span>
-              <input
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  opacity: 0,
-                  cursor: 'pointer',
-                  width: '100%',
-                }}
-              />
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-[#68777B]">
+                Date
+              </label>
+              <div className="relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#FAF7F2] border border-[#E5E0D8]">
+                <Calendar size={13} className="text-[#68777B]" />
+                <span className="text-xs font-semibold text-[#111A20]">
+                  {isToday ? 'Today' : date}
+                </span>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                />
+              </div>
             </div>
 
-            {/* Note disclosure toggle */}
+            {/* Note toggle or field */}
             {!showNote && (
               <button
                 type="button"
                 onClick={() => setShowNote(true)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: W.sub,
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 4px',
-                }}
+                className="pt-1 flex items-center gap-1 text-xs font-medium text-[#174A55] hover:underline cursor-pointer"
               >
                 <Plus size={13} />
                 <span>Add note</span>
               </button>
             )}
+
+            {/* Collapsible Note Input */}
+            {showNote && (
+              <div className="pt-2 border-t border-[#E5E0D8]/60 flex flex-col gap-1">
+                <label className="text-[11px] font-medium text-[#68777B]">
+                  Optional note
+                </label>
+                <input
+                  type="text"
+                  placeholder={isExpense ? 'e.g. Lunch with team, taxi fare' : 'e.g. Monthly stipend, bonus'}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="w-full text-xs font-medium text-[#111A20] outline-none bg-transparent placeholder:text-[#8A9CA3]"
+                />
+              </div>
+            )}
           </div>
 
-          {/* Collapsible Note Input */}
-          {showNote && (
-            <div style={{
-              background: W.bg,
-              border: `1px solid ${W.border}`,
-              borderRadius: '14px',
-              padding: '10px 14px',
-            }}>
-              <input
-                type="text"
-                placeholder={isExpense ? 'e.g. Swiggy lunch, Coffee with client' : 'e.g. Monthly salary, UI design retainer'}
-                value={note}
-                onChange={e => setNote(e.target.value)}
-                autoFocus
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: '13px',
-                  color: W.text,
-                  outline: 'none',
-                  padding: 0,
-                }}
-              />
-            </div>
-          )}
-
-          {/* ── Primary Action Button ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+          {/* Action buttons */}
+          <div className="flex flex-col gap-2 pt-1">
             <button
               type="submit"
               disabled={!amount || parseFloat(amount) <= 0 || isSaving}
-              style={{
-                width: '100%',
-                padding: '14px',
-                borderRadius: '16px',
-                background: isExpense ? '#F43F5E' : W.emerald,
-                border: 'none',
-                color: '#0E0F13',
-                fontSize: '14px',
-                fontWeight: 800,
-                letterSpacing: '0.01em',
-                cursor: (!amount || parseFloat(amount) <= 0 || isSaving) ? 'not-allowed' : 'pointer',
-                opacity: (!amount || parseFloat(amount) <= 0 || isSaving) ? 0.45 : 1,
-                transition: 'all 0.15s ease',
-              }}
+              className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-95 disabled:opacity-50 cursor-pointer shadow-sm"
+              style={{ background: W.petrol }}
             >
-              {isSaving
-                ? 'Recording...'
-                : (activeItem ? 'Save changes' : (isExpense ? 'Record expense' : 'Record income'))}
+              <span>{isSaving ? 'Recording...' : activeItem ? 'Save changes' : isExpense ? 'Record expense' : 'Record income'}</span>
+              <ArrowRight size={15} />
             </button>
 
+            {/* Delete button if editing */}
             {activeItem && onDelete && (
               <button
                 type="button"
@@ -426,27 +345,28 @@ export default function TransactionFormModal({
                     setIsSaving(false);
                   }
                 }}
+                className="w-full py-2.5 rounded-2xl font-semibold text-xs text-[#EF4444] hover:bg-red-50 transition cursor-pointer flex items-center justify-center gap-1.5"
                 style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '12px',
                   background: 'transparent',
                   border: '1px solid rgba(239, 68, 68, 0.25)',
-                  color: '#EF4444',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease',
                 }}
               >
                 <Trash2 size={13} />
                 <span>Delete {isExpense ? 'expense' : 'income'}</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-3 rounded-2xl font-bold text-sm text-[#68777B] hover:text-[#111A20] transition cursor-pointer"
+              style={{
+                background: W.elevated,
+                border: `1px solid ${W.border}`,
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </form>
       </div>
