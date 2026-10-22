@@ -25,6 +25,8 @@ const Health = lazy(() => import('./pages/Health/index.jsx'))
 const Food = lazy(() => import('./pages/Food/index.jsx'))
 const Wealth = lazy(() => import('./pages/Wealth/index.jsx'))
 const Profile = lazy(() => import('./pages/Profile/index.jsx'))
+const Track = lazy(() => import('./pages/Track/index.jsx'))
+const Insights = lazy(() => import('./pages/Insights/index.jsx'))
 
 const requestNotificationPermission = async () => {
   if (!('Notification' in window)) return
@@ -99,14 +101,17 @@ function MainApp({ handleSignOut, currentUserId }) {
       <AppPageTracker userId={currentUserId} />
       <Routes>
         <Route path="/zenith" element={<ProtectedRoute onSignOut={handleSignOut}><Zenith /></ProtectedRoute>} />
+        <Route path="/track" element={<ProtectedRoute onSignOut={handleSignOut}><Track /></ProtectedRoute>} />
+        <Route path="/insights" element={<ProtectedRoute onSignOut={handleSignOut}><Insights /></ProtectedRoute>} />
         <Route path="/growth" element={<ProtectedRoute onSignOut={handleSignOut}><Growth /></ProtectedRoute>} />
         <Route path="/health" element={<ProtectedRoute onSignOut={handleSignOut}><Health /></ProtectedRoute>} />
         <Route path="/wealth" element={<ProtectedRoute onSignOut={handleSignOut}><Wealth /></ProtectedRoute>} />
         <Route path="/dex" element={<Navigate to="/zenith?openDex=true" replace />} />
         <Route path="/food" element={<ProtectedRoute onSignOut={handleSignOut}><Food /></ProtectedRoute>} />
         <Route path="/challenge" element={<Navigate to="/growth" replace />} />
-        <Route path="/stats" element={<Navigate to="/zenith" replace />} />
+        <Route path="/stats" element={<Navigate to="/insights" replace />} />
         <Route path="/profile" element={<ProtectedRoute onSignOut={handleSignOut}><Profile /></ProtectedRoute>} />
+        <Route path="/space" element={<Navigate to="/profile" replace />} />
         <Route path="/showcase" element={<Showcase5Tabs />} />
         <Route path="/login" element={<RedirectToLogin onSignOut={handleSignOut} />} />
         <Route path="/" element={

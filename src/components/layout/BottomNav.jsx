@@ -1,54 +1,84 @@
 /**
  * BottomNav — Zyrbit Mobile Shell Navigation
- * Approved 5-Anchor Architecture matching Visual Reference:
- * Home | Growth/Health/Wealth | [Elevated Petrol Teal FAB (+)] | Dex | Profile
- * Visual Style: Petrol Teal (#174A55), Warm Ivory (#F4F0E8), Surface White (#FFFFFF), Border (#E5E0D8)
+ * Approved 5-Position Dark Charcoal Architecture matching Visual Reference:
+ * 1. Home (/zenith)
+ * 2. Track (/track, /growth, /food, /health, /wealth)
+ * 3. [Elevated Petrol Teal FAB (+)] -> Quick Add 5-Destination Launcher
+ * 4. Insights (/insights)
+ * 5. Your Space (/profile, /space)
+ *
+ * Visual Style: Dark Charcoal (#111A20), Petrol Teal (#174A55), Soft Teal (#DDE9EB), Muted (#7E948A)
  */
 import React, { useState } from 'react';
-import { Home, TrendingUp, Activity, Wallet, Sparkles, User, Plus, X } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Home, Compass, TrendingUp, User, Plus, X } from 'lucide-react';
 import QuickAddSheet from './QuickAddSheet.jsx';
 
-export default function BottomNav({ activeTab = 'zenith', onTabChange }) {
+export default function BottomNav({ activeTab: propActiveTab, onTabChange }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+
+  // Automatically derive active position from current pathname
+  const currentPath = location.pathname;
+  let resolvedTab = propActiveTab || 'zenith';
+  if (currentPath === '/' || currentPath === '/zenith') {
+    resolvedTab = 'zenith';
+  } else if (
+    currentPath === '/track' ||
+    currentPath === '/growth' ||
+    currentPath === '/food' ||
+    currentPath === '/health' ||
+    currentPath === '/wealth' ||
+    currentPath === '/challenge'
+  ) {
+    resolvedTab = 'track';
+  } else if (currentPath === '/insights' || currentPath === '/stats') {
+    resolvedTab = 'insights';
+  } else if (currentPath === '/profile' || currentPath === '/space') {
+    resolvedTab = 'profile';
+  }
 
   const toggleQuickAdd = () => {
     setIsQuickAddOpen((prev) => !prev);
   };
 
   const handleSelectAction = (action) => {
+    setIsQuickAddOpen(false);
     if (action.route) {
-      if (action.route === '/food' || action.route === '/health') {
-        if (onTabChange) onTabChange('health');
-        else window.location.href = action.route;
-      } else if (action.route.startsWith('/')) {
-        const tab = action.route.slice(1).split('?')[0];
-        if (onTabChange) onTabChange(tab);
-      }
+      navigate(action.route);
+      if (onTabChange) onTabChange(action.id);
     }
   };
 
   const handleTabClick = (id) => {
-    if (id === 'dex') {
-      window.dispatchEvent(new CustomEvent('dexos:open-dex'));
-      return;
-    }
     if (onTabChange) {
       onTabChange(id);
     }
+    switch (id) {
+      case 'zenith':
+      case 'home':
+        navigate('/zenith');
+        break;
+      case 'track':
+        navigate('/track');
+        break;
+      case 'insights':
+        navigate('/insights');
+        break;
+      case 'profile':
+      case 'space':
+        navigate('/profile');
+        break;
+      default:
+        break;
+    }
   };
 
-  // Second tab dynamically reflects active domain if on Health or Wealth
-  let secondTab = { id: 'growth', label: 'Growth', Icon: TrendingUp };
-  if (activeTab === 'health' || activeTab === 'food') {
-    secondTab = { id: 'health', label: 'Health', Icon: Activity };
-  } else if (activeTab === 'wealth') {
-    secondTab = { id: 'wealth', label: 'Wealth', Icon: Wallet };
-  }
-
-  const renderTab = (id, label, Icon) => {
-    const isActive = activeTab === id || (id === 'zenith' && activeTab === 'home');
-    const activeColor = 'var(--brand-petrol, #174A55)';
-    const inactiveColor = 'var(--brand-text-sub, #6B7B82)';
+  const renderTab = (id, label, TabIcon) => {
+    const isActive = resolvedTab === id;
+    const activeColor = '#FFFFFF';
+    const inactiveColor = '#7E948A';
 
     return (
       <button
@@ -75,19 +105,19 @@ export default function BottomNav({ activeTab = 'zenith', onTabChange }) {
           outline: 'none',
         }}
       >
-        <Icon
-          size={21}
-          strokeWidth={isActive ? 2.4 : 1.8}
-          color={isActive ? activeColor : inactiveColor}
-          style={{
+        {React.createElement(TabIcon, {
+          size: 20,
+          strokeWidth: isActive ? 2.5 : 1.8,
+          color: isActive ? activeColor : inactiveColor,
+          style: {
             transition: 'color 0.16s ease, transform 0.16s ease',
-            transform: isActive ? 'scale(1.05)' : 'scale(1)',
-          }}
-        />
+            transform: isActive ? 'scale(1.06)' : 'scale(1)',
+          },
+        })}
         <span
           style={{
-            fontSize: '11px',
-            fontWeight: isActive ? 700 : 500,
+            fontSize: '10.5px',
+            fontWeight: isActive ? 750 : 500,
             color: isActive ? activeColor : inactiveColor,
             letterSpacing: '-0.01em',
             fontFamily: "'Inter', -apple-system, sans-serif",
@@ -116,9 +146,9 @@ export default function BottomNav({ activeTab = 'zenith', onTabChange }) {
           alignItems: 'center',
           justifyContent: 'space-around',
           boxSizing: 'border-box',
-          backgroundColor: '#FFFFFF',
-          borderTop: '1px solid var(--brand-border, #E5E0D8)',
-          boxShadow: '0 -2px 14px rgba(0, 0, 0, 0.04)',
+          backgroundColor: '#111A20',
+          borderTop: '1px solid #22282C',
+          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.25)',
           paddingTop: '6px',
           paddingLeft: '12px',
           paddingRight: '12px',
@@ -127,7 +157,7 @@ export default function BottomNav({ activeTab = 'zenith', onTabChange }) {
         }}
       >
         {renderTab('zenith', 'Home', Home)}
-        {renderTab(secondTab.id, secondTab.label, secondTab.Icon)}
+        {renderTab('track', 'Track', Compass)}
 
         {/* Central Elevated Quick-Add FAB matching reference design */}
         <div
@@ -144,13 +174,13 @@ export default function BottomNav({ activeTab = 'zenith', onTabChange }) {
             type="button"
             id="nav-tab-quick-add"
             onClick={toggleQuickAdd}
-            aria-label={isQuickAddOpen ? 'Close quick add menu' : 'Open quick add menu'}
+            aria-label={isQuickAddOpen ? 'Close quick add launcher' : 'Open quick add launcher'}
             style={{
-              width: '50px',
-              height: '50px',
+              width: '48px',
+              height: '48px',
               borderRadius: '50%',
-              backgroundColor: 'var(--brand-petrol, #174A55)',
-              border: '3px solid #FFFFFF',
+              backgroundColor: '#174A55',
+              border: '3px solid #111A20',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
@@ -158,27 +188,27 @@ export default function BottomNav({ activeTab = 'zenith', onTabChange }) {
               cursor: 'pointer',
               position: 'relative',
               top: '-14px',
-              boxShadow: '0 4px 16px rgba(23, 74, 85, 0.35)',
+              boxShadow: '0 4px 16px rgba(23, 74, 85, 0.45)',
               transition: 'transform 0.18s ease, box-shadow 0.18s ease',
               outline: 'none',
             }}
             onMouseDown={(e) => {
-              e.currentTarget.style.transform = 'scale(0.94)';
+              e.currentTarget.style.transform = 'scale(0.93)';
             }}
             onMouseUp={(e) => {
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
             {isQuickAddOpen ? (
-              <X size={23} strokeWidth={2.8} />
+              <X size={22} strokeWidth={2.8} />
             ) : (
-              <Plus size={23} strokeWidth={2.8} />
+              <Plus size={22} strokeWidth={2.8} />
             )}
           </button>
         </div>
 
-        {renderTab('dex', 'Dex', Sparkles)}
-        {renderTab('profile', 'Profile', User)}
+        {renderTab('insights', 'Insights', TrendingUp)}
+        {renderTab('profile', 'Your Space', User)}
       </nav>
 
       {/* Quick Add Sheet Modal */}

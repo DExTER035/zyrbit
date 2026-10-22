@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Compass, Sparkles, Utensils, Wallet, Activity, User, Plus, MessageSquare, Bell } from 'lucide-react';
+import { Home, Compass, TrendingUp, User, Plus, MessageSquare } from 'lucide-react';
 import DexCommandModal from '../common/DexCommandModal.jsx';
 import VoiceCommandOverlay from '../common/VoiceCommandOverlay.jsx';
 import QuickAddSheet from './QuickAddSheet.jsx';
@@ -60,16 +60,16 @@ export default function AppLayout({ children, userId }) {
   }, [navigate]);
 
   const navLinks = [
-    { to: '/zenith', label: 'Home', icon: Compass },
-    { to: '/growth', label: 'Grow', icon: Sparkles },
-    { to: '/food', label: 'Food', icon: Utensils },
-    { to: '/wealth', label: 'Wealth', icon: Wallet },
-    { to: '/profile', label: 'You', icon: User },
+    { to: '/zenith', label: 'Home', icon: Home },
+    { to: '/track', label: 'Track', icon: Compass },
+    { to: '/insights', label: 'Insights', icon: TrendingUp },
+    { to: '/profile', label: 'Your Space', icon: User },
   ];
 
   return (
     <div className="app-layout" style={{
-      background: 'var(--bg-root, #080E0B)',
+      background: 'var(--brand-ivory, #F4F0E8)',
+      color: 'var(--brand-charcoal, #111A20)',
       minHeight: '100vh',
       margin: '0 auto',
       position: 'relative',
@@ -81,9 +81,9 @@ export default function AppLayout({ children, userId }) {
         position: 'sticky',
         top: 0,
         zIndex: 80,
-        background: '#0B120E',
-        borderBottom: '1px solid #1A2B23',
-        boxShadow: '0 4px 24px rgba(0, 0, 0, 0.4)',
+        background: '#111A20',
+        borderBottom: '1px solid #22282C',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
         padding: '10px 24px',
         width: '100%',
       }}>
