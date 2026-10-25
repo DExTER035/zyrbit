@@ -13,7 +13,7 @@ import { BrandButton } from '../components/ui/BrandPrimitives.jsx'
  * - Primary Petrol Teal "Get Started" button.
  * - Secondary "Sign In" button.
  */
-export default function WelcomeScreen({ onGetStarted, onSignIn }) {
+export default function WelcomeScreen({ onGetStarted, onSignIn, onGuest }) {
   return (
     <main
       style={{
@@ -213,6 +213,31 @@ export default function WelcomeScreen({ onGetStarted, onSignIn }) {
           >
             Sign In
           </BrandButton>
+
+          {onGuest && (
+            <button
+              type="button"
+              onClick={onGuest}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#68777B',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: '6px 0',
+                textAlign: 'center',
+                textDecoration: 'underline',
+                textUnderlineOffset: '3px',
+                fontFamily: 'inherit',
+                transition: 'color 0.15s ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#111A20'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#68777B'; }}
+            >
+              Continue as Guest
+            </button>
+          )}
         </footer>
       </div>
     </main>

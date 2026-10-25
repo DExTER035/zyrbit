@@ -36,7 +36,9 @@ export default function InstallBanner() {
     setDismissed(true);
     try {
       localStorage.setItem('zyrbit_pwa_banner_dismissed', 'true');
-    } catch (_) {}
+    } catch {
+      // Storage unavailable or quota exceeded
+    }
   };
 
   const handleInstallClick = async () => {

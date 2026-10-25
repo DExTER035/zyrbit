@@ -32,15 +32,15 @@ export function parseDurationMinutes(input) {
   if (/\b(one and a half hours|1\.5\s*(?:hrs|hours)|90\s*(?:min|mins|minutes)?)\b/.test(str)) return 90;
   if (/\b(two hours|2\s*(?:hrs|hours)|120\s*(?:min|mins|minutes)?)\b/.test(str)) return 120;
 
-  // Decimal hours: e.g. "2.5 hours", "0.5 hr"
-  const decHourMatch = str.match(/(\d+(?:\.\d+)?)\s*(?:hours|hour|hrs|hr)\b/);
+  // Decimal hours: e.g. "2.5 hours", "0.5 hr", "2-hour"
+  const decHourMatch = str.match(/(\d+(?:\.\d+)?)[\s-]*(?:hours|hour|hrs|hr)\b/);
   if (decHourMatch) {
     const hrs = parseFloat(decHourMatch[1]);
     if (!isNaN(hrs) && hrs > 0) return Math.round(hrs * 60);
   }
 
-  // Minutes regex: e.g. "45 mins", "25 minutes", "10m"
-  const minMatch = str.match(/(\d+)\s*(?:minutes|minute|mins|min|m)\b/);
+  // Minutes regex: e.g. "45 mins", "25 minutes", "25-minute", "10m"
+  const minMatch = str.match(/(\d+)[\s-]*(?:minutes|minute|mins|min|m)\b/);
   if (minMatch) {
     const mins = parseInt(minMatch[1], 10);
     if (!isNaN(mins) && mins > 0) return mins;

@@ -288,13 +288,18 @@ export function resolveFinancialInput(userMessage) {
     }
   }
 
+  // Exclude explicit task commands from falling into financial clarification
+  if (/^(?:create|add|remind\s+me\s+to|need\s+to|i\s+need\s+to)\s+(?:a\s+)?task\b/i.test(str)) {
+    return { status: 'not_financial' };
+  }
+
   // 2. Check if financial intent or currency is present
   const isReceivable = /\bowes(?:\s+me)?\b/i.test(str);
   const isBorrow = /\b(took\s+\d+|borrowed|loan from)\b/i.test(str);
   const isInvestment = /\b(invested|investing|sip|mutual fund|bought stocks)\b/i.test(str);
   const isIncome = /\b(got paid|received|salary|income|earned|freelance payment|stipend|made\s+\d+)\b/i.test(str);
   const isBill = /\b(bill|electricity bill|internet bill|wifi bill|due date|upcoming bill|every month|per month|monthly)\b/i.test(str);
-  const isExpense = /\b(spent|paid|cost|bought|purchased|expense|bucks on|lunch was|dinner was|poha|metro|assignment)\b/i.test(str) ||
+  const isExpense = /\b(spent|paid|cost|bought|purchased|expense|bucks on|lunch was|dinner was|poha|metro)\b/i.test(str) ||
     /^(?:spent|paid|lunch|dinner|coffee|uber|cab|swiggy|zomato|metro|poha)\b/i.test(str);
 
   if (!isReceivable && !isBorrow && !isInvestment && !isIncome && !isBill && !isExpense) {

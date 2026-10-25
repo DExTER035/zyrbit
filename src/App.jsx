@@ -300,6 +300,22 @@ export default function App() {
                 setLoginInitialMode('login')
                 setScreen('login')
               }}
+              onGuest={async () => {
+                try {
+                  const { data, error: authErr } = await supabase.auth.signInAnonymously({
+                    options: { data: { full_name: 'Guest' } }
+                  })
+                  if (authErr) {
+                    setLoginInitialMode('signup')
+                    setScreen('login')
+                  } else if (data?.user) {
+                    handleLoginSuccess(data.user.id, 'Guest', true)
+                  }
+                } catch {
+                  setLoginInitialMode('signup')
+                  setScreen('login')
+                }
+              }}
             />
           )}
           {screen === 'login' && (

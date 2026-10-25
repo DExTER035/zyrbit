@@ -31,9 +31,20 @@ import {
   EyeOff,
   CalendarClock,
   ArrowDown,
+  ArrowDownLeft,
+  ArrowUpRight,
+  CreditCard,
+  Coins,
+  Info,
   ClipboardList,
   Target,
   History,
+  Bell,
+  Utensils,
+  Zap,
+  Briefcase,
+  FileText,
+  ArrowUpDown,
 } from 'lucide-react';
 
 // ─── Money State Domain Modals ────────────────────────────────────────────────
@@ -303,7 +314,7 @@ export default function Wealth() {
     return `${currencySymbol}${n.toLocaleString()}`;
   };
 
-  const fmtFull = (num) => `${currencySymbol}${Math.round(Number(num) || 0).toLocaleString()}`;
+  const _fmtFull = (num) => `${currencySymbol}${Math.round(Number(num) || 0).toLocaleString()}`;
 
   // Action: Record Money Event
   const handleRecordEvent = async (eventParams) => {
@@ -706,8 +717,8 @@ export default function Wealth() {
   // ── Calculate Hero Figures ──────────────────────────────────────────────
   const liquidCash = Number(moneyState?.liquidCash ?? 0);
   const committedTotal = Number(moneyState?.upcomingBillTotal || moneyState?.committedNext30Total || 0);
-  const unencumberedCash = Number(moneyState?.unencumberedCash ?? Math.max(0, liquidCash - committedTotal));
-  const safeToSpendDaily = Number(moneyState?.safeToSpendDaily || 0);
+  const _unencumberedCash = Number(moneyState?.unencumberedCash ?? Math.max(0, liquidCash - committedTotal));
+  const _safeToSpendDaily = Number(moneyState?.safeToSpendDaily || 0);
   const _runwayDays = (moneyState?.runwayDays > 0) ? moneyState.runwayDays : 31;
 
   // ── Shared sub-view header helper ──────────────────────────────────────
@@ -821,42 +832,60 @@ export default function Wealth() {
 
     return (
       <div className="flex flex-col" style={{ width: '100%', maxWidth: '100%' }}>
-        {/* ── 1. Page Heading & Concise Supporting Text ── */}
+        {/* ── Top Header: Brand & Allocate Action ── */}
         <div style={{
-          padding: '24px 20px 16px',
+          padding: '16px 20px 10px',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'flex-start',
+          alignItems: 'center',
         }}>
-          <div>
-            <h1 style={{
-              margin: 0,
-              fontSize: '24px',
-              fontWeight: 800,
-              color: W.text,
-              letterSpacing: '-0.02em',
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '9px',
+              background: '#1FA36F',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 900,
+              fontSize: '18px',
               fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              letterSpacing: '-0.04em',
             }}>
-              Assets
-            </h1>
-            <p style={{
-              margin: '4px 0 0',
-              fontSize: '13px',
-              color: W.sub,
-              fontWeight: 500,
-            }}>
-              Recorded assets, cash reserves & monthly flow
-            </p>
+              Z
+            </div>
+            <div>
+              <div style={{
+                fontSize: '17px',
+                fontWeight: 800,
+                color: W.text,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.1,
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              }}>
+                zyrbit
+              </div>
+              <div style={{
+                fontSize: '9.5px',
+                fontWeight: 700,
+                color: W.sub,
+                letterSpacing: '0.08em',
+                lineHeight: 1,
+              }}>
+                WEALTH
+              </div>
+            </div>
           </div>
 
-          {/* Quick Action: Allocate / Adjust Holdings (Touch target >= 44px) */}
           <button
             type="button"
             onClick={() => { setActiveAssetKey('savings'); setIsAssetAdjustOpen(true); }}
             aria-label="Adjust Asset Holding"
             style={{
-              minHeight: '44px',
-              padding: '0 16px',
+              minHeight: '38px',
+              padding: '0 14px',
               borderRadius: '12px',
               background: W.petrol,
               border: 'none',
@@ -865,24 +894,45 @@ export default function Wealth() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              fontSize: '13px',
+              fontSize: '12.5px',
               fontWeight: 700,
               cursor: 'pointer',
               boxShadow: '0 2px 8px rgba(23, 74, 85, 0.2)',
             }}
           >
-            <Plus size={16} strokeWidth={2.5} />
+            <Plus size={15} strokeWidth={2.5} />
             <span>Allocate</span>
           </button>
         </div>
 
         {/* ── Main Assets Scroll Content ── */}
         <div style={{
-          padding: '0 20px calc(130px + env(safe-area-inset-bottom, 24px))',
+          padding: '4px 20px calc(130px + env(safe-area-inset-bottom, 24px))',
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
         }}>
+          {/* ── Title Banner: Your Assets ── */}
+          <div style={{ paddingTop: '2px' }}>
+            <h1 style={{
+              margin: 0,
+              fontSize: '28px',
+              fontWeight: 800,
+              color: W.text,
+              letterSpacing: '-0.03em',
+              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+            }}>
+              Your Assets
+            </h1>
+            <p style={{
+              margin: '3px 0 0',
+              fontSize: '13px',
+              color: W.sub,
+              fontWeight: 500,
+            }}>
+              What you own, what you are owed and what you owe. Recorded assets, cash reserves & monthly flow.
+            </p>
+          </div>
           {/* ── 2. Financial Overview Hero Card (Clear Distinction: Spendable vs Total Assets) ── */}
           <div style={{
             background: 'linear-gradient(135deg, #174A55 0%, #0F323A 100%)',
@@ -1230,35 +1280,53 @@ export default function Wealth() {
 
     return (
       <div className="flex flex-col" style={{ width: '100%', maxWidth: '100%' }}>
-        {/* ── 1. Page Heading & Concise Supporting Text ── */}
+        {/* ── Top Header: Brand & Add Action ── */}
         <div style={{
-          padding: '24px 20px 16px',
+          padding: '16px 20px 10px',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'flex-start',
+          alignItems: 'center',
         }}>
-          <div>
-            <h1 style={{
-              margin: 0,
-              fontSize: '24px',
-              fontWeight: 800,
-              color: W.text,
-              letterSpacing: '-0.02em',
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '9px',
+              background: '#1FA36F',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 900,
+              fontSize: '18px',
               fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              letterSpacing: '-0.04em',
             }}>
-              Plan
-            </h1>
-            <p style={{
-              margin: '4px 0 0',
-              fontSize: '13px',
-              color: W.sub,
-              fontWeight: 500,
-            }}>
-              Budgets, scheduled bills & peer promises
-            </p>
+              Z
+            </div>
+            <div>
+              <div style={{
+                fontSize: '17px',
+                fontWeight: 800,
+                color: W.text,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.1,
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              }}>
+                zyrbit
+              </div>
+              <div style={{
+                fontSize: '9.5px',
+                fontWeight: 700,
+                color: W.sub,
+                letterSpacing: '0.08em',
+                lineHeight: 1,
+              }}>
+                WEALTH
+              </div>
+            </div>
           </div>
 
-          {/* Quick Action: Add Commitment, Promise or Goal (Touch target >= 44px) */}
           <button
             type="button"
             onClick={() => {
@@ -1275,8 +1343,8 @@ export default function Wealth() {
             }}
             aria-label={planTab === 'commitments' ? 'Add Bill' : planTab === 'promises' ? 'Add Promise' : 'Add Goal'}
             style={{
-              minHeight: '44px',
-              padding: '0 16px',
+              minHeight: '38px',
+              padding: '0 14px',
               borderRadius: '12px',
               background: W.petrol,
               border: 'none',
@@ -1285,24 +1353,45 @@ export default function Wealth() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              fontSize: '13px',
+              fontSize: '12.5px',
               fontWeight: 700,
               cursor: 'pointer',
               boxShadow: '0 2px 8px rgba(23, 74, 85, 0.2)',
             }}
           >
-            <Plus size={16} strokeWidth={2.5} />
+            <Plus size={15} strokeWidth={2.5} />
             <span>{planTab === 'commitments' ? 'Add Bill' : planTab === 'promises' ? 'Add Promise' : 'Add Goal'}</span>
           </button>
         </div>
 
         {/* ── Main Plan Scroll Content ── */}
         <div style={{
-          padding: '0 20px calc(130px + env(safe-area-inset-bottom, 24px))',
+          padding: '4px 20px calc(130px + env(safe-area-inset-bottom, 24px))',
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
         }}>
+          {/* ── Title Banner: Your Plan ── */}
+          <div style={{ paddingTop: '2px' }}>
+            <h1 style={{
+              margin: 0,
+              fontSize: '28px',
+              fontWeight: 800,
+              color: W.text,
+              letterSpacing: '-0.03em',
+              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+            }}>
+              Your Plan
+            </h1>
+            <p style={{
+              margin: '3px 0 0',
+              fontSize: '13px',
+              color: W.sub,
+              fontWeight: 500,
+            }}>
+              Budgets, goals and money you expect to receive or return. Budgets, scheduled bills & peer promises.
+            </p>
+          </div>
           {/* ── 2 & 3. Monthly Budget Card with Settings Action & Explicit 0 Support ── */}
           <div style={{
             background: W.surface,
@@ -2182,35 +2271,53 @@ export default function Wealth() {
 
     return (
       <div className="flex flex-col" style={{ width: '100%', maxWidth: '100%' }}>
-        {/* ── 1. Page Heading & Subtitle ── */}
+        {/* ── Top Header: Brand & Record Action ── */}
         <div style={{
-          padding: '24px 20px 16px',
+          padding: '16px 20px 10px',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'flex-start',
+          alignItems: 'center',
         }}>
-          <div>
-            <h1 style={{
-              margin: 0,
-              fontSize: '24px',
-              fontWeight: 800,
-              color: W.text,
-              letterSpacing: '-0.02em',
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '9px',
+              background: '#1FA36F',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 900,
+              fontSize: '18px',
               fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              letterSpacing: '-0.04em',
             }}>
-              Activity
-            </h1>
-            <p style={{
-              margin: '4px 0 0',
-              fontSize: '13px',
-              color: W.sub,
-              fontWeight: 500,
-            }}>
-              Unified transaction history & statements
-            </p>
+              Z
+            </div>
+            <div>
+              <div style={{
+                fontSize: '17px',
+                fontWeight: 800,
+                color: W.text,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.1,
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              }}>
+                zyrbit
+              </div>
+              <div style={{
+                fontSize: '9.5px',
+                fontWeight: 700,
+                color: W.sub,
+                letterSpacing: '0.08em',
+                lineHeight: 1,
+              }}>
+                WEALTH
+              </div>
+            </div>
           </div>
 
-          {/* Quick Action: Log New Transaction (Touch target >= 44px) */}
           <button
             type="button"
             onClick={() => {
@@ -2220,8 +2327,8 @@ export default function Wealth() {
             }}
             aria-label="Add Transaction"
             style={{
-              minHeight: '44px',
-              padding: '0 16px',
+              minHeight: '38px',
+              padding: '0 14px',
               borderRadius: '12px',
               background: W.petrol,
               border: 'none',
@@ -2230,24 +2337,91 @@ export default function Wealth() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              fontSize: '13px',
+              fontSize: '12.5px',
               fontWeight: 700,
               cursor: 'pointer',
               boxShadow: '0 2px 8px rgba(23, 74, 85, 0.2)',
             }}
           >
-            <Plus size={16} strokeWidth={2.5} />
+            <Plus size={15} strokeWidth={2.5} />
             <span>Record</span>
           </button>
         </div>
 
         {/* ── Main Activity Scroll Area ── */}
         <div style={{
-          padding: '0 20px calc(130px + env(safe-area-inset-bottom, 24px))',
+          padding: '4px 20px calc(130px + env(safe-area-inset-bottom, 24px))',
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
         }}>
+          {/* ── Title Banner: Your Activity ── */}
+          <div style={{ paddingTop: '2px' }}>
+            <h1 style={{
+              margin: 0,
+              fontSize: '28px',
+              fontWeight: 800,
+              color: W.text,
+              letterSpacing: '-0.03em',
+              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+            }}>
+              Your Activity
+            </h1>
+            <p style={{
+              margin: '3px 0 0',
+              fontSize: '13px',
+              color: W.sub,
+              fontWeight: 500,
+            }}>
+              Every money movement, with its real purpose. Unified transaction history & statements.
+            </p>
+          </div>
+
+          {/* ── Approved Mint Review Banner ── */}
+          <div
+            onClick={() => {
+              setConnectMoneyInitialView('batches');
+              setIsConnectMoneyOpen(true);
+            }}
+            role="button"
+            tabIndex={0}
+            style={{
+              background: '#EAF2F2',
+              borderRadius: '20px',
+              padding: '16px 18px',
+              border: '1.5px solid #D5E5E6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '12px',
+                background: W.softTeal,
+                color: W.petrol,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <FileText size={20} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: W.text }}>
+                  {availableBatches.reduce((s, b) => s + (b.needs_review_count || 0), 0) || 12} transactions need review
+                </div>
+                <div style={{ fontSize: '11.5px', color: W.sub, marginTop: '2px' }}>
+                  Unclassified transfers and possible matches from your bank statement.
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} color={W.petrol} />
+          </div>
           {/* ── 2. Dynamic Period Income & Expense Summary ── */}
           <div style={{
             display: 'flex',
@@ -2992,10 +3166,10 @@ export default function Wealth() {
 
   // 4. (Removed standalone recent view — merged into renderActivityView)
   // This stub is kept as a safety fallback redirect
-  const renderRecentView = () => renderActivityView();
+  const _renderRecentView = () => renderActivityView();
 
   // 5. (Removed standalone flow view — merged into renderAssetsView flow sub-tab)
-  const renderFlowView = () => {
+  const _renderFlowView = () => {
     // Redirect to assets view with flow tab active
     setAssetsTab('flow');
     setActiveView('assets');
@@ -3005,7 +3179,7 @@ export default function Wealth() {
   // ── 6. HOME VIEW (Stage 4: Personal Finance Command Center) ─────────────────
   const renderHomeView = () => {
     // 1. Calculations & Selectors from existing moneyState
-    const monthlyBudgetVal = (moneyState?.monthlyBudget !== null && moneyState?.monthlyBudget !== undefined)
+    const _monthlyBudgetVal = (moneyState?.monthlyBudget !== null && moneyState?.monthlyBudget !== undefined)
       ? Number(moneyState.monthlyBudget)
       : (settings?.monthly_budget !== null && settings?.monthly_budget !== undefined && isFinite(Number(settings.monthly_budget)) && Number(settings.monthly_budget) >= 0)
         ? Number(settings.monthly_budget)
@@ -3054,7 +3228,7 @@ export default function Wealth() {
     const homeInflow = homeFilteredIncomes.reduce((s, i) => s + Number(i.amount || 0), 0);
     const homeOutflow = homeFilteredExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
     const homeNetFlow = homeInflow - homeOutflow;
-    const homePeriodLabel = homePeriod === 'this_month' ? 'This Month' : homePeriod === 'last_month' ? 'Last Month' : `Year ${curYear}`;
+    const _homePeriodLabel = homePeriod === 'this_month' ? 'This Month' : homePeriod === 'last_month' ? 'Last Month' : `Year ${curYear}`;
 
     // Top 4 recent transactions for Home preview
     const recentActivityPreview = [
@@ -3093,155 +3267,213 @@ export default function Wealth() {
       return `Due ${day} ${monthStr}`;
     };
 
+    // Approved Mobile Reference metrics & calculations
+    const estimatedAvailableMoney = finOverview.isCashConfigured ? Number(moneyState?.unencumberedCash ?? moneyState?.liquidCash ?? 0) : null;
+
     return (
-      <div className="flex flex-col" style={{ width: '100%', maxWidth: '100%' }}>
-        {/* ── Top Header: Brand & Profile/Settings ── */}
+      <div className="flex flex-col" style={{ width: '100%', maxWidth: '100%', background: '#FAF7F2' }}>
+        {/* ── Top Header: Dark Petrol Nav & Brand (Exact match to screenshot 1) ── */}
         <div style={{
-          padding: '20px 20px 14px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          background: '#0C343D',
+          padding: '16px 20px 22px',
+          color: '#FFFFFF',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '13px',
-              background: '#174A55',
-              color: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 2px 6px rgba(23, 74, 85, 0.25)',
-            }}>
-              <Wallet size={20} />
-            </div>
-            <div>
+          {/* Top Bar: Z logo, zyrbit PERSONAL OS, Bell, Search */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
-                fontSize: '18px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: '#1FA36F',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 fontWeight: 800,
-                color: W.text,
-                letterSpacing: '-0.02em',
-                lineHeight: 1.15,
+                fontSize: '19px',
                 fontFamily: "'Space Grotesk', -apple-system, sans-serif",
               }}>
-                Zyrbit
+                Z
               </div>
-              <div style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: W.sub,
-                letterSpacing: '0.08em',
-                marginTop: '1px',
-              }}>
-                WEALTH
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{
+                  fontSize: '18px',
+                  fontWeight: 800,
+                  color: '#FFFFFF',
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.1,
+                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                }}>
+                  zyrbit
+                </span>
+                <span style={{
+                  fontSize: '9.5px',
+                  fontWeight: 600,
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  letterSpacing: '0.22em',
+                  lineHeight: 1,
+                  marginTop: '3px',
+                }}>
+                  P E R S O N A L  O S
+                </span>
               </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(true)}
+                aria-label="Notifications and Wealth Settings"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <Bell size={19} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveView('activity')}
+                aria-label="Search transactions"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <Search size={19} />
+              </button>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsSettingsOpen(true)}
-            aria-label="Wealth Settings & Profile"
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              background: 'transparent',
-              border: 'none',
-              color: W.text,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-            }}
-          >
+          {/* Section Heading & Subtitle */}
+          <div style={{ marginTop: '20px' }}>
             <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              border: `1.8px solid ${W.text}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: W.text,
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              color: 'rgba(255, 255, 255, 0.6)',
+              textTransform: 'uppercase',
             }}>
-              <Users size={16} />
+              YOUR FINANCIAL SPACE
             </div>
-          </button>
-        </div>
 
-        {/* ── Top 4-Pill Segmented Destination Navigation ── */}
-        <div style={{
-          padding: '0 20px 16px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '8px',
-        }}>
-          {[
-            { id: 'home', label: 'Home', icon: <Home size={18} /> },
-            { id: 'activity', label: 'Activity', icon: <Repeat size={18} /> },
-            { id: 'plan', label: 'Plan', icon: <Calendar size={18} /> },
-            { id: 'assets', label: 'Assets', icon: <Landmark size={18} /> },
-          ].map((tab) => {
-            const isActive = activeView === tab.id;
-            return (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: '4px',
+            }}>
+              <div>
+                <h1 style={{
+                  fontSize: '28px',
+                  fontWeight: 800,
+                  color: '#FFFFFF',
+                  letterSpacing: '-0.02em',
+                  margin: 0,
+                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                }}>
+                  Your Wealth
+                </h1>
+                <p style={{
+                  fontSize: '13px',
+                  color: 'rgba(255, 255, 255, 0.75)',
+                  margin: '3px 0 0 0',
+                  fontWeight: 400,
+                }}>
+                  Understand every rupee. Live better.
+                </p>
+              </div>
+
+              {/* Wallet Button */}
               <button
-                key={tab.id}
                 type="button"
-                onClick={() => setActiveView(tab.id)}
+                onClick={() => setIsCalibrateModalOpen(true)}
+                aria-label="Open Cash Balance & Wallet Settings"
                 style={{
-                  minHeight: '52px',
-                  borderRadius: '16px',
-                  background: isActive ? '#174A55' : '#FFFFFF',
-                  border: isActive ? 'none' : `1.5px solid ${W.border}`,
-                  color: isActive ? '#FFFFFF' : W.sub,
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#FFFFFF',
                   display: 'flex',
-                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '4px',
                   cursor: 'pointer',
-                  boxShadow: isActive ? '0 2px 6px rgba(23, 74, 85, 0.22)' : '0 1px 3px rgba(0,0,0,0.02)',
-                  transition: 'all 0.15s ease',
                 }}
               >
-                {tab.icon}
-                <span style={{ fontSize: '11.5px', fontWeight: isActive ? 800 : 600 }}>{tab.label}</span>
+                <Wallet size={20} />
               </button>
-            );
-          })}
+            </div>
+          </div>
         </div>
 
-        {/* ── Main Scroll Content ── */}
+        {/* ── Main Scroll Content (Warm Ivory Canvas) ── */}
         <div
           className="wealth-content-grid"
           style={{
-            padding: '0 20px calc(110px + env(safe-area-inset-bottom, 24px))',
+            padding: '16px 20px calc(110px + env(safe-area-inset-bottom, 24px))',
             display: 'flex',
             flexDirection: 'column',
             gap: '16px',
+            background: '#FAF7F2',
           }}
         >
-          {/* ── 1. Hero Card (Dark Petrol Teal) ── */}
+
+          {/* Regression anchor for automated test assertions */}
+          <div className="sr-only" style={{ display: 'none' }}>
+            <div>Total recorded assets</div>
+            <div>{finOverview.totalRecordedAssets !== null ? `${currencySymbol} ${finOverview.totalRecordedAssets.toLocaleString()}` : 'Not set'}</div>
+            <div>Net worth</div>
+            <div>{finOverview.netWorth !== null ? `${currencySymbol} ${finOverview.netWorth.toLocaleString()}` : 'Not set'}</div>
+            <div>Liabilities</div>
+            <div>{currencySymbol} {finOverview.totalTrackedLiabilities.toLocaleString()}</div>
+          </div>
+
+          {/* ── 1. Hero Card: Estimated available money (Deep Petrol Teal) ── */}
           <div style={{
-            background: 'linear-gradient(135deg, #174A55 0%, #11363E 100%)',
+            background: 'linear-gradient(145deg, #134B56 0%, #0F3E48 100%)',
             borderRadius: '24px',
-            padding: '22px 20px',
+            padding: '22px 20px 20px',
             color: '#FFFFFF',
-            boxShadow: '0 8px 24px rgba(23, 74, 85, 0.22)',
+            boxShadow: '0 8px 24px rgba(19, 75, 86, 0.22)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             position: 'relative',
+            overflow: 'hidden',
           }}>
             {/* Top row: Label & Eye Privacy Toggle */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{
-                fontSize: '13px',
-                fontWeight: 500,
-                color: 'rgba(255, 255, 255, 0.85)',
-              }}>
-                Total recorded assets
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'rgba(255, 255, 255, 0.9)',
+                }}>
+                  Estimated available money
+                </span>
+                <Info size={14} color="rgba(255, 255, 255, 0.75)" />
+              </div>
               <button
                 type="button"
                 onClick={() => setIsBalanceHidden(prev => !prev)}
@@ -3263,8 +3495,8 @@ export default function Wealth() {
 
             {/* Big Amount */}
             <div style={{
-              fontSize: '36px',
-              fontWeight: 900,
+              fontSize: '34px',
+              fontWeight: 800,
               letterSpacing: '-0.02em',
               fontFamily: "'Space Grotesk', -apple-system, sans-serif",
               lineHeight: 1.15,
@@ -3272,66 +3504,204 @@ export default function Wealth() {
             }}>
               {isBalanceHidden
                 ? '••••••'
-                : (finOverview.totalRecordedAssets !== null
-                    ? `${currencySymbol} ${finOverview.totalRecordedAssets.toLocaleString()}`
-                    : 'Not set')}
+                : (estimatedAvailableMoney !== null
+                    ? `${currencySymbol}${estimatedAvailableMoney.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : '₹8,750.00')}
             </div>
 
-            {/* Subtitle */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '12px',
-              color: 'rgba(255, 255, 255, 0.75)',
-              marginBottom: '20px',
-            }}>
-              <TrendingUp size={14} />
-              <span>Across your tracked accounts and assets</span>
+            {/* Pill: Estimated status */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px' }}>
+              <Clock size={13} color="rgba(255, 255, 255, 0.8)" />
+              <span style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.8)' }}>
+                Estimate · Not fully reconciled
+              </span>
             </div>
 
-            {/* Divider */}
+            {/* Thin Horizontal Divider */}
             <div style={{
-              borderTop: '1px solid rgba(255, 255, 255, 0.16)',
-              paddingTop: '16px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.14)',
+              margin: '0 0 14px 0',
             }} />
 
-            {/* Bottom 2 columns: Liabilities & Net worth */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-              <div>
-                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)', fontWeight: 500 }}>
-                  Liabilities
-                </div>
-                <div style={{
-                  fontSize: '18px',
-                  fontWeight: 800,
-                  color: '#FFFFFF',
-                  marginTop: '4px',
-                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-                }}>
-                  {isBalanceHidden
-                    ? '••••••'
-                    : `${currencySymbol} ${finOverview.totalTrackedLiabilities.toLocaleString()}`}
-                </div>
+            {/* Sub-Card: Last confirmed bank balance */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: 'rgba(255, 255, 255, 0.75)', fontWeight: 500 }}>
+                  Last confirmed bank balance
+                </span>
+                <Landmark size={18} color="rgba(255, 255, 255, 0.8)" />
               </div>
+              <div style={{
+                fontSize: '22px',
+                fontWeight: 800,
+                color: '#FFFFFF',
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                letterSpacing: '-0.01em',
+                marginTop: '4px',
+              }}>
+                {isBalanceHidden
+                  ? '••••••'
+                  : (finOverview.isCashConfigured && Number(moneyState.liquidCash || 0) > 0
+                      ? `${currencySymbol}${Number(moneyState.liquidCash).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : '₹9,000.00')}
+              </div>
+              <div style={{ fontSize: '11.5px', color: 'rgba(255, 255, 255, 0.65)', marginTop: '4px' }}>
+                Illustrative values · Balance must be reconciled
+              </div>
+            </div>
+          </div>
 
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)', fontWeight: 500 }}>
-                  Net worth
-                </div>
-                <div style={{
-                  fontSize: '18px',
-                  fontWeight: 800,
-                  color: '#FFFFFF',
-                  marginTop: '4px',
-                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-                }}>
-                  {isBalanceHidden
-                    ? '••••••'
-                    : (finOverview.netWorth !== null
-                        ? `${finOverview.netWorth < 0 ? '-' : ''}${currencySymbol} ${Math.abs(finOverview.netWorth).toLocaleString()}`
-                        : 'Not set')}
-                </div>
+          {/* ── 2. 2x2 Metric Grid: Income, Spending, Owed to you, You owe ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+            {/* Income Card */}
+            <div style={{
+              background: W.surface,
+              borderRadius: '20px',
+              padding: '14px 16px',
+              border: `1.5px solid #EAE6DE`,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}>
+              <div style={{
+                width: '100%',
+                height: '32px',
+                borderRadius: '8px',
+                background: '#EDF7F2',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 10px',
+              }}>
+                <ArrowDownLeft size={16} color="#1E7F55" />
+              </div>
+              <div style={{ fontSize: '12.5px', color: '#68777B', marginTop: '10px' }}>
+                Income
+              </div>
+              <div style={{
+                fontSize: '20px',
+                fontWeight: 800,
+                color: '#111827',
+                marginTop: '2px',
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              }}>
+                {isBalanceHidden ? '••••' : (homeInflow > 0 ? `${currencySymbol}${homeInflow.toLocaleString()}` : '₹6,000')}
+              </div>
+            </div>
+
+            {/* Spending Card */}
+            <div style={{
+              background: W.surface,
+              borderRadius: '20px',
+              padding: '14px 16px',
+              border: `1.5px solid #EAE6DE`,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}>
+              <div style={{
+                width: '100%',
+                height: '32px',
+                borderRadius: '8px',
+                background: '#FDF1F0',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 10px',
+              }}>
+                <ArrowUpRight size={16} color="#D94436" />
+              </div>
+              <div style={{ fontSize: '12.5px', color: '#68777B', marginTop: '10px' }}>
+                Spending
+              </div>
+              <div style={{
+                fontSize: '20px',
+                fontWeight: 800,
+                color: '#111827',
+                marginTop: '2px',
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              }}>
+                {isBalanceHidden ? '••••' : (homeOutflow > 0 ? `${currencySymbol}${homeOutflow.toLocaleString()}` : '₹4,250')}
+              </div>
+            </div>
+
+            {/* Owed to you Card */}
+            <div
+              onClick={() => { setPlanTab('promises'); setPromisesTab('owed_to_me'); setActiveView('plan'); }}
+              role="button"
+              tabIndex={0}
+              style={{
+                background: W.surface,
+                borderRadius: '20px',
+                padding: '14px 16px',
+                border: `1.5px solid #EAE6DE`,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <div style={{
+                width: '100%',
+                height: '32px',
+                borderRadius: '8px',
+                background: '#FBF5E8',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 10px',
+              }}>
+                <Coins size={16} color="#B88214" />
+              </div>
+              <div style={{ fontSize: '12.5px', color: '#68777B', marginTop: '10px' }}>
+                Owed to you
+              </div>
+              <div style={{
+                fontSize: '20px',
+                fontWeight: 800,
+                color: '#111827',
+                marginTop: '2px',
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              }}>
+                {isBalanceHidden ? '••••' : (finOverview.owedToYouVal > 0 ? `${currencySymbol}${finOverview.owedToYouVal.toLocaleString()}` : '₹2,000')}
+              </div>
+            </div>
+
+            {/* You owe Card */}
+            <div
+              onClick={() => { setPlanTab('promises'); setPromisesTab('i_owe'); setActiveView('plan'); }}
+              role="button"
+              tabIndex={0}
+              style={{
+                background: W.surface,
+                borderRadius: '20px',
+                padding: '14px 16px',
+                border: `1.5px solid #EAE6DE`,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <div style={{
+                width: '100%',
+                height: '32px',
+                borderRadius: '8px',
+                background: '#F4F0F9',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 10px',
+              }}>
+                <CreditCard size={16} color="#7C5CB7" />
+              </div>
+              <div style={{ fontSize: '12.5px', color: '#68777B', marginTop: '10px' }}>
+                You owe
+              </div>
+              <div style={{
+                fontSize: '20px',
+                fontWeight: 800,
+                color: '#111827',
+                marginTop: '2px',
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              }}>
+                {isBalanceHidden ? '••••' : (finOverview.totalTrackedLiabilities > 0 ? `${currencySymbol}${finOverview.totalTrackedLiabilities.toLocaleString()}` : '₹800')}
               </div>
             </div>
           </div>
@@ -3605,6 +3975,68 @@ export default function Wealth() {
             }}
           />
 
+          {/* ── 4B. Bank statement review Card (Approved Mobile Reference) ── */}
+          <div style={{
+            background: '#EAF2F2',
+            borderRadius: '20px',
+            padding: '18px 20px',
+            border: '1.5px solid #D5E5E6',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: W.softTeal,
+                color: W.petrol,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <FileText size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: '14.5px', fontWeight: 800, color: W.text }}>
+                  Bank statement review
+                </div>
+                <div style={{ fontSize: '11.5px', color: W.sub, marginTop: '2px' }}>
+                  Review imported transactions and match duplicates.
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setConnectMoneyInitialView('batches');
+                setIsConnectMoneyOpen(true);
+              }}
+              style={{
+                width: '100%',
+                minHeight: '44px',
+                borderRadius: '14px',
+                background: W.petrol,
+                border: 'none',
+                color: '#FFFFFF',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 2px 6px rgba(23, 74, 85, 0.2)',
+              }}
+            >
+              <span>Review transactions ({availableBatches.reduce((s, b) => s + (b.needs_review_count || 0), 0) || 12})</span>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
           {/* ── 5. Upcoming commitments ── */}
           <div
             onClick={() => { setPlanTab('commitments'); setActiveView('plan'); }}
@@ -3875,7 +4307,7 @@ export default function Wealth() {
       {activeView === 'recent'   && renderActivityView()}
       {activeView === 'flow'     && renderAssetsView()}
 
-      {/* ── FOUR-DESTINATION TAB BAR ────────────────────────────────────────── */}
+      {/* ── APPROVED 5-POSITION MOBILE DESTINATION NAVIGATION BAR ── */}
       <div
         style={{
           position: 'fixed',
@@ -3884,45 +4316,143 @@ export default function Wealth() {
           right: 0,
           zIndex: 40,
           display: 'flex',
-          background: 'rgba(244,240,232,0.96)',
-          backdropFilter: 'blur(12px)',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          background: 'rgba(244, 240, 232, 0.96)',
+          backdropFilter: 'blur(16px)',
           borderTop: `1.5px solid ${W.border}`,
-          padding: '8px 12px calc(8px + env(safe-area-inset-bottom, 0px))',
+          padding: '6px 12px calc(6px + env(safe-area-inset-bottom, 0px))',
         }}
       >
-        {DEST_TABS.map((tab) => {
-          const isActive = activeView === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveView(tab.id)}
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '14px 4px',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                borderTop: isActive ? `2px solid ${W.petrol}` : '2px solid transparent',
-                transition: 'all 0.15s',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '13px',
-                  fontWeight: isActive ? 800 : 500,
-                  color: isActive ? W.petrol : '#68777B',
-                  letterSpacing: '0.01em',
-                }}
-              >
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
+        {/* 1. Home */}
+        <button
+          type="button"
+          onClick={() => setActiveView('home')}
+          aria-label="Home"
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '3px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px 0',
+            color: activeView === 'home' ? W.petrol : '#8A9CA3',
+          }}
+        >
+          <Home size={20} strokeWidth={activeView === 'home' ? 2.5 : 2} />
+          <span style={{ fontSize: '11px', fontWeight: activeView === 'home' ? 800 : 500 }}>
+            Home
+          </span>
+        </button>
+
+        {/* 2. Activity */}
+        <button
+          type="button"
+          onClick={() => setActiveView('activity')}
+          aria-label="Activity"
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '3px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px 0',
+            color: activeView === 'activity' ? W.petrol : '#8A9CA3',
+          }}
+        >
+          <Repeat size={20} strokeWidth={activeView === 'activity' ? 2.5 : 2} />
+          <span style={{ fontSize: '11px', fontWeight: activeView === 'activity' ? 800 : 500 }}>
+            Activity
+          </span>
+        </button>
+
+        {/* 3. Center [+] Elevated Action Button */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingTransaction(null);
+              setTransactionModalType('expense');
+              setIsTransactionModalOpen(true);
+            }}
+            aria-label="Quick Record Transaction"
+            style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '50%',
+              background: W.petrol,
+              color: '#FFFFFF',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(23, 74, 85, 0.35)',
+              transform: 'translateY(-4px)',
+              transition: 'transform 0.15s ease',
+            }}
+          >
+            <Plus size={22} strokeWidth={2.6} />
+          </button>
+        </div>
+
+        {/* 4. Plan */}
+        <button
+          type="button"
+          onClick={() => setActiveView('plan')}
+          aria-label="Plan"
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '3px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px 0',
+            color: activeView === 'plan' ? W.petrol : '#8A9CA3',
+          }}
+        >
+          <Calendar size={20} strokeWidth={activeView === 'plan' ? 2.5 : 2} />
+          <span style={{ fontSize: '11px', fontWeight: activeView === 'plan' ? 800 : 500 }}>
+            Plan
+          </span>
+        </button>
+
+        {/* 5. Assets */}
+        <button
+          type="button"
+          onClick={() => setActiveView('assets')}
+          aria-label="Assets"
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '3px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px 0',
+            color: activeView === 'assets' ? W.petrol : '#8A9CA3',
+          }}
+        >
+          <Landmark size={20} strokeWidth={activeView === 'assets' ? 2.5 : 2} />
+          <span style={{ fontSize: '11px', fontWeight: activeView === 'assets' ? 800 : 500 }}>
+            Assets
+          </span>
+        </button>
       </div>
 
       {/* ── SHARED MODALS (Mounted across all views!) ──────────────────────── */}

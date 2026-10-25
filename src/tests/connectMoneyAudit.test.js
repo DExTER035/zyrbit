@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { parsePaytmStatement, parseStatementDate, parseNumericAmount, extractTimeStr } from '../services/statementParserService.js';
+import { parsePaytmStatement, parseStatementDate, parseNumericAmount } from '../services/statementParserService.js';
 import { normalizeTransaction, generateFingerprint } from '../services/transactionNormalizer.js';
 import { classifyTransaction } from '../services/transactionClassifier.js';
 import { computeMoneyState } from '../engines/wealth/moneyState.js';

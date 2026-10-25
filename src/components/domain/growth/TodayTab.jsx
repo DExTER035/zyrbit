@@ -4,18 +4,12 @@ import { todayStr } from './shared.jsx';
 import { getAvailableTasks, getBlockedTasks } from '../../../engines/growth/index.js';
 
 export default function TodayTab({
-  goals = [],
-  streak = { current_streak: 0 },
-  todayFocusMin = 0,
-  setTab,
   completeTask,
   addTask,
   tasks = [],
   dependencies = [],
-  projects = [],
   projectMap = {},
   onInstantFocus,
-  habits = [],
   activity = [],
 }) {
   const today = todayStr();
@@ -31,7 +25,7 @@ export default function TodayTab({
   }, [tasks, dependencies]);
 
   // Blocked tasks count
-  const blockedCount = useMemo(() => {
+  const _blockedCount = useMemo(() => {
     return getBlockedTasks(tasks, dependencies).length;
   }, [tasks, dependencies]);
 
@@ -45,7 +39,7 @@ export default function TodayTab({
   const _primaryObjective = primaryTask ? primaryTask.name : (completedTodayTasks.length > 0 ? 'All milestones complete today.' : 'Nothing needs your attention yet.');
 
   // Completed habits count
-  const completedHabitsCount = useMemo(() => {
+  const _completedHabitsCount = useMemo(() => {
     return activity.filter(l => l.completed_date === today && l.status === 'completed').length;
   }, [activity, today]);
 

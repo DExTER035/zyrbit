@@ -242,7 +242,7 @@ export default function Zenith() {
   const formattedDatePill = useMemo(() => {
     return new Date().toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }) + ' ›';
   }, []);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
 
   // Raw Database States
@@ -260,7 +260,7 @@ export default function Zenith() {
   const [goals, setGoals] = useState([]);
   const [foodLogs, setFoodLogs] = useState([]);   // today's meal_logs
   const [welcomeDismissed, setWelcomeDismissed] = useState(() => {
-    return localStorage.getItem('zyrbit_welcome_dismissed') === 'true';
+    return typeof localStorage !== 'undefined' ? localStorage.getItem('zyrbit_welcome_dismissed') === 'true' : false;
   });
 
   // Habits State
@@ -270,7 +270,7 @@ export default function Zenith() {
   const [longestStreaks, setLongestStreaks] = useState({});
   const [activeZone, setActiveZone] = useState('all');
   const [celebrationShown, setCelebrationShown] = useState(() => {
-    return localStorage.getItem('zyrbit_celebration_date') === todayStr();
+    return typeof localStorage !== 'undefined' ? localStorage.getItem('zyrbit_celebration_date') === todayStr() : false;
   });
   const [showCelebration, setShowCelebration] = useState(false);
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
@@ -806,7 +806,7 @@ export default function Zenith() {
     const now = new Date();
     if (now.getDay() === 0) {
       const weekKey = `${now.getFullYear()}-W${Math.ceil(now.getDate() / 7)}`;
-      const alreadySeen = localStorage.getItem(`dexos_weekly_review_${weekKey}`);
+      const alreadySeen = typeof localStorage !== 'undefined' ? localStorage.getItem(`dexos_weekly_review_${weekKey}`) : null;
       if (!alreadySeen) {
         setTimeout(() => setShowWeeklyReview(true), 2000);
       }
@@ -1114,6 +1114,86 @@ export default function Zenith() {
     return events;
   }, [sleepLogs, focusSessions, foodLogs, expenses, tasks, today]);
 
+  const totalHabitsCount = habits.length;
+  const completedHabitsCount = habits.filter(h => activity.some(l => l.habit_id === h.id && l.status === 'completed' && l.completed_date === today)).length;
+  const totalFocusMinutes = focusSessions.filter(f => f.session_date === today).reduce((sum, f) => sum + (f.duration_minutes || 0), 0);
+
+  // Completed habit IDs set for O(1) lookups
+  const completedHabitIds = new Set(
+    activity.filter(l => l.completed_date === today && l.status === 'completed').map(l => l.habit_id)
+  );
+
+  // Real task priority selection
+  const topTaskPriority = priorities.find(p => p.type === 'task' && !p.done)
+    || tasks.find(t => t.status === 'todo' && t.due_date === today)
+    || tasks.find(t => t.status === 'todo')
+    || null;
+
+  // Keystone habit selection (first uncompleted or highest streak)
+  const keystoneHabit = habits.find(h => !completedHabitIds.has(h.id)) || habits[0] || null;
+
+  const remainingHabits = habits.filter(h => !completedHabitIds.has(h.id));
+  const remainingHabitsCount = remainingHabits.length;
+
+  const nextStep = React.useMemo(() => {
+    // 1. If user has active/logged focus today
+    if (totalFocusMinutes > 0 && totalFocusMinutes < 90) {
+      return {
+        eyebrow: 'DEEP WORK MOMENTUM',
+        headline: `${totalFocusMinutes}m focused today. Continue momentum?`,
+        buttonText: 'Start another 25m block',
+        onAction: () => {
+          window.dispatchEvent(new CustomEvent('dexos:start-focus', { detail: { duration: 25, mode: 'timed' } }));
+          navigate('/growth');
+        }
+      };
+    }
+    // 2. If there are pending uncompleted habits today
+    if (remainingHabits.length > 0) {
+      const nextH = remainingHabits[0];
+      return {
+        eyebrow: `${remainingHabitsCount} HABIT${remainingHabitsCount > 1 ? 'S' : ''} REMAINING`,
+        headline: `Time for ${nextH.name}?`,
+        buttonText: `Complete ${nextH.name}`,
+        onAction: () => handleToggle(nextH)
+      };
+    }
+    // 3. If there is a high-priority task
+    if (topTaskPriority) {
+      return {
+        eyebrow: 'PRIMARY OBJECTIVE',
+        headline: `Focus on: ${topTaskPriority.name}`,
+        buttonText: 'Start 25m focus on task',
+        onAction: () => {
+          window.dispatchEvent(new CustomEvent('dexos:start-focus', { detail: { duration: 25, mode: 'timed' } }));
+          navigate('/growth');
+        }
+      };
+    }
+    // 4. If all habits and tasks done
+    if (totalHabitsCount > 0 && remainingHabits.length === 0) {
+      return {
+        eyebrow: 'ALL HABITS COMPLETE',
+        headline: 'Clear momentum today. Unwind and recharge.',
+        buttonText: 'Log evening reflection',
+        onAction: () => setShowReflection(true)
+      };
+    }
+    // 5. Welcoming first-open state for new user / guest
+    return {
+      eyebrow: 'YOUR DAY, WITH INTENTION',
+      headline: 'Begin with one focused block or daily habit.',
+      buttonText: 'Start a 25-minute focus session',
+      onAction: () => {
+        window.dispatchEvent(new CustomEvent('dexos:start-focus', { detail: { duration: 25, mode: 'timed' } }));
+        navigate('/growth');
+      }
+    };
+  }, [totalFocusMinutes, remainingHabits, remainingHabitsCount, topTaskPriority, totalHabitsCount, navigate, handleToggle]);
+
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const dateFormatted = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+
   if (error) {
     return <ErrorState message={error} onRetry={() => loadData(userRef.current?.id || user?.id || profile?.id)} />;
   }
@@ -1155,27 +1235,6 @@ export default function Zenith() {
       </div>
     );
   }
-
-  const totalHabitsCount = habits.length;
-  const completedHabitsCount = habits.filter(h => activity.some(l => l.habit_id === h.id && l.status === 'completed' && l.completed_date === today)).length;
-  const totalFocusMinutes = focusSessions.filter(f => f.session_date === today).reduce((sum, f) => sum + (f.duration_minutes || 0), 0);
-
-  // Completed habit IDs set for O(1) lookups
-  const completedHabitIds = new Set(
-    activity.filter(l => l.completed_date === today && l.status === 'completed').map(l => l.habit_id)
-  );
-
-  // Real task priority selection
-  const topTaskPriority = priorities.find(p => p.type === 'task' && !p.done)
-    || tasks.find(t => t.status === 'todo' && t.due_date === today)
-    || tasks.find(t => t.status === 'todo')
-    || null;
-
-  // Keystone habit selection (first uncompleted or highest streak)
-  const keystoneHabit = habits.find(h => !completedHabitIds.has(h.id)) || habits[0] || null;
-
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const dateFormatted = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <div className="app-container page-enter" style={{
@@ -1287,7 +1346,7 @@ export default function Zenith() {
               color: 'var(--brand-soft-teal, #DDE9EB)',
               opacity: 0.9,
             }}>
-              YOUR DAY, WITH INTENTION
+              {nextStep.eyebrow}
             </span>
             <Target size={18} strokeWidth={2} color="#DDE9EB" style={{ opacity: 0.8 }} />
           </div>
@@ -1300,19 +1359,12 @@ export default function Zenith() {
             marginBottom: '16px',
             color: '#FFFFFF',
           }}>
-            Make room for what matters.
+            {nextStep.headline}
           </div>
 
           <button
             type="button"
-            onClick={() => {
-              if (topTaskPriority?.taskObj || topTaskPriority?.id) {
-                navigate('/growth');
-              } else {
-                window.dispatchEvent(new CustomEvent('dexos:start-focus', { detail: { duration: 25, mode: 'timed' } }));
-                navigate('/growth');
-              }
-            }}
+            onClick={nextStep.onAction}
             style={{
               background: 'transparent',
               border: 'none',
@@ -1326,7 +1378,7 @@ export default function Zenith() {
               cursor: 'pointer',
             }}
           >
-            <span>Choose your next step</span>
+            <span>{nextStep.buttonText}</span>
             <ArrowRight size={15} strokeWidth={2.4} />
           </button>
         </div>
@@ -1359,61 +1411,61 @@ export default function Zenith() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {/* Priority Item 1: Real Task Priority or Actionable Prompt */}
-            <div
-              style={{
-                background: '#FFFFFF',
-                border: '1.5px solid var(--brand-border, #E5E0D8)',
-                borderRadius: '16px',
-                padding: '12px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                transition: 'all 0.15s ease',
-              }}
-              onClick={() => navigate('/growth')}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  background: 'var(--brand-soft-teal, #DDE9EB)',
-                  color: 'var(--brand-petrol, #174A55)',
+            {/* Priority Item 1: Real Task Priority or Actionable Empty State */}
+            {topTaskPriority ? (
+              <div
+                style={{
+                  background: '#FFFFFF',
+                  border: '1.5px solid var(--brand-border, #E5E0D8)',
+                  borderRadius: '16px',
+                  padding: '12px 14px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <Clock size={16} strokeWidth={2.2} />
-                </div>
-                <div style={{ minWidth: 0 }}>
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  transition: 'all 0.15s ease',
+                }}
+                onClick={() => navigate('/growth')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                   <div style={{
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: 'var(--brand-charcoal, #111A20)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: 'var(--brand-soft-teal, #DDE9EB)',
+                    color: 'var(--brand-petrol, #174A55)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
                   }}>
-                    {topTaskPriority?.name || 'Plan the next study session'}
+                    <Clock size={16} strokeWidth={2.2} />
                   </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: 'var(--brand-text-sub, #6B7B82)',
-                    marginTop: '1px',
-                  }}>
-                    {topTaskPriority?.growth_projects?.name || topTaskPriority?.taskObj?.growth_projects?.name
-                      ? `${topTaskPriority?.growth_projects?.name || topTaskPriority?.taskObj?.growth_projects?.name} • Focus`
-                      : 'Growth • Focus'}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: 'var(--brand-charcoal, #111A20)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {topTaskPriority.name}
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: 'var(--brand-text-sub, #6B7B82)',
+                      marginTop: '1px',
+                    }}>
+                      {topTaskPriority?.growth_projects?.name || topTaskPriority?.taskObj?.growth_projects?.name
+                        ? `${topTaskPriority?.growth_projects?.name || topTaskPriority?.taskObj?.growth_projects?.name} • Focus`
+                        : 'Growth • Focus'}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: '8px' }}>
-                {topTaskPriority ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: '8px' }}>
                   <button
                     type="button"
                     aria-label="Complete priority task"
@@ -1436,75 +1488,120 @@ export default function Zenith() {
                   >
                     <CheckCircle2 size={16} strokeWidth={2.4} color={topTaskPriority.done ? '#FFFFFF' : '#B5C2BC'} />
                   </button>
-                ) : (
-                  <ChevronRight size={16} color="var(--brand-text-sub, #6B7B82)" />
-                )}
+                </div>
               </div>
-            </div>
-
-            {/* Priority Item 2: Keystone Habit Check-in or Actionable Prompt */}
-            <div
-              style={{
-                background: '#FFFFFF',
-                border: '1.5px solid var(--brand-border, #E5E0D8)',
-                borderRadius: '16px',
-                padding: '12px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                transition: 'all 0.15s ease',
-              }}
-              onClick={() => {
-                if (keystoneHabit) {
-                  handleToggle(keystoneHabit);
-                } else {
-                  setEditHabit(null);
-                  setForm({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
-                  setShowModal(true);
-                }
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  background: 'var(--brand-soft-teal, #DDE9EB)',
-                  color: 'var(--brand-petrol, #174A55)',
+            ) : (
+              <div
+                style={{
+                  background: '#FFFFFF',
+                  border: '1.5px dashed var(--brand-border, #E5E0D8)',
+                  borderRadius: '16px',
+                  padding: '12px 14px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <Flame size={16} strokeWidth={2.2} />
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  transition: 'all 0.15s ease',
+                }}
+                onClick={() => navigate('/growth')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: 'var(--brand-soft-teal, #DDE9EB)',
+                    color: 'var(--brand-petrol, #174A55)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <Target size={16} strokeWidth={2.2} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: 'var(--brand-charcoal, #111A20)',
+                    }}>
+                      No active tasks
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: 'var(--brand-text-sub, #6B7B82)',
+                      marginTop: '1px',
+                    }}>
+                      Set today's primary focus milestone
+                    </div>
+                  </div>
                 </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: 'var(--brand-charcoal, #111A20)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}>
-                    {keystoneHabit ? keystoneHabit.name : 'Log a habit'}
-                  </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: 'var(--brand-text-sub, #6B7B82)',
-                    marginTop: '1px',
-                  }}>
-                    {keystoneHabit
-                      ? `${streaks[keystoneHabit.id] || 0}d streak • ${keystoneHabit.zone ? keystoneHabit.zone.charAt(0).toUpperCase() + keystoneHabit.zone.slice(1) : 'Habit'}`
-                      : 'Start with one small, repeatable step'}
-                  </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--brand-petrol, #174A55)' }}>
+                    + Task
+                  </span>
+                  <ChevronRight size={14} color="var(--brand-petrol, #174A55)" />
                 </div>
               </div>
+            )}
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: '8px' }}>
-                {keystoneHabit ? (
+            {/* Priority Item 2: Keystone Habit Check-in or Actionable Empty State */}
+            {keystoneHabit ? (
+              <div
+                style={{
+                  background: '#FFFFFF',
+                  border: '1.5px solid var(--brand-border, #E5E0D8)',
+                  borderRadius: '16px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  transition: 'all 0.15s ease',
+                }}
+                onClick={() => handleToggle(keystoneHabit)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: 'var(--brand-soft-teal, #DDE9EB)',
+                    color: 'var(--brand-petrol, #174A55)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <Flame size={16} strokeWidth={2.2} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: 'var(--brand-charcoal, #111A20)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {keystoneHabit.name}
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: 'var(--brand-text-sub, #6B7B82)',
+                      marginTop: '1px',
+                    }}>
+                      {streaks[keystoneHabit.id] > 0
+                        ? `${streaks[keystoneHabit.id]}d streak • ${keystoneHabit.zone ? keystoneHabit.zone.charAt(0).toUpperCase() + keystoneHabit.zone.slice(1) : 'Habit'}`
+                        : `Daily rhythm • ${keystoneHabit.zone ? keystoneHabit.zone.charAt(0).toUpperCase() + keystoneHabit.zone.slice(1) : 'Habit'}`}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: '8px' }}>
                   <button
                     type="button"
                     aria-label="Toggle habit"
@@ -1527,11 +1624,68 @@ export default function Zenith() {
                   >
                     <CheckCircle2 size={16} strokeWidth={2.4} color={completedHabitIds.has(keystoneHabit.id) ? '#FFFFFF' : '#B5C2BC'} />
                   </button>
-                ) : (
-                  <ChevronRight size={16} color="var(--brand-text-sub, #6B7B82)" />
-                )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div
+                style={{
+                  background: '#FFFFFF',
+                  border: '1.5px dashed var(--brand-border, #E5E0D8)',
+                  borderRadius: '16px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  transition: 'all 0.15s ease',
+                }}
+                onClick={() => {
+                  setEditHabit(null);
+                  setForm({ name: '', zone: 'mind', icon: '🌱', frequency: 'daily', reminder_enabled: false, reminder_time: '' });
+                  setShowModal(true);
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: 'var(--brand-soft-teal, #DDE9EB)',
+                    color: 'var(--brand-petrol, #174A55)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <Flame size={16} strokeWidth={2.2} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: 'var(--brand-charcoal, #111A20)',
+                    }}>
+                      No habits scheduled
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: 'var(--brand-text-sub, #6B7B82)',
+                      marginTop: '1px',
+                    }}>
+                      Start with 1 small daily rhythm
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--brand-petrol, #174A55)' }}>
+                    + Habit
+                  </span>
+                  <ChevronRight size={14} color="var(--brand-petrol, #174A55)" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1736,25 +1890,122 @@ export default function Zenith() {
           </button>
         </div>
 
-        {/* ── Subtle Dex Prompt ── */}
-        <div
-          onClick={() => window.dispatchEvent(new CustomEvent('dexos:open-dex'))}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            padding: '10px 12px',
-            color: 'var(--brand-petrol, #174A55)',
-            fontSize: '13px',
-            fontWeight: 600,
-            borderRadius: '12px',
-            transition: 'background 0.15s ease',
-          }}
-        >
-          <Sparkles size={14} color="var(--brand-petrol, #174A55)" />
-          <span>Need a starting point? Plan with Dex ↗</span>
+        {/* ── Dex Command Center & Discovery ── */}
+        <div style={{
+          background: '#FFFFFF',
+          border: '1.5px solid var(--brand-border, #E5E0D8)',
+          borderRadius: '20px',
+          padding: '16px 18px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+          marginBottom: '16px',
+        }}>
+          <div
+            onClick={() => window.dispatchEvent(new CustomEvent('dexos:open-dex'))}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              marginBottom: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '10px',
+                background: 'var(--brand-soft-teal, #DDE9EB)',
+                color: 'var(--brand-petrol, #174A55)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Sparkles size={16} strokeWidth={2.2} />
+              </div>
+              <div>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--brand-charcoal, #111A20)' }}>
+                  Ask Dex
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--brand-text-sub, #6B7B82)', marginLeft: '8px' }}>
+                  Natural language OS
+                </span>
+              </div>
+            </div>
+            <span style={{
+              fontSize: '11px',
+              fontWeight: 600,
+              padding: '3px 8px',
+              borderRadius: '6px',
+              background: 'var(--brand-ivory, #F4F0E8)',
+              color: 'var(--brand-text-sub, #6B7B82)',
+              letterSpacing: '0.04em',
+            }}>
+              ⌘K
+            </span>
+          </div>
+
+          {/* Supported Quick Action Pills */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('dexos:open-dex', { detail: { prompt: 'Start a 25-minute focus session.' } }))}
+              style={{
+                background: 'var(--brand-ivory, #F4F0E8)',
+                border: '1px solid var(--brand-border, #E5E0D8)',
+                borderRadius: '12px',
+                padding: '6px 10px',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--brand-charcoal, #111A20)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span>⏱️ Start 25m focus</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('dexos:open-dex', { detail: { prompt: 'I drank 500 ml of water.' } }))}
+              style={{
+                background: 'var(--brand-ivory, #F4F0E8)',
+                border: '1px solid var(--brand-border, #E5E0D8)',
+                borderRadius: '12px',
+                padding: '6px 10px',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--brand-charcoal, #111A20)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span>💧 Log 500ml water</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('dexos:open-dex', { detail: { prompt: 'I have 45 minutes. What should I focus on?' } }))}
+              style={{
+                background: 'var(--brand-ivory, #F4F0E8)',
+                border: '1px solid var(--brand-border, #E5E0D8)',
+                borderRadius: '12px',
+                padding: '6px 10px',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--brand-charcoal, #111A20)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span>🎯 What should I focus on?</span>
+            </button>
+          </div>
         </div>
       </div>
 

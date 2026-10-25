@@ -92,7 +92,7 @@ export function isPlanningIntent(text) {
   const hasTime = extractAvailableTime(str) !== null;
 
   // 2. Available time + direction question ("I have 45 minutes. What should I do?", "Got 30 mins, what next?")
-  const asksDirection = /\b(?:what\s+should\s+i\s+do|what\s+can\s+i\s+do|what\s+to\s+do|how\s+should\s+i\s+spend|what\s+should\s+i\s+work\s+on|give\s+me\s+something\s+useful)\b/i.test(str);
+  const asksDirection = /\b(?:what\s+should\s+i\s+do|what\s+can\s+i\s+do|what\s+to\s+do|how\s+should\s+i\s+spend|what\s+should\s+i\s+work\s+on|what\s+should\s+i\s+focus\s+on|what\s+to\s+focus\s+on|where\s+should\s+i\s+focus|give\s+me\s+something\s+useful)\b/i.test(str);
   if (hasTime && asksDirection) {
     return true;
   }

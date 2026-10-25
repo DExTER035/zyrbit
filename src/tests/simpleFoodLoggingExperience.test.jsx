@@ -165,7 +165,7 @@ describe('Zyrbit — Simple Food Logging Experience Regression Suite', () => {
 
       // 1. Heading and day indicator
       expect(html).toContain('Food');
-      expect(html).toContain('Calm, intentional fuel tracking for the Winter Arc.');
+      expect(html).toContain('Calm, intentional daily nutrition. Useful data, zero food guilt.');
       expect(html).toContain('Today ·');
 
       // 2. Prominent input label and placeholder

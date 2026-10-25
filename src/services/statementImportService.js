@@ -89,8 +89,8 @@ export async function deduplicateTransactions(userId, candidates = []) {
     const minDate = candidates.reduce((min, c) => (!min || c.date < min ? c.date : min), null);
     if (minDate) {
       const [expRes, incRes] = await Promise.all([
-        supabase.from('money_expenses').select('amount, expense_date, note').eq('user_id', userId).gte('expense_date', minDate).limit(25000),
-        supabase.from('wealth_income').select('amount, income_date, note').eq('user_id', userId).gte('income_date', minDate).limit(25000),
+        supabase.from('money_expenses').select('id, amount, expense_date, note, category').eq('user_id', userId).gte('expense_date', minDate).limit(25000),
+        supabase.from('wealth_income').select('id, amount, income_date, note, source').eq('user_id', userId).gte('income_date', minDate).limit(25000),
       ]);
 
       const existingExpenses = expRes.data || [];
@@ -126,19 +126,43 @@ export async function deduplicateTransactions(userId, candidates = []) {
           };
         }
 
-        if (hasExistingDirectRecord && tx.rawDescription && tx.rawDescription.length > 5) {
-          // If date & exact amount matches, check if counterparty matches note
-          const matchedNote = (tx.direction === 'out' ? existingExpenses : existingIncomes).some(r =>
-            r.note && (r.note.toLowerCase().includes(tx.counterparty.toLowerCase()) || tx.counterparty.toLowerCase().includes(r.note.toLowerCase()))
+        if (hasExistingDirectRecord) {
+          const directCandidates = (tx.direction === 'out' ? existingExpenses : existingIncomes).filter(
+            r => (r.expense_date || r.income_date) === tx.date && Number(r.amount).toFixed(2) === Number(tx.amount).toFixed(2)
           );
-          if (matchedNote) {
+
+          // High-confidence match: exact amount + same date + counterparty or description matches note/category
+          const matchedDirect = directCandidates.find(r => {
+            const note = (r.note || '').toLowerCase();
+            const catOrSrc = (r.category || r.source || '').toLowerCase();
+            const cp = (tx.counterparty || '').toLowerCase();
+            const desc = (tx.rawDescription || '').toLowerCase();
+            return (
+              (cp && (note.includes(cp) || cp.includes(note) || catOrSrc.includes(cp))) ||
+              (desc && note && desc.includes(note))
+            );
+          });
+
+          if (matchedDirect) {
             return {
               ...tx,
               resolutionState: 'duplicate',
               isDuplicate: true,
+              matchedRecordId: matchedDirect.id,
+              matchedRecordType: tx.direction === 'out' ? 'expense' : 'income',
               duplicateReason: `Matches existing logged ${tx.direction === 'out' ? 'expense' : 'income'} on ${tx.date}`,
             };
           }
+
+          // Critical Rule: Similar amount and date alone are insufficient proof of duplicate
+          // Keep staged and reviewable instead of automatically marking as duplicate
+          return {
+            ...tx,
+            isDuplicate: false,
+            possibleMatchId: directCandidates[0]?.id || null,
+            resolutionState: 'needs_review',
+            reviewReason: `Possible match: Same amount on ${tx.date}, but details differ`,
+          };
         }
 
         return {
@@ -350,6 +374,20 @@ export async function confirmImportTransactions({
 
   // 2. Classify candidates into bulk insert buckets or complex flows
   for (const tx of candidateTxs) {
+    // Prevent double counting of matched manual entry and imported record
+    if (tx.matched_record_id || tx.matchedRecordId) {
+      const matchedId = tx.matched_record_id || tx.matchedRecordId;
+      updates.push({
+        id: tx.id,
+        status: 'confirmed',
+        linked_expense_id: (tx.direction === 'out' ? matchedId : null),
+        linked_income_id: (tx.direction === 'in' ? matchedId : null),
+        linked_bill_id: null,
+      });
+      confirmedCount++;
+      continue;
+    }
+
     const override = overrides[tx.id] || {};
     const action = override.action || tx.suggested_action || tx.suggestedAction || 'add_expense';
     const category = override.category || tx.suggested_category || tx.suggestedCategory || 'Other';

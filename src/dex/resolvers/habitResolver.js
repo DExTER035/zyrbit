@@ -52,6 +52,8 @@ export function resolveHabitMention({ userMessage, habits = [], actionType = 'co
     };
   }
 
+  const getHabitName = (h) => (h?.title || h?.name || '').trim();
+
   // Filter for pending habits first (not already completed/skipped for this action)
   const pendingHabits = habits.filter((h) => !h.completed && !h.skipped);
   const targetPool = pendingHabits.length > 0 ? pendingHabits : habits;
@@ -60,33 +62,37 @@ export function resolveHabitMention({ userMessage, habits = [], actionType = 'co
   const query = cleanHabitQuery(userMessage);
 
   // 1. Exact Name Match (case-insensitive)
-  const exact = targetPool.filter((h) => h.name.toLowerCase().trim() === query);
+  const exact = targetPool.filter((h) => getHabitName(h).toLowerCase() === query);
   if (exact.length === 1) {
     return {
       status: 'resolved',
       habitId: exact[0].id,
-      habitName: exact[0].name,
+      habitName: getHabitName(exact[0]),
     };
   }
 
   // 2. Exact match on raw input (e.g. user literally typed the exact habit name)
-  const exactRaw = targetPool.filter((h) => raw.includes(h.name.toLowerCase().trim()));
+  const exactRaw = targetPool.filter((h) => {
+    const name = getHabitName(h).toLowerCase();
+    return name && raw.includes(name);
+  });
   if (exactRaw.length === 1) {
     return {
       status: 'resolved',
       habitId: exactRaw[0].id,
-      habitName: exactRaw[0].name,
+      habitName: getHabitName(exactRaw[0]),
     };
   } else if (exactRaw.length > 1) {
     // Multiple exact matches in raw string
-    return _buildAmbiguityResponse(exactRaw, actionType);
+    return _buildAmbiguityResponse(exactRaw, actionType, getHabitName);
   }
 
   // 3. Substring & Word Token Overlap Match
   const queryWords = query.split(/\s+/).filter((w) => w.length > 1);
 
   const matched = targetPool.filter((h) => {
-    const hName = h.name.toLowerCase();
+    const hName = getHabitName(h).toLowerCase();
+    if (!hName) return false;
     // Substring match
     if (query && hName.includes(query)) return true;
     // Word tokens overlap
@@ -97,9 +103,9 @@ export function resolveHabitMention({ userMessage, habits = [], actionType = 'co
   // Check for time-of-day hint if user specifically said "morning habit" or "evening habit"
   if (matched.length === 0 && (raw.includes('morning') || raw.includes('evening') || raw.includes('night'))) {
     const timeMatch = targetPool.filter((h) => {
-      const hName = h.name.toLowerCase();
-      if (raw.includes('morning') && hName.includes('morning')) return true;
-      if (raw.includes('evening') && hName.includes('evening')) return true;
+      const hName = getHabitName(h).toLowerCase();
+      if (raw.includes('morning') && (hName.includes('morning') || h.is_morning)) return true;
+      if (raw.includes('evening') && (hName.includes('evening') || h.is_evening)) return true;
       if (raw.includes('night') && (hName.includes('night') || hName.includes('evening'))) return true;
       return false;
     });
@@ -107,10 +113,10 @@ export function resolveHabitMention({ userMessage, habits = [], actionType = 'co
       return {
         status: 'resolved',
         habitId: timeMatch[0].id,
-        habitName: timeMatch[0].name,
+        habitName: getHabitName(timeMatch[0]),
       };
     } else if (timeMatch.length > 1) {
-      return _buildAmbiguityResponse(timeMatch, actionType);
+      return _buildAmbiguityResponse(timeMatch, actionType, getHabitName);
     }
   }
 
@@ -119,13 +125,13 @@ export function resolveHabitMention({ userMessage, habits = [], actionType = 'co
     return {
       status: 'resolved',
       habitId: matched[0].id,
-      habitName: matched[0].name,
+      habitName: getHabitName(matched[0]),
     };
   }
 
   if (matched.length > 1) {
     // Ambiguous collision! NEVER guess.
-    return _buildAmbiguityResponse(matched, actionType);
+    return _buildAmbiguityResponse(matched, actionType, getHabitName);
   }
 
   // Zero matches
@@ -140,11 +146,12 @@ export function resolveHabitMention({ userMessage, habits = [], actionType = 'co
  * E.g. "Which run — morning or evening?"
  * @param {Array<Object>} candidates
  * @param {'complete'|'skip'} actionType
+ * @param {Function} [getName]
  * @returns {{ status: 'ambiguous', question: string, candidates: Array<Object> }}
  */
-function _buildAmbiguityResponse(candidates, actionType) {
+function _buildAmbiguityResponse(candidates, actionType, getName = (h) => (h?.title || h?.name || '')) {
   // Check if candidates differ by time (morning vs evening / night)
-  const names = candidates.map((c) => c.name);
+  const names = candidates.map(getName);
   const hasMorning = names.some((n) => /morning/i.test(n));
   const hasEvening = names.some((n) => /evening|night/i.test(n));
 

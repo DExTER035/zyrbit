@@ -354,7 +354,7 @@ describe('Zyrbit Wealth — Stage 1 Audit Regression Suite', () => {
     });
 
     it('Wealth Activity tab renders the full transaction ledger, search field, filter pills, and statement import', async () => {
-      global.window = {
+      globalThis.window = {
         location: {
           search: '?view=activity',
         },
@@ -366,7 +366,7 @@ describe('Zyrbit Wealth — Stage 1 Audit Regression Suite', () => {
       const Wealth = (await import('../pages/Wealth/index.jsx')).default;
       const html = renderToStaticMarkup(<Wealth />);
 
-      delete global.window;
+      delete globalThis.window;
 
       // Activity tab heading and controls
       expect(html).toContain('Activity');

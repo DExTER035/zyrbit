@@ -17,7 +17,7 @@ function getActionDomain(action) {
   return null;
 }
 
-export default function DexCommandModal({ userId, isOpen, onClose }) {
+export default function DexCommandModal({ userId, isOpen, onClose, initialPrompt = '' }) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -52,6 +52,12 @@ export default function DexCommandModal({ userId, isOpen, onClose }) {
   const [lastExecuted, setLastExecuted] = useState(null);
   const [attachedImage, setAttachedImage] = useState(null);
   const bottomFileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && initialPrompt) {
+      setInputText(initialPrompt);
+    }
+  }, [isOpen, initialPrompt]);
 
   const handleBottomFileChange = (e) => {
     const file = e.target.files?.[0];

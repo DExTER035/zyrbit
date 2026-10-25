@@ -8,6 +8,7 @@ import QuickAddSheet from './QuickAddSheet.jsx';
 export default function AppLayout({ children, userId }) {
   const location = useLocation();
   const [dexOpen, setDexOpen] = useState(() => (typeof window !== 'undefined' && window.location.search.includes('openDex=true')));
+  const [dexInitialPrompt, setDexInitialPrompt] = useState('');
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const navigate = useNavigate();
@@ -38,7 +39,10 @@ export default function AppLayout({ children, userId }) {
 
   useEffect(() => {
     const handleVoiceOpen = () => setVoiceOpen(true);
-    const handleDexOpen = () => setDexOpen(true);
+    const handleDexOpen = (e) => {
+      setDexInitialPrompt(e?.detail?.prompt || '');
+      setDexOpen(true);
+    };
     const handleQuickAdd = () => setQuickAddOpen(true);
     const handleNavigate = (e) => {
       if (e.detail?.route) {
@@ -263,7 +267,11 @@ export default function AppLayout({ children, userId }) {
       <DexCommandModal
         userId={userId}
         isOpen={dexOpen}
-        onClose={() => setDexOpen(false)}
+        onClose={() => {
+          setDexOpen(false);
+          setDexInitialPrompt('');
+        }}
+        initialPrompt={dexInitialPrompt}
       />
     </div>
   );

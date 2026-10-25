@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 
 /**
  * Zyrbit Mobile Splash Screen (Screen 1 in Visual Reference)
@@ -10,14 +10,14 @@ import React, { useEffect, useState } from 'react'
 export default function SplashScreen({ onGetStarted, onLogin }) {
   const [fading, setFading] = useState(false)
 
-  const handleAdvance = () => {
+  const handleAdvance = useCallback(() => {
     if (fading) return
     setFading(true)
     setTimeout(() => {
       if (onGetStarted) onGetStarted()
       else if (onLogin) onLogin()
     }, 350)
-  }
+  }, [fading, onGetStarted, onLogin])
 
   useEffect(() => {
     // Auto-advance after 2.8 seconds if user doesn't tap
@@ -25,7 +25,7 @@ export default function SplashScreen({ onGetStarted, onLogin }) {
       handleAdvance()
     }, 2800)
     return () => clearTimeout(timer)
-  }, [])
+  }, [handleAdvance])
 
   return (
     <div

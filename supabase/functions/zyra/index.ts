@@ -95,8 +95,8 @@ serve(async (req) => {
 
     // 3. SERVER-SIDE GEMINI SECRET & CONFIGURATION
     const apiKey = Deno.env.get('GEMINI_API_KEY')
-    const rawModel = Deno.env.get('GEMINI_MODEL') || 'gemini-3.8-flash'
-    const geminiModel = rawModel.replace(/^models\//, '').trim() || 'gemini-3.8-flash'
+    const rawModel = Deno.env.get('GEMINI_MODEL') || 'gemini-2.5-flash'
+    const geminiModel = rawModel.replace(/^models\//, '').trim() || 'gemini-2.5-flash'
     const geminiBase = 'https://generativelanguage.googleapis.com/v1beta/models'
 
     if (!apiKey) {
@@ -171,33 +171,46 @@ serve(async (req) => {
       contents.push({ role, parts: [{ text: m.text }] })
     }
 
-    // 5. CALL PRIMARY GEMINI MODEL SERVER-TO-SERVER
-    let res = await fetch(`${geminiBase}/${geminiModel}:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
-      },
-      body: JSON.stringify({ contents })
-    })
+    // 5. CALL PRIMARY GEMINI MODEL SERVER-TO-SERVER (with 8s timeout)
+    let res: Response;
+    try {
+      res = await fetch(`${geminiBase}/${geminiModel}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
+        body: JSON.stringify({ contents }),
+        signal: AbortSignal.timeout(8000)
+      })
+    } catch {
+      // Primary call timed out or network error — prepare for fallback
+      res = new Response(JSON.stringify({ error: 'Timeout' }), { status: 503 });
+    }
 
-    // If configured model returns 404 (deprecated/not found) or 503 (temporarily overloaded),
+    // If configured model returns 404 (deprecated/not found) or 503 (temporarily overloaded/timed out),
     // iterate fallback models.
     // NEVER fallback on 400 (malformed request), 401/403 (invalid key), or 429 (upstream quota).
     if (res.status === 404 || res.status === 503) {
-      const FALLBACK_MODELS = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-2.5-flash']
+      const FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
       for (const fallback of FALLBACK_MODELS) {
         if (fallback === geminiModel) continue; // Skip model that already failed
-        res = await fetch(`${geminiBase}/${fallback}:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey
-          },
-          body: JSON.stringify({ contents })
-        })
-        if (res.ok) break;
-        if (res.status !== 404 && res.status !== 503) break;
+        try {
+          res = await fetch(`${geminiBase}/${fallback}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': apiKey
+            },
+            body: JSON.stringify({ contents }),
+            signal: AbortSignal.timeout(8000)
+          })
+          if (res.ok) break;
+          if (res.status !== 404 && res.status !== 503) break;
+        } catch {
+          // Timeout on this fallback, try next
+          continue;
+        }
       }
     }
 

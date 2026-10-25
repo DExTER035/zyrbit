@@ -1,11 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Plus, ArrowDownLeft, FileText, Users, ArrowUpRight } from 'lucide-react';
 
 export default function WealthFlowHero({
-  liquidCash = 0,
-  upcomingBillTotal = 0,
   unencumberedCash = 0,
-  safeToSpendDaily = 0,
   onOpenIncome,
   onOpenExpense,
   onOpenBills,

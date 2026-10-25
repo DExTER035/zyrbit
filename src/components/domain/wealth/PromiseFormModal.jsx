@@ -113,7 +113,7 @@ export default function PromiseFormModal({
   };
 
   // Natural contextual phrasing
-  const relationshipSummary = isOwedToMe
+  const _relationshipSummary = isOwedToMe
     ? (person.trim() ? `${person.trim()} owes me` : 'Someone owes me')
     : (person.trim() ? `I owe ${person.trim()}` : 'I owe someone');
 

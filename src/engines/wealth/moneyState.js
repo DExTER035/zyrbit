@@ -689,9 +689,6 @@ export function computeCategorySpending({
  */
 export function computeFinancialOverview({
   moneyState,
-  incomes = [],
-  expenses = [],
-  bills = [],
 }) {
   // Calibration status is authoritatively determined by moneyState.isCalibrated.
   // Mere presence of expense records does not configure or calibrate cash.

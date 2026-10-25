@@ -19,7 +19,7 @@ export const ensureProfile = async (user) => {
       .from('profiles')
       .select('friend_tag, username')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (!data?.friend_tag) {
       let tag = generateFriendTag()
@@ -29,7 +29,7 @@ export const ensureProfile = async (user) => {
           .from('profiles')
           .select('friend_tag')
           .eq('friend_tag', tag)
-          .single()
+          .maybeSingle()
         if (!check) exists = false
         else tag = generateFriendTag()
       }
