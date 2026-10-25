@@ -1,10 +1,11 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { computeMoneyState } from '../engines/wealth/moneyState.js';
+import { computeMoneyState, computeFinancialOverview, computeCategorySpending } from '../engines/wealth/moneyState.js';
 import { saveWealthSettings } from '../services/wealthService.js';
 import TransactionFormModal from '../components/domain/wealth/TransactionFormModal.jsx';
 import BillFormModal from '../components/domain/wealth/BillFormModal.jsx';
+import SpendingPieChart from '../components/domain/wealth/SpendingPieChart.jsx';
 
 // Mock react-router-dom
 vi.mock('react-router-dom', async () => {
@@ -334,4 +335,238 @@ describe('Zyrbit Wealth — Stage 1 Audit Regression Suite', () => {
       expect(html).toContain(`value="${expectedLocalDate}"`);
     });
   });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 5. WEALTH HOME AND ACTIVITY TAB SEPARATION
+  // ──────────────────────────────────────────────────────────────────────────
+  describe('5. Wealth Home and Activity Tab Separation', () => {
+    it('Wealth Home renders the compact "View all activity →" link and does not render the full transaction list rows or filter pills', async () => {
+      const Wealth = (await import('../pages/Wealth/index.jsx')).default;
+      const html = renderToStaticMarkup(<Wealth />);
+
+      // 1. Home must render the compact "View all activity →" link
+      expect(html).toContain('View all activity →');
+      expect(html).toContain('See all recorded transactions');
+
+      // 2. Home must NOT render the old "Recent Transactions" header with filter pills or individual transaction rows
+      expect(html).not.toContain('Recent Transactions');
+      expect(html).not.toContain('>All Activity<'); // Filter pill belongs on Activity tab
+    });
+
+    it('Wealth Activity tab renders the full transaction ledger, search field, filter pills, and statement import', async () => {
+      global.window = {
+        location: {
+          search: '?view=activity',
+        },
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      };
+
+      const Wealth = (await import('../pages/Wealth/index.jsx')).default;
+      const html = renderToStaticMarkup(<Wealth />);
+
+      delete global.window;
+
+      // Activity tab heading and controls
+      expect(html).toContain('Activity');
+      expect(html).toContain('Unified transaction history &amp; statements');
+      expect(html).toContain('Import Bank Statement');
+      expect(html).toContain('All Activity');
+      expect(html).toContain('Expenses');
+      expect(html).toContain('Income');
+      expect(html).toContain('placeholder="Search by note, category, or amount..."');
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 6. STAGE 4: HOME FINANCIAL OVERVIEW & SPENDING PIE CHART
+  // ──────────────────────────────────────────────────────────────────────────
+  describe('6. Stage 4 Home Financial Overview and Spending Pie Chart', () => {
+    it('computeFinancialOverview distinguishes uncalibrated state (null) from explicitly recorded 0', () => {
+      // 1. Uncalibrated / no recorded data: must NOT fabricate ₹0
+      const uncalibrated = computeFinancialOverview({
+        moneyState: { isCalibrated: false },
+        incomes: [],
+        expenses: [],
+        bills: [],
+      });
+      expect(uncalibrated.isCashConfigured).toBe(false);
+      expect(uncalibrated.cashVal).toBeNull();
+      expect(uncalibrated.totalRecordedAssets).toBeNull();
+      expect(uncalibrated.netWorth).toBeNull();
+      expect(uncalibrated.availableToSpend).toBeNull();
+
+      // 2. Explicitly calibrated to ₹0: must reliably return 0
+      const calibratedZero = computeFinancialOverview({
+        moneyState: {
+          isCalibrated: true,
+          assets: { cash: 0, savings: 0, invested: 0, gold: 0, owedToYou: 0 },
+          liabilities: { iOweTotal: 0 },
+          unencumberedCash: 0,
+        },
+        incomes: [],
+        expenses: [],
+        bills: [],
+      });
+      expect(calibratedZero.isCashConfigured).toBe(true);
+      expect(calibratedZero.cashVal).toBe(0);
+      expect(calibratedZero.totalRecordedAssets).toBe(0);
+      expect(calibratedZero.totalTrackedLiabilities).toBe(0);
+      expect(calibratedZero.netWorth).toBe(0);
+      expect(calibratedZero.availableToSpend).toBe(0);
+
+      // 3. Supported holdings without double counting
+      const withHoldings = computeFinancialOverview({
+        moneyState: {
+          isCalibrated: true,
+          assets: { cash: 5000, savings: 20000, invested: 50000, gold: 10000, owedToYou: 3000 },
+          liabilities: { iOweTotal: 8000, iOweCount: 1 },
+          unencumberedCash: 4000,
+        },
+        incomes: [{ id: 'inc-1', amount: 35000, income_date: '2026-10-01' }],
+        expenses: [{ id: 'exp-1', amount: 5000, expense_date: '2026-10-02' }],
+        bills: [{ id: 'bill-1', amount: 8000, name: 'Return to Friend', status: 'unpaid' }],
+      });
+      expect(withHoldings.totalRecordedAssets).toBe(88000); // 5000 + 20000 + 50000 + 10000 + 3000
+      expect(withHoldings.totalTrackedLiabilities).toBe(8000);
+      expect(withHoldings.netWorth).toBe(80000); // 88000 - 8000
+      expect(withHoldings.availableToSpend).toBe(4000);
+    });
+
+    it('computeFinancialOverview preserves uncalibrated state (null) when only expenses exist without income or calibration', () => {
+      // Real engine moneyState with only expenses: liquidCash is negative, isCalibrated is false
+      const moneyState = computeMoneyState({
+        incomes: [],
+        expenses: [
+          { id: '1', amount: 200, category: 'Food', expense_date: '2026-10-20' },
+          { id: '2', amount: 1000, category: 'Shopping', expense_date: '2026-10-21' },
+        ],
+        bills: [],
+      });
+
+      expect(moneyState.isCalibrated).toBe(false);
+      expect(moneyState.liquidCash).toBe(-1200);
+
+      const overview = computeFinancialOverview({
+        moneyState,
+        incomes: [],
+        expenses: [
+          { id: '1', amount: 200, category: 'Food', expense_date: '2026-10-20' },
+          { id: '2', amount: 1000, category: 'Shopping', expense_date: '2026-10-21' },
+        ],
+        bills: [],
+      });
+
+      // Must NOT fabricate ₹0 cash, total recorded assets, net worth, or safe to spend!
+      expect(overview.isCashConfigured).toBe(false);
+      expect(overview.cashVal).toBeNull();
+      expect(overview.totalRecordedAssets).toBeNull();
+      expect(overview.netWorth).toBeNull();
+      expect(overview.availableToSpend).toBeNull();
+    });
+
+    it('computeCategorySpending excludes transfers, debt repayments, and investments, and subtracts refunds', () => {
+      const expenses = [
+        { id: '1', amount: 1200, category: 'Food', expense_date: '2026-10-05' },
+        { id: '2', amount: 800, category: 'Transport', expense_date: '2026-10-08' },
+        // Internal transfer: must be excluded
+        { id: '3', amount: 5000, category: 'Transfer', note: 'to savings', expense_date: '2026-10-10' },
+        // Investment purchase: must be excluded from lifestyle spend
+        { id: '4', amount: 10000, category: 'Investments', note: 'Nifty 50 SIP', expense_date: '2026-10-12' },
+        // Debt repayment: must be excluded
+        { id: '5', amount: 2000, category: 'Debt', note: 'loan repayment', expense_date: '2026-10-15' },
+      ];
+
+      const incomes = [
+        // Refund: should offset lifestyle spending
+        { id: 'inc-r', amount: 200, source: 'Refund', note: 'Amazon item return', income_date: '2026-10-14' },
+        // Regular salary: should not offset spending
+        { id: 'inc-s', amount: 50000, source: 'Salary', income_date: '2026-10-01' },
+      ];
+
+      const res = computeCategorySpending({ expenses, incomes, month: '2026-10' });
+
+      expect(res.grossSpend).toBe(2000); // 1200 + 800
+      expect(res.refundsTotal).toBe(200);
+      expect(res.netSpend).toBe(1800); // 2000 - 200
+      expect(res.hasExpenses).toBe(true);
+
+      // Only Food and Transport should be in categories
+      expect(res.categories).toHaveLength(2);
+      expect(res.categories[0].category).toBe('Food');
+      expect(res.categories[0].amount).toBe(1200);
+      expect(res.categories[0].pct).toBe(60); // 1200 / 2000
+      expect(res.categories[1].category).toBe('Transport');
+      expect(res.categories[1].amount).toBe(800);
+      expect(res.categories[1].pct).toBe(40); // 800 / 2000
+    });
+
+    it('SpendingPieChart component renders empty state when no expenses exist and populated state with SVG paths', () => {
+      // 1. Empty state
+      const emptyHtml = renderToStaticMarkup(
+        <SpendingPieChart expenses={[]} incomes={[]} month="2026-10" />
+      );
+      expect(emptyHtml).toContain('No spending recorded this month');
+      expect(emptyHtml).toContain('Where your money went');
+
+      // 2. Populated state
+      const populatedHtml = renderToStaticMarkup(
+        <SpendingPieChart
+          expenses={[
+            { id: '1', amount: 3000, category: 'Food', expense_date: '2026-10-01' },
+            { id: '2', amount: 1000, category: 'Shopping', expense_date: '2026-10-02' },
+          ]}
+          incomes={[]}
+          month="2026-10"
+        />
+      );
+      expect(populatedHtml).toContain('Where your money went');
+      expect(populatedHtml).toContain('Food');
+      expect(populatedHtml).toContain('Shopping');
+      expect(populatedHtml).toContain('Total recorded spending');
+      expect(populatedHtml).toContain('4,000'); // total spent
+      expect(populatedHtml).toContain('<svg');
+      expect(populatedHtml).toContain('<path');
+    });
+
+    it('Wealth Home dashboard integrates Financial Overview, Holdings Summary, and Spending Pie Chart', async () => {
+      const Wealth = (await import('../pages/Wealth/index.jsx')).default;
+      const html = renderToStaticMarkup(<Wealth />);
+
+      // Hero Card: Total recorded assets, Net worth, Liabilities
+      expect(html).toContain('Total recorded assets');
+      expect(html).toContain('Net worth');
+      expect(html).toContain('Liabilities');
+
+      // Safe to Spend Card
+      expect(html).toContain('Safe to Spend this month');
+
+      // Side-by-side holdings: Cash & accounts, Investments
+      expect(html).toContain('Cash &amp; accounts');
+      expect(html).toContain('Investments');
+
+      // Spending Donut Chart: Where your money went
+      expect(html).toContain('Where your money went');
+
+      // Upcoming commitments
+      expect(html).toContain('Upcoming commitments');
+
+      // Compact Activity link preserved
+      expect(html).toContain('View all activity →');
+    });
+
+    it('Wealth Home renders "Not set" for Safe to Spend, Total Assets, Net Worth, and Cash when uncalibrated', async () => {
+      const Wealth = (await import('../pages/Wealth/index.jsx')).default;
+      const html = renderToStaticMarkup(<Wealth />);
+
+      // In an uncalibrated financial state, cards must display "Not set", never fabricating ₹0
+      expect(html).toContain('Total recorded assets');
+      expect(html).toContain('Safe to Spend this month');
+      expect(html).toContain('Not set');
+      // Must not fabricate ₹ 0 for Safe to Spend when uncalibrated
+      expect(html).not.toMatch(/Safe to Spend this month<\/div>\s*<div[^>]*>\s*₹\s*0\s*<\/div>/);
+    });
+  });
 });
+

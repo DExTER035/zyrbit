@@ -26,6 +26,14 @@ import {
   X,
   SlidersHorizontal,
   ArrowRight,
+  Home,
+  Eye,
+  EyeOff,
+  CalendarClock,
+  ArrowDown,
+  ClipboardList,
+  Target,
+  History,
 } from 'lucide-react';
 
 // ─── Money State Domain Modals ────────────────────────────────────────────────
@@ -37,6 +45,7 @@ import {
   PromiseFormModal,
   AssetAdjustmentModal,
   ConnectMoneyModal,
+  GoalFormModal,
 } from '../../components/domain/wealth/index.js';
 
 // ─── Service Facade & Pure Engine ─────────────────────────────────────────────
@@ -56,8 +65,22 @@ import {
   addIncome,
   updateIncome,
   deleteIncome,
+  getSavingsGoals,
+  addSavingsGoal,
+  updateSavingsGoal,
+  deleteSavingsGoal,
 } from '../../services/wealthService.js';
-import { computeMoneyState } from '../../engines/wealth/moneyState.js';
+import {
+  computeMoneyState,
+  computeFinancialOverview,
+  computeCategorySpending,
+  isTransferExpense,
+  isTransferIncome,
+  isPrincipalExpense,
+  isBorrowIncome,
+} from '../../engines/wealth/moneyState.js';
+import { getImportBatches } from '../../services/statementImportService.js';
+import SpendingPieChart from '../../components/domain/wealth/SpendingPieChart.jsx';
 import WealthFlowHero from '../../components/domain/wealth/WealthFlowHero.jsx';
 import WealthRecentEvents from '../../components/domain/wealth/WealthRecentEvents.jsx';
 
@@ -130,12 +153,25 @@ export default function Wealth() {
     }
     return 'owed_to_me';
   }); // 'owed_to_me' | 'i_owe'
-  // Plan view sub-tab: 'commitments' | 'promises'
+  // Plan view sub-tab: 'commitments' | 'promises' | 'goals'
   const [planTab, setPlanTab] = useState('commitments');
   // Assets view sub-tab: 'holdings' | 'flow'
   const [assetsTab, setAssetsTab] = useState('holdings');
-  const [recentFilter, setRecentFilter] = useState('all'); // 'all' | 'expense' | 'income'
+  const [recentFilter, setRecentFilter] = useState('all'); // 'all' | 'expense' | 'income' | 'transfer'
   const [activitySearchQuery, setActivitySearchQuery] = useState('');
+  const [dateRangeFilter, setDateRangeFilter] = useState('all'); // 'all' | 'this_month' | 'last_month' | 'this_year' | 'last_year' | 'custom'
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [availableBatches, setAvailableBatches] = useState([]);
+  const [selectedBatchFilter, setSelectedBatchFilter] = useState('all');
+  const [connectMoneyInitialView, setConnectMoneyInitialView] = useState('upload');
+  const [homePeriod, setHomePeriod] = useState('this_month'); // 'this_month' | 'last_month' | 'this_year'
+
+  // Savings goals state
+  const [goals, setGoals] = useState([]);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(null);
 
   // Modals & deep view editing
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
@@ -152,6 +188,7 @@ export default function Wealth() {
   const [transactionModalType, setTransactionModalType] = useState('expense');
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [budgetForm, setBudgetForm] = useState({ budget: 15000, currency: 'INR' });
+  const [isBalanceHidden, setIsBalanceHidden] = useState(false);
 
   // ── Data Fetcher ──────────────────────────────────────────────────────────
   const loadData = useCallback(async (uid, isBackground = false) => {
@@ -178,6 +215,18 @@ export default function Wealth() {
           currency: s.currency || 'INR',
         });
       }
+
+      getImportBatches(uid).then((bRes) => {
+        if (bRes?.success && bRes.batches) {
+          setAvailableBatches(bRes.batches);
+        }
+      }).catch(() => {});
+
+      getSavingsGoals(uid).then((gRes) => {
+        if (gRes?.success && gRes.data) {
+          setGoals(gRes.data);
+        }
+      }).catch(() => {});
     } catch (err) {
       setError(err.message || 'Unexpected error loading financial state.');
     } finally {
@@ -474,6 +523,59 @@ export default function Wealth() {
       await loadData(user.id, true);
     } catch (err) {
       showToast(err.message || 'Failed to update asset.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Action: Save Savings Goal (Create / Update)
+  const handleSaveGoal = async (goalData) => {
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      let res;
+      if (goalData.id) {
+        res = await updateSavingsGoal({
+          userId: user.id,
+          id: goalData.id,
+          name: goalData.name,
+          targetAmount: goalData.targetAmount,
+          currentAmount: goalData.currentAmount,
+          deadline: goalData.deadline,
+        });
+      } else {
+        res = await addSavingsGoal({
+          userId: user.id,
+          name: goalData.name,
+          targetAmount: goalData.targetAmount,
+          currentAmount: goalData.currentAmount,
+          deadline: goalData.deadline,
+        });
+      }
+
+      if (!res.success) throw new Error(res.error);
+      showToast(goalData.id ? 'Savings goal updated.' : 'Savings goal added.', 'success');
+      const gRes = await getSavingsGoals(user.id);
+      if (gRes?.success) setGoals(gRes.data);
+    } catch (err) {
+      showToast(err.message || 'Failed to save goal.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Action: Delete Savings Goal
+  const handleDeleteGoal = async (goalId) => {
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const res = await deleteSavingsGoal({ userId: user.id, id: goalId });
+      if (!res.success) throw new Error(res.error);
+      showToast('Savings goal deleted.', 'success');
+      const gRes = await getSavingsGoals(user.id);
+      if (gRes?.success) setGoals(gRes.data);
+    } catch (err) {
+      showToast(err.message || 'Failed to delete goal.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -1156,19 +1258,22 @@ export default function Wealth() {
             </p>
           </div>
 
-          {/* Quick Action: Add Commitment or Promise (Touch target >= 44px) */}
+          {/* Quick Action: Add Commitment, Promise or Goal (Touch target >= 44px) */}
           <button
             type="button"
             onClick={() => {
               if (planTab === 'commitments') {
                 setEditingBill(null);
                 setIsBillModalOpen(true);
-              } else {
+              } else if (planTab === 'promises') {
                 setEditingPromise(null);
                 setIsPromiseModalOpen(true);
+              } else {
+                setEditingGoal(null);
+                setIsGoalModalOpen(true);
               }
             }}
-            aria-label={planTab === 'commitments' ? 'Add Bill' : 'Add Promise'}
+            aria-label={planTab === 'commitments' ? 'Add Bill' : planTab === 'promises' ? 'Add Promise' : 'Add Goal'}
             style={{
               minHeight: '44px',
               padding: '0 16px',
@@ -1187,7 +1292,7 @@ export default function Wealth() {
             }}
           >
             <Plus size={16} strokeWidth={2.5} />
-            <span>{planTab === 'commitments' ? 'Add Bill' : 'Add Promise'}</span>
+            <span>{planTab === 'commitments' ? 'Add Bill' : planTab === 'promises' ? 'Add Promise' : 'Add Goal'}</span>
           </button>
         </div>
 
@@ -1297,15 +1402,31 @@ export default function Wealth() {
                   <span>{currencySymbol} {monthSpendTotal.toLocaleString()} spent</span>
                   <span>{currencySymbol} {budgetRemainingVal !== null ? budgetRemainingVal.toLocaleString() : 0} remaining</span>
                 </div>
+
+                {/* Category Budgets Breakdown */}
+                <div style={{ borderTop: '1px solid #ECE8DF', paddingTop: '10px', marginTop: '10px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: W.sub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Current Month Spending By Category
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                    {computeCategorySpending({ expenses, incomes, month: todayDate ? todayDate.slice(0, 7) : undefined }).categories.slice(0, 4).map((c) => (
+                      <div key={c.category} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                        <span style={{ color: W.text, fontWeight: 600 }}>{c.category}</span>
+                        <span style={{ color: W.sub, fontWeight: 500 }}>{currencySymbol} {c.amount.toLocaleString()} ({c.pct}%)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
-          {/* ── Destination Navigation Tabs: Commitments vs Promises (Touch target >= 44px) ── */}
+          {/* ── Destination Navigation Tabs: Commitments vs Promises vs Goals (Touch target >= 44px) ── */}
           <div style={{ display: 'flex', gap: '8px' }}>
             {[
-              { id: 'commitments', label: 'Bills & Commitments', count: bills.filter((b) => b.status !== 'paid').length },
-              { id: 'promises',    label: 'Debts & Promises',     count: owedToMe.length + iOwe.length },
+              { id: 'commitments', label: 'Bills', count: bills.filter((b) => b.status !== 'paid').length },
+              { id: 'promises',    label: 'Promises', count: owedToMe.length + iOwe.length },
+              { id: 'goals',       label: 'Goals', count: goals.length },
             ].map((tab) => {
               const isActive = planTab === tab.id;
               return (
@@ -1731,6 +1852,193 @@ export default function Wealth() {
               </div>
             </div>
           )}
+
+          {/* ── 4C. SECTION C: SAVINGS GOALS ── */}
+          {planTab === 'goals' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{
+                background: W.surface,
+                borderRadius: '20px',
+                padding: '16px 18px',
+                border: `1.5px solid ${W.border}`,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: W.text, fontFamily: "'Space Grotesk', -apple-system, sans-serif" }}>
+                    Savings Goals
+                  </div>
+                  <div style={{ fontSize: '12px', color: W.sub, marginTop: '2px' }}>
+                    {goals.length} target{goals.length === 1 ? '' : 's'} defined
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingGoal(null);
+                    setIsGoalModalOpen(true);
+                  }}
+                  style={{
+                    minHeight: '38px',
+                    padding: '0 14px',
+                    borderRadius: '10px',
+                    background: W.petrol,
+                    border: 'none',
+                    color: '#FFFFFF',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Plus size={15} />
+                  <span>New Goal</span>
+                </button>
+              </div>
+
+              {/* Goals List */}
+              <div style={{
+                background: W.surface,
+                borderRadius: '20px',
+                padding: '14px',
+                border: `1.5px solid ${W.border}`,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}>
+                {goals.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '40px 16px',
+                    color: W.sub,
+                    fontSize: '13px',
+                  }}>
+                    <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎯</div>
+                    <div style={{ fontWeight: 700, color: W.text, marginBottom: '4px' }}>
+                      No savings goals yet
+                    </div>
+                    <div style={{ color: W.muted, marginBottom: '14px' }}>
+                      Set a target amount and target date to build savings habits with calm focus.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingGoal(null);
+                        setIsGoalModalOpen(true);
+                      }}
+                      style={{
+                        minHeight: '38px',
+                        padding: '0 16px',
+                        borderRadius: '10px',
+                        background: W.softTeal,
+                        border: 'none',
+                        color: W.petrol,
+                        fontSize: '12.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      + Create your first goal
+                    </button>
+                  </div>
+                ) : (
+                  goals.map((g) => {
+                    const target = Number(g.target_amount || 0);
+                    const current = Number(g.current_amount || 0);
+                    const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+                    const remaining = Math.max(0, target - current);
+
+                    return (
+                      <div
+                        key={g.id}
+                        onClick={() => {
+                          setEditingGoal(g);
+                          setIsGoalModalOpen(true);
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        style={{
+                          padding: '14px',
+                          borderRadius: '14px',
+                          background: '#FAF7F2',
+                          border: '1px solid #ECE8DF',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          transition: 'background 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '10px',
+                              background: pct >= 100 ? 'rgba(31, 163, 111, 0.14)' : W.softTeal,
+                              color: pct >= 100 ? W.emerald : W.petrol,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}>
+                              <Target size={16} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '14px', fontWeight: 700, color: W.text }}>
+                                {g.name}
+                              </div>
+                              {g.deadline && (
+                                <div style={{ fontSize: '11px', color: W.sub, marginTop: '2px' }}>
+                                  Target: {g.deadline}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '14.5px', fontWeight: 800, color: W.text, fontFamily: "'Space Grotesk', -apple-system, sans-serif" }}>
+                              {currencySymbol} {current.toLocaleString()}
+                            </div>
+                            <div style={{ fontSize: '11px', color: W.muted }}>
+                              of {currencySymbol} {target.toLocaleString()} ({pct}%)
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div style={{
+                          width: '100%',
+                          height: '6px',
+                          background: '#ECE8DF',
+                          borderRadius: '9999px',
+                          overflow: 'hidden',
+                        }}>
+                          <div style={{
+                            width: `${pct}%`,
+                            height: '100%',
+                            background: pct >= 100 ? W.emerald : W.petrol,
+                            borderRadius: '9999px',
+                            transition: 'width 0.3s ease',
+                          }} />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: W.muted }}>
+                          <span>{pct >= 100 ? '🎉 Goal Reached!' : `${currencySymbol} ${remaining.toLocaleString()} remaining`}</span>
+                          <span>Tap to edit</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1738,52 +2046,139 @@ export default function Wealth() {
 
   // ── 3. ACTIVITY VIEW (Stage 2B: Unified Money Ledger) ─────────────────────
   const renderActivityView = () => {
-    // 1. Calculations & Month-to-date summaries using existing data
-    const monthEarned = Number(moneyState?.monthEarned ?? 0);
-    const monthSpend = Number(moneyState?.monthSpend ?? 0);
-    const netFlow = monthEarned - monthSpend;
-
-    // 2. Build full unified transaction list from real user data
+    // 1. Build full unified transaction list from real user data with semantic flags
     let allTx = [
-      ...expenses.map((e) => ({
-        ...e,
-        txType: 'expense',
-        date: e.expense_date,
-        title: e.note || e.category || 'Expense',
-        categoryOrSource: e.category || 'General',
-        raw: e,
-      })),
-      ...incomes.map((i) => ({
-        ...i,
-        txType: 'income',
-        date: i.income_date,
-        title: i.note || i.source || 'Income',
-        categoryOrSource: i.source || 'Income',
-        raw: i,
-      })),
+      ...expenses.map((e) => {
+        const isTransfer = isTransferExpense(e);
+        const isInvest = (e.category || '').toLowerCase().includes('invest');
+        return {
+          ...e,
+          txType: 'expense',
+          date: e.expense_date,
+          title: e.note || e.category || 'Expense',
+          categoryOrSource: e.category || 'General',
+          isTransfer,
+          isInvest,
+          raw: e,
+        };
+      }),
+      ...incomes.map((i) => {
+        const isTransfer = isTransferIncome(i);
+        const isBorrow = isBorrowIncome(i);
+        const isRef = (i.source || '').toLowerCase().includes('refund');
+        return {
+          ...i,
+          txType: 'income',
+          date: i.income_date,
+          title: i.note || i.source || 'Income',
+          categoryOrSource: i.source || 'Income',
+          isTransfer,
+          isBorrow,
+          isRefund: isRef,
+          raw: i,
+        };
+      }),
     ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
-    // 3. Filter by type (All / Expense / Income)
-    if (recentFilter === 'expense') {
-      allTx = allTx.filter((t) => t.txType === 'expense');
-    } else if (recentFilter === 'income') {
-      allTx = allTx.filter((t) => t.txType === 'income');
+    // 2. Date Range Filtering
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonthNum = now.getMonth() + 1;
+    const curMonthStr = `${curYear}-${String(curMonthNum).padStart(2, '0')}`;
+    const lastMonthDate = new Date(curYear, now.getMonth() - 1, 1);
+    const lastMonthStr = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
+    const dateFilteredTx = allTx.filter((t) => {
+      if (!t.date) return true;
+      const d = t.date.slice(0, 10);
+      if (dateRangeFilter === 'this_month') return d.startsWith(curMonthStr);
+      if (dateRangeFilter === 'last_month') return d.startsWith(lastMonthStr);
+      if (dateRangeFilter === 'this_year') return d.startsWith(String(curYear));
+      if (dateRangeFilter === 'last_year') return d.startsWith(String(curYear - 1));
+      if (dateRangeFilter === 'custom') {
+        if (customStartDate && d < customStartDate) return false;
+        if (customEndDate && d > customEndDate) return false;
+        return true;
+      }
+      return true; // 'all'
+    });
+
+    // 2B. Source & Batch Filtering
+    let batchFilteredTx = dateFilteredTx;
+    if (selectedBatchFilter !== 'all') {
+      batchFilteredTx = batchFilteredTx.filter(
+        (t) => t.batch_id === selectedBatchFilter || t.raw?.batch_id === selectedBatchFilter
+      );
     }
 
-    // 4. Filter by search query (merchant, title, note, category, source, amount, date)
+    // 3. Dynamic Period Summaries calculated from date & batch-filtered records
+    const periodEarned = batchFilteredTx
+      .filter((t) => t.txType === 'income' && !t.isTransfer && !t.isBorrow)
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+
+    const periodSpent = batchFilteredTx
+      .filter((t) => t.txType === 'expense' && !t.isTransfer && !isPrincipalExpense(t.raw))
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+
+    const periodNet = periodEarned - periodSpent;
+
+    const periodExpenses = batchFilteredTx
+      .filter((t) => t.txType === 'expense' && !t.isTransfer && !isPrincipalExpense(t.raw))
+      .map((t) => t.raw || t);
+
+    const categoryTotals = {};
+    periodExpenses.forEach((e) => {
+      const cat = (e.category || 'Other').trim() || 'Other';
+      categoryTotals[cat] = (categoryTotals[cat] || 0) + Number(e.amount || 0);
+    });
+    const periodCategoryBreakdown = Object.entries(categoryTotals)
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 4);
+
+    const rangeLabel = dateRangeFilter === 'this_month'
+      ? 'This Month'
+      : dateRangeFilter === 'last_month'
+      ? 'Last Month'
+      : dateRangeFilter === 'this_year'
+      ? `Year ${curYear}`
+      : dateRangeFilter === 'last_year'
+      ? `Year ${curYear - 1}`
+      : dateRangeFilter === 'custom'
+      ? `${customStartDate || 'Start'} to ${customEndDate || 'Now'}`
+      : 'All Time';
+
+    // 4. Filter by type (All / Expense / Income / Transfer)
+    let typeFilteredTx = batchFilteredTx;
+    if (recentFilter === 'expense') {
+      typeFilteredTx = typeFilteredTx.filter((t) => t.txType === 'expense' && !t.isTransfer);
+    } else if (recentFilter === 'income') {
+      typeFilteredTx = typeFilteredTx.filter((t) => t.txType === 'income');
+    } else if (recentFilter === 'transfer') {
+      typeFilteredTx = typeFilteredTx.filter((t) => t.isTransfer);
+    }
+
+    // 5. Filter by search query (merchant, title, note, category, source, amount, date)
     const query = activitySearchQuery.trim().toLowerCase();
     const filteredTx = query
-      ? allTx.filter((t) => {
+      ? typeFilteredTx.filter((t) => {
           const matchTitle = (t.title || '').toLowerCase().includes(query);
           const matchNote = (t.note || '').toLowerCase().includes(query);
-          const matchCat = (t.category || '').toLowerCase().includes(query);
+          const matchCat = (t.categoryOrSource || '').toLowerCase().includes(query);
           const matchSource = (t.source || '').toLowerCase().includes(query);
           const matchMerchant = (t.merchant || '').toLowerCase().includes(query);
           const matchAmount = String(t.amount || '').includes(query);
           const matchDate = (t.date || '').toLowerCase().includes(query);
           return matchTitle || matchNote || matchCat || matchSource || matchMerchant || matchAmount || matchDate;
         })
-      : allTx;
+      : typeFilteredTx;
+
+    // 6. Pagination (50 transactions per page)
+    const PAGE_SIZE = 50;
+    const totalPages = Math.max(1, Math.ceil(filteredTx.length / PAGE_SIZE));
+    const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+    const startIndex = (safeCurrentPage - 1) * PAGE_SIZE;
+    const paginatedTx = filteredTx.slice(startIndex, startIndex + PAGE_SIZE);
 
     return (
       <div className="flex flex-col" style={{ width: '100%', maxWidth: '100%' }}>
@@ -1853,133 +2248,261 @@ export default function Wealth() {
           flexDirection: 'column',
           gap: '16px',
         }}>
-          {/* ── 2. Compact Month-to-date Income & Expense Summary ── */}
+          {/* ── 2. Dynamic Period Income & Expense Summary ── */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            display: 'flex',
+            flexDirection: 'column',
             gap: '8px',
           }}>
-            {/* Earned */}
             <div style={{
-              background: W.surface,
-              borderRadius: '16px',
-              padding: '12px 14px',
-              border: `1.5px solid ${W.border}`,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-            }}>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: W.sub }}>
-                Earned
-              </span>
-              <span style={{
-                fontSize: '15px',
-                fontWeight: 800,
-                color: W.emerald,
-                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-                letterSpacing: '-0.02em',
-              }}>
-                +{fmtShort(monthEarned)}
-              </span>
-            </div>
-
-            {/* Spent */}
-            <div style={{
-              background: W.surface,
-              borderRadius: '16px',
-              padding: '12px 14px',
-              border: `1.5px solid ${W.border}`,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-            }}>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: W.sub }}>
-                Spent
-              </span>
-              <span style={{
-                fontSize: '15px',
-                fontWeight: 800,
-                color: W.text,
-                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-                letterSpacing: '-0.02em',
-              }}>
-                -{fmtShort(monthSpend)}
-              </span>
-            </div>
-
-            {/* Net Flow */}
-            <div style={{
-              background: W.surface,
-              borderRadius: '16px',
-              padding: '12px 14px',
-              border: `1.5px solid ${W.border}`,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-            }}>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: W.sub }}>
-                Net
-              </span>
-              <span style={{
-                fontSize: '15px',
-                fontWeight: 800,
-                color: netFlow >= 0 ? W.emerald : W.amber,
-                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-                letterSpacing: '-0.02em',
-              }}>
-                {netFlow >= 0 ? '+' : ''}{fmtShort(netFlow)}
-              </span>
-            </div>
-          </div>
-
-          {/* ── 7. Prominent but Unobtrusive Connect Money Action (Statement Import) ── */}
-          <div
-            onClick={() => setIsConnectMoneyOpen(true)}
-            role="button"
-            tabIndex={0}
-            style={{
-              background: 'linear-gradient(135deg, #FAF7F2 0%, #FFFFFF 100%)',
-              border: `1.5px solid ${W.border}`,
-              borderRadius: '18px',
-              padding: '14px 16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              cursor: 'pointer',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-              minHeight: '44px',
-              transition: 'border-color 0.15s ease',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+              padding: '0 2px',
+            }}>
+              <span style={{ fontSize: '11.5px', fontWeight: 600, color: W.sub }}>
+                Period Totals ({rangeLabel})
+              </span>
+              <span style={{ fontSize: '11px', color: W.muted, fontWeight: 500 }}>
+                {filteredTx.length} transaction{filteredTx.length === 1 ? '' : 's'}
+              </span>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '8px',
+            }}>
+              {/* Earned */}
               <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '12px',
-                background: W.softTeal,
-                color: W.petrol,
+                background: W.surface,
+                borderRadius: '16px',
+                padding: '12px 14px',
+                border: `1.5px solid ${W.border}`,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '16px',
-                flexShrink: 0,
+                flexDirection: 'column',
+                gap: '4px',
               }}>
-                📄
+                <span style={{ fontSize: '11px', fontWeight: 600, color: W.sub }}>
+                  Earned
+                </span>
+                <span style={{
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  color: W.emerald,
+                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                  letterSpacing: '-0.02em',
+                }}>
+                  +{fmtShort(periodEarned)}
+                </span>
               </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '13.5px', fontWeight: 700, color: W.text }}>
-                  Import Bank Statement
-                </div>
-                <div style={{ fontSize: '11px', color: W.sub, marginTop: '2px' }}>
-                  Auto-reconciliation, PDF/CSV parsing & duplicate detection
-                </div>
+
+              {/* Spent */}
+              <div style={{
+                background: W.surface,
+                borderRadius: '16px',
+                padding: '12px 14px',
+                border: `1.5px solid ${W.border}`,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: W.sub }}>
+                  Spent
+                </span>
+                <span style={{
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  color: W.text,
+                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                  letterSpacing: '-0.02em',
+                }}>
+                  -{fmtShort(periodSpent)}
+                </span>
+              </div>
+
+              {/* Net Flow */}
+              <div style={{
+                background: W.surface,
+                borderRadius: '16px',
+                padding: '12px 14px',
+                border: `1.5px solid ${W.border}`,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: W.sub }}>
+                  Net
+                </span>
+                <span style={{
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  color: periodNet >= 0 ? W.emerald : W.amber,
+                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                  letterSpacing: '-0.02em',
+                }}>
+                  {periodNet >= 0 ? '+' : ''}{fmtShort(periodNet)}
+                </span>
               </div>
             </div>
 
-            <ChevronRight size={15} color={W.muted} />
+            {/* Top Categories for the Period */}
+            {periodCategoryBreakdown.length > 0 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                overflowX: 'auto',
+                paddingTop: '2px',
+                paddingBottom: '2px',
+              }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: W.sub, whiteSpace: 'nowrap' }}>
+                  Top Categories:
+                </span>
+                {periodCategoryBreakdown.map((cat) => (
+                  <div
+                    key={cat.category}
+                    style={{
+                      background: W.surface,
+                      border: `1px solid ${W.border}`,
+                      borderRadius: '9999px',
+                      padding: '3px 10px',
+                      fontSize: '11px',
+                      color: W.text,
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <span style={{ fontWeight: 600 }}>{cat.category}</span>
+                    <span style={{ color: W.sub }}>{currencySymbol}{Number(cat.amount || 0).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── 7. Connect Money Actions: Import Statement & Import History ── */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: availableBatches.length > 0 ? '1fr 1fr' : '1fr',
+            gap: '10px',
+          }}>
+            <div
+              onClick={() => {
+                setConnectMoneyInitialView('upload');
+                setIsConnectMoneyOpen(true);
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setConnectMoneyInitialView('upload');
+                  setIsConnectMoneyOpen(true);
+                }
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #FAF7F2 0%, #FFFFFF 100%)',
+                border: `1.5px solid ${W.border}`,
+                borderRadius: '18px',
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                minHeight: '44px',
+                transition: 'border-color 0.15s ease',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
+                  background: W.softTeal,
+                  color: W.petrol,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '15px',
+                  flexShrink: 0,
+                }}>
+                  📄
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: W.text }}>
+                    Import Bank Statement
+                  </div>
+                  <div style={{ fontSize: '10.5px', color: W.sub }}>
+                    CSV / Excel statement
+                  </div>
+                </div>
+              </div>
+              <ChevronRight size={14} color={W.muted} />
+            </div>
+
+            {availableBatches.length > 0 && (
+              <div
+                onClick={() => {
+                  setConnectMoneyInitialView('batches');
+                  setIsConnectMoneyOpen(true);
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setConnectMoneyInitialView('batches');
+                    setIsConnectMoneyOpen(true);
+                  }
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #FAF7F2 0%, #FFFFFF 100%)',
+                  border: `1.5px solid ${W.border}`,
+                  borderRadius: '18px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                  minHeight: '44px',
+                  transition: 'border-color 0.15s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                  <div style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: '#EDE8DF',
+                    color: W.text,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '14px',
+                    flexShrink: 0,
+                  }}>
+                    <History size={16} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: W.text }}>
+                      Import History
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: W.sub }}>
+                      {availableBatches.length} batch{availableBatches.length === 1 ? '' : 'es'} · Rollback
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={14} color={W.muted} />
+              </div>
+            )}
           </div>
 
           {/* ── 3. Search Field ── */}
@@ -2042,25 +2565,128 @@ export default function Wealth() {
             )}
           </div>
 
-          {/* ── 4. Filter Controls (All, Expenses, Income) ── */}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          {/* ── 3B. Date Range Filters (All Time, This Month, Last Month, This Year, Last Year, Custom) ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+              {[
+                { id: 'all',        label: 'All Time' },
+                { id: 'this_month', label: 'This Month' },
+                { id: 'last_month', label: 'Last Month' },
+                { id: 'this_year',  label: 'This Year' },
+                { id: 'last_year',  label: 'Last Year' },
+                { id: 'custom',     label: 'Custom' },
+              ].map((tab) => {
+                const isActive = dateRangeFilter === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setDateRangeFilter(tab.id);
+                      setCurrentPage(1);
+                    }}
+                    style={{
+                      minHeight: '34px',
+                      padding: '0 14px',
+                      borderRadius: '9999px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      border: `1.5px solid ${isActive ? W.petrol : W.border}`,
+                      background: isActive ? W.softTeal : W.surface,
+                      color: isActive ? W.petrol : W.sub,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {dateRangeFilter === 'custom' && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: W.surface,
+                padding: '8px 12px',
+                borderRadius: '12px',
+                border: `1px solid ${W.border}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                  <span style={{ fontSize: '11px', color: W.sub, fontWeight: 600 }}>From:</span>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => {
+                      setCustomStartDate(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    aria-label="Start date"
+                    style={{
+                      border: `1px solid ${W.border}`,
+                      borderRadius: '8px',
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      color: W.text,
+                      background: '#FAF7F2',
+                      outline: 'none',
+                      width: '100%',
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                  <span style={{ fontSize: '11px', color: W.sub, fontWeight: 600 }}>To:</span>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => {
+                      setCustomEndDate(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    aria-label="End date"
+                    style={{
+                      border: `1px solid ${W.border}`,
+                      borderRadius: '8px',
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      color: W.text,
+                      background: '#FAF7F2',
+                      outline: 'none',
+                      width: '100%',
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── 4. Filter Controls (All, Expenses, Income, Transfers) ── */}
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
             {[
-              { id: 'all',     label: 'All Activity' },
-              { id: 'expense', label: 'Expenses' },
-              { id: 'income',  label: 'Income' },
+              { id: 'all',      label: 'All Activity' },
+              { id: 'expense',  label: 'Expenses' },
+              { id: 'income',   label: 'Income' },
+              { id: 'transfer', label: 'Transfers' },
             ].map((tab) => {
               const isActive = (recentFilter === tab.id) || (tab.id === 'all' && (!recentFilter || recentFilter === 'all'));
               return (
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setRecentFilter(tab.id === 'all' ? 'all' : tab.id)}
+                  onClick={() => {
+                    setRecentFilter(tab.id === 'all' ? 'all' : tab.id);
+                    setCurrentPage(1);
+                  }}
                   style={{
                     minHeight: '44px',
                     padding: '0 18px',
                     borderRadius: '9999px',
                     fontSize: '13px',
                     fontWeight: 600,
+                    whiteSpace: 'nowrap',
                     border: `1.5px solid ${isActive ? W.petrol : W.border}`,
                     background: isActive ? W.petrol : W.surface,
                     color: isActive ? '#FFFFFF' : W.sub,
@@ -2075,7 +2701,68 @@ export default function Wealth() {
             })}
           </div>
 
-          {/* ── 5 & 6. Readable Transaction List + States ── */}
+          {/* ── 4B. Source / Batch Filter Pills ── */}
+          {availableBatches.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: W.sub, paddingLeft: '2px' }}>
+                Filter by Source / Batch:
+              </span>
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedBatchFilter('all');
+                    setCurrentPage(1);
+                  }}
+                  style={{
+                    minHeight: '32px',
+                    padding: '0 12px',
+                    borderRadius: '9999px',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    border: `1.5px solid ${selectedBatchFilter === 'all' ? W.petrol : W.border}`,
+                    background: selectedBatchFilter === 'all' ? W.softTeal : W.surface,
+                    color: selectedBatchFilter === 'all' ? W.petrol : W.sub,
+                    cursor: 'pointer',
+                  }}
+                >
+                  All Sources
+                </button>
+                {availableBatches.map((b) => {
+                  const isBActive = selectedBatchFilter === b.id;
+                  const bDate = b.created_at ? b.created_at.slice(0, 10) : 'Batch';
+                  const bCount = b.success_count || b.total_rows || 0;
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedBatchFilter(b.id);
+                        setCurrentPage(1);
+                      }}
+                      style={{
+                        minHeight: '32px',
+                        padding: '0 12px',
+                        borderRadius: '9999px',
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                        border: `1.5px solid ${isBActive ? W.petrol : W.border}`,
+                        background: isBActive ? W.softTeal : W.surface,
+                        color: isBActive ? W.petrol : W.sub,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {b.bank_name ? `${b.bank_name} (${bDate})` : `Batch ${bDate}`} ({bCount})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── 5 & 6. Readable Transaction List + States + Responsive Pagination ── */}
           <div style={{
             background: W.surface,
             borderRadius: '20px',
@@ -2135,9 +2822,14 @@ export default function Wealth() {
                 </div>
               </div>
             ) : (
-              /* Transaction Rows (Touch target >= 44px + Full edit modal trigger) */
-              filteredTx.map((tx) => {
+              /* Transaction Rows (Paginated, touch target >= 44px + Full edit modal trigger) */
+              paginatedTx.map((tx) => {
                 const isCredit = tx.txType === 'income';
+                const isTransfer = Boolean(tx.isTransfer);
+                const glyph = isTransfer ? '⇄' : isCredit ? '↓' : '↑';
+                const glyphBg = isTransfer ? 'rgba(23, 74, 85, 0.12)' : isCredit ? 'rgba(31, 163, 111, 0.14)' : W.softTeal;
+                const glyphColor = isTransfer ? W.petrol : isCredit ? W.emerald : W.petrol;
+
                 return (
                   <div
                     key={tx.id}
@@ -2148,6 +2840,14 @@ export default function Wealth() {
                     }}
                     role="button"
                     tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setEditingTransaction(tx.raw || tx);
+                        setTransactionModalType(tx.txType);
+                        setIsTransactionModalOpen(true);
+                      }
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -2166,8 +2866,8 @@ export default function Wealth() {
                         width: '36px',
                         height: '36px',
                         borderRadius: '50%',
-                        background: isCredit ? 'rgba(31, 163, 111, 0.14)' : W.softTeal,
-                        color: isCredit ? W.emerald : W.petrol,
+                        background: glyphBg,
+                        color: glyphColor,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -2175,7 +2875,7 @@ export default function Wealth() {
                         fontSize: '13px',
                         flexShrink: 0,
                       }}>
-                        {isCredit ? '↓' : '↑'}
+                        {glyph}
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div style={{
@@ -2202,14 +2902,87 @@ export default function Wealth() {
                       <div style={{
                         fontSize: '14.5px',
                         fontWeight: 800,
-                        color: isCredit ? W.emerald : W.text,
+                        color: isTransfer ? W.petrol : isCredit ? W.emerald : W.text,
                       }}>
-                        {isCredit ? '+' : '-'}{currencySymbol} {Number(tx.amount || 0).toLocaleString()}
+                        {isTransfer ? '' : isCredit ? '+' : '-'}{currencySymbol} {Number(tx.amount || 0).toLocaleString()}
                       </div>
                     </div>
                   </div>
                 );
               })
+            )}
+
+            {/* ── Pagination Bar (When items exceed PAGE_SIZE) ── */}
+            {totalPages > 1 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 6px 4px',
+                borderTop: `1px solid ${W.border}`,
+                marginTop: '4px',
+              }}>
+                <span style={{ fontSize: '12px', color: W.sub, fontWeight: 600 }}>
+                  Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, filteredTx.length)} of {filteredTx.length}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    disabled={safeCurrentPage <= 1}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentPage((p) => Math.max(1, p - 1));
+                    }}
+                    aria-label="Previous Page"
+                    style={{
+                      minHeight: '38px',
+                      minWidth: '44px',
+                      padding: '0 12px',
+                      borderRadius: '10px',
+                      border: `1.5px solid ${W.border}`,
+                      background: safeCurrentPage <= 1 ? '#FAF7F2' : W.surface,
+                      color: safeCurrentPage <= 1 ? W.muted : W.text,
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: safeCurrentPage <= 1 ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    Prev
+                  </button>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: W.text, padding: '0 4px' }}>
+                    {safeCurrentPage} / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={safeCurrentPage >= totalPages}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentPage((p) => Math.min(totalPages, p + 1));
+                    }}
+                    aria-label="Next Page"
+                    style={{
+                      minHeight: '38px',
+                      minWidth: '44px',
+                      padding: '0 12px',
+                      borderRadius: '10px',
+                      border: `1.5px solid ${W.border}`,
+                      background: safeCurrentPage >= totalPages ? '#FAF7F2' : W.surface,
+                      color: safeCurrentPage >= totalPages ? W.muted : W.text,
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: safeCurrentPage >= totalPages ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -2229,700 +3002,852 @@ export default function Wealth() {
     return null;
   };
 
-  // ── 6. HOME VIEW (Stage 2A: Personal Finance Command Center) ─────────────────
+  // ── 6. HOME VIEW (Stage 4: Personal Finance Command Center) ─────────────────
   const renderHomeView = () => {
     // 1. Calculations & Selectors from existing moneyState
-    const availableToSpend = Number(moneyState?.unencumberedCash ?? moneyState?.liquidCash ?? 0);
-    const monthIncomeTotal = Number(moneyState?.monthEarned ?? 0);
-    const monthSpendTotal = Number(moneyState?.monthSpend ?? 0);
-    const netCashFlow = monthIncomeTotal - monthSpendTotal;
     const monthlyBudgetVal = (moneyState?.monthlyBudget !== null && moneyState?.monthlyBudget !== undefined)
       ? Number(moneyState.monthlyBudget)
       : (settings?.monthly_budget !== null && settings?.monthly_budget !== undefined && isFinite(Number(settings.monthly_budget)) && Number(settings.monthly_budget) >= 0)
         ? Number(settings.monthly_budget)
         : null;
 
-    const budgetPct = monthlyBudgetVal && monthlyBudgetVal > 0
-      ? Math.min(100, Math.round((monthSpendTotal / monthlyBudgetVal) * 100))
-      : (monthlyBudgetVal === 0 && monthSpendTotal > 0 ? 100 : 0);
+    const finOverview = computeFinancialOverview({
+      moneyState,
+      incomes,
+      expenses,
+      bills,
+    });
 
-    const pace = moneyState?.spendingPace;
-    const nextUnpaidBill = moneyState?.nextBill;
-    const dexText = moneyState?.dexGuidance;
+    const availableToSpend = finOverview.availableToSpend;
 
-    // Filter transactions for preview
-    let homeTx = [
-      ...expenses.map((e) => ({ ...e, txType: 'expense', date: e.expense_date, title: e.note || e.category || 'Expense' })),
-      ...incomes.map((i) => ({ ...i, txType: 'income', date: i.income_date, title: i.note || i.source || 'Income' })),
-    ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    const totalCashAndAccounts = (finOverview.cashVal || 0) + (finOverview.savingsVal || 0);
+    const totalInvestments = (finOverview.investedVal || 0) + (finOverview.goldVal || 0);
 
-    if (recentFilter === 'expense') {
-      homeTx = homeTx.filter((t) => t.txType === 'expense');
-    } else if (recentFilter === 'income') {
-      homeTx = homeTx.filter((t) => t.txType === 'income');
-    }
+    // Period-filtered cash flow calculations for Home
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonthNum = now.getMonth() + 1;
+    const curMonthStr = `${curYear}-${String(curMonthNum).padStart(2, '0')}`;
+    const lastMonthDate = new Date(curYear, now.getMonth() - 1, 1);
+    const lastMonthStr = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
+    const homeFilteredIncomes = incomes.filter((i) => {
+      const d = (i.income_date || '').slice(0, 10);
+      if (!d) return false;
+      if (isTransferIncome(i) || isBorrowIncome(i)) return false;
+      if (homePeriod === 'this_month') return d.startsWith(curMonthStr);
+      if (homePeriod === 'last_month') return d.startsWith(lastMonthStr);
+      if (homePeriod === 'this_year') return d.startsWith(String(curYear));
+      return true;
+    });
+
+    const homeFilteredExpenses = expenses.filter((e) => {
+      const d = (e.expense_date || '').slice(0, 10);
+      if (!d) return false;
+      if (isTransferExpense(e) || isPrincipalExpense(e)) return false;
+      if (homePeriod === 'this_month') return d.startsWith(curMonthStr);
+      if (homePeriod === 'last_month') return d.startsWith(lastMonthStr);
+      if (homePeriod === 'this_year') return d.startsWith(String(curYear));
+      return true;
+    });
+
+    const homeInflow = homeFilteredIncomes.reduce((s, i) => s + Number(i.amount || 0), 0);
+    const homeOutflow = homeFilteredExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const homeNetFlow = homeInflow - homeOutflow;
+    const homePeriodLabel = homePeriod === 'this_month' ? 'This Month' : homePeriod === 'last_month' ? 'Last Month' : `Year ${curYear}`;
+
+    // Top 4 recent transactions for Home preview
+    const recentActivityPreview = [
+      ...expenses.map((e) => ({
+        id: e.id,
+        txType: 'expense',
+        date: e.expense_date,
+        title: e.note || e.category || 'Expense',
+        categoryOrSource: e.category || 'General',
+        amount: e.amount,
+        isTransfer: isTransferExpense(e),
+        raw: e,
+      })),
+      ...incomes.map((i) => ({
+        id: i.id,
+        txType: 'income',
+        date: i.income_date,
+        title: i.note || i.source || 'Income',
+        categoryOrSource: i.source || 'Income',
+        amount: i.amount,
+        isTransfer: isTransferIncome(i),
+        raw: i,
+      })),
+    ]
+      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+      .slice(0, 4);
+
+    const upcomingCommitmentsList = (moneyState?.unpaidBills || bills.filter(b => b.status !== 'paid' && b.status !== 'receivable')).slice(0, 3);
+
+    const formatDueDate = (dueDateStr) => {
+      if (!dueDateStr) return '';
+      const d = new Date(`${dueDateStr}T00:00:00`);
+      if (isNaN(d.getTime())) return `Due ${dueDateStr}`;
+      const day = d.getDate();
+      const monthStr = d.toLocaleString('default', { month: 'short' });
+      return `Due ${day} ${monthStr}`;
+    };
 
     return (
       <div className="flex flex-col" style={{ width: '100%', maxWidth: '100%' }}>
-        {/* ── 1. Page Heading & Concise Supporting Text ── */}
+        {/* ── Top Header: Brand & Profile/Settings ── */}
         <div style={{
-          padding: '24px 20px 16px',
+          padding: '20px 20px 14px',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'flex-start',
+          alignItems: 'center',
         }}>
-          <div>
-            <h1 style={{
-              margin: 0,
-              fontSize: '24px',
-              fontWeight: 800,
-              color: W.text,
-              letterSpacing: '-0.02em',
-              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '13px',
+              background: '#174A55',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 6px rgba(23, 74, 85, 0.25)',
             }}>
-              Wealth
-            </h1>
-            <p style={{
-              margin: '4px 0 0',
-              fontSize: '13px',
-              color: W.sub,
-              fontWeight: 500,
-            }}>
-              Spend with intention · Calm command center
-            </p>
+              <Wallet size={20} />
+            </div>
+            <div>
+              <div style={{
+                fontSize: '18px',
+                fontWeight: 800,
+                color: W.text,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.15,
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              }}>
+                Zyrbit
+              </div>
+              <div style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: W.sub,
+                letterSpacing: '0.08em',
+                marginTop: '1px',
+              }}>
+                WEALTH
+              </div>
+            </div>
           </div>
 
           <button
             type="button"
             onClick={() => setIsSettingsOpen(true)}
-            aria-label="Wealth Settings"
+            aria-label="Wealth Settings & Profile"
             style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '12px',
-              background: W.surface,
-              border: `1px solid ${W.border}`,
-              color: W.petrol,
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: 'transparent',
+              border: 'none',
+              color: W.text,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
             }}
           >
-            <Settings2 size={18} />
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              border: `1.8px solid ${W.text}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: W.text,
+            }}>
+              <Users size={16} />
+            </div>
           </button>
+        </div>
+
+        {/* ── Top 4-Pill Segmented Destination Navigation ── */}
+        <div style={{
+          padding: '0 20px 16px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '8px',
+        }}>
+          {[
+            { id: 'home', label: 'Home', icon: <Home size={18} /> },
+            { id: 'activity', label: 'Activity', icon: <Repeat size={18} /> },
+            { id: 'plan', label: 'Plan', icon: <Calendar size={18} /> },
+            { id: 'assets', label: 'Assets', icon: <Landmark size={18} /> },
+          ].map((tab) => {
+            const isActive = activeView === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveView(tab.id)}
+                style={{
+                  minHeight: '52px',
+                  borderRadius: '16px',
+                  background: isActive ? '#174A55' : '#FFFFFF',
+                  border: isActive ? 'none' : `1.5px solid ${W.border}`,
+                  color: isActive ? '#FFFFFF' : W.sub,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  cursor: 'pointer',
+                  boxShadow: isActive ? '0 2px 6px rgba(23, 74, 85, 0.22)' : '0 1px 3px rgba(0,0,0,0.02)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {tab.icon}
+                <span style={{ fontSize: '11.5px', fontWeight: isActive ? 800 : 600 }}>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* ── Main Scroll Content ── */}
         <div
           className="wealth-content-grid"
           style={{
-            padding: '0 20px calc(130px + env(safe-area-inset-bottom, 24px))',
+            padding: '0 20px calc(110px + env(safe-area-inset-bottom, 24px))',
             display: 'flex',
             flexDirection: 'column',
             gap: '16px',
           }}
         >
-          {/* ── 2. Prominent Safe to Spend / Available to Spend Card ── */}
+          {/* ── 1. Hero Card (Dark Petrol Teal) ── */}
           <div style={{
-            background: 'linear-gradient(135deg, #174A55 0%, #0F323A 100%)',
+            background: 'linear-gradient(135deg, #174A55 0%, #11363E 100%)',
             borderRadius: '24px',
-            padding: '24px 20px',
+            padding: '22px 20px',
             color: '#FFFFFF',
             boxShadow: '0 8px 24px rgba(23, 74, 85, 0.22)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             position: 'relative',
-            overflow: 'hidden',
           }}>
-            {/* Top Row: Label & Runway */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            {/* Top row: Label & Eye Privacy Toggle */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{
-                fontSize: '12px',
-                fontWeight: 700,
-                color: W.softTeal,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'rgba(255, 255, 255, 0.85)',
               }}>
-                Available to Spend
+                Total recorded assets
               </span>
-              {moneyState?.runwayDays !== null && moneyState?.runwayDays !== undefined && (
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  background: 'rgba(221, 233, 235, 0.15)',
-                  color: W.softTeal,
-                  padding: '3px 9px',
-                  borderRadius: '9999px',
-                  border: '1px solid rgba(221, 233, 235, 0.25)',
-                }}>
-                  {moneyState.runwayDays}d runway
-                </span>
-              )}
+              <button
+                type="button"
+                onClick={() => setIsBalanceHidden(prev => !prev)}
+                aria-label={isBalanceHidden ? "Show balances" : "Hide balances"}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {isBalanceHidden ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
 
             {/* Big Amount */}
             <div style={{
-              fontSize: '38px',
+              fontSize: '36px',
               fontWeight: 900,
-              letterSpacing: '-0.03em',
+              letterSpacing: '-0.02em',
               fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-              lineHeight: 1.1,
-              marginBottom: '6px',
+              lineHeight: 1.15,
+              margin: '8px 0 6px 0',
             }}>
-              {currencySymbol} {availableToSpend.toLocaleString()}
+              {isBalanceHidden
+                ? '••••••'
+                : (finOverview.totalRecordedAssets !== null
+                    ? `${currencySymbol} ${finOverview.totalRecordedAssets.toLocaleString()}`
+                    : 'Not set')}
             </div>
 
-            {/* Sub-label / Budget drilldown */}
-            <div
-              onClick={() => { setAssetsTab('flow'); setActiveView('assets'); }}
-              role="button"
-              tabIndex={0}
-              style={{
-                fontSize: '12.5px',
-                color: 'rgba(255, 255, 255, 0.8)',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                marginBottom: '20px',
-              }}
-            >
-              <span>
-                {monthlyBudgetVal !== null
-                  ? `of ${currencySymbol} ${monthlyBudgetVal.toLocaleString()} monthly budget`
-                  : 'Tap to configure monthly budget'}
-              </span>
-              <ChevronRight size={13} />
-            </div>
-
-            {/* ── 7. Primary Quick Actions: Add Expense / Add Income (Embedded in Hero with >=44px touch) ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingTransaction(null);
-                  setTransactionModalType('expense');
-                  setIsTransactionModalOpen(true);
-                }}
-                style={{
-                  minHeight: '44px',
-                  borderRadius: '12px',
-                  background: '#FFFFFF',
-                  border: 'none',
-                  color: W.petrol,
-                  fontSize: '13.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-                  transition: 'opacity 0.15s ease',
-                }}
-              >
-                <Plus size={16} strokeWidth={2.5} />
-                <span>Add Expense</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingTransaction(null);
-                  setTransactionModalType('income');
-                  setIsTransactionModalOpen(true);
-                }}
-                style={{
-                  minHeight: '44px',
-                  borderRadius: '12px',
-                  background: 'rgba(255, 255, 255, 0.14)',
-                  border: '1px solid rgba(255, 255, 255, 0.28)',
-                  color: '#FFFFFF',
-                  fontSize: '13.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'background 0.15s ease',
-                }}
-              >
-                <TrendingUp size={16} />
-                <span>+ Income</span>
-              </button>
-            </div>
-          </div>
-
-          {/* ── 3. Compact Monthly Income and Spending Summary ── */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '12px',
-          }}>
-            {/* Earned this month */}
+            {/* Subtitle */}
             <div style={{
-              background: W.surface,
-              borderRadius: '18px',
-              padding: '16px',
-              border: `1.5px solid ${W.border}`,
-              boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
               display: 'flex',
-              flexDirection: 'column',
+              alignItems: 'center',
               gap: '6px',
+              fontSize: '12px',
+              color: 'rgba(255, 255, 255, 0.75)',
+              marginBottom: '20px',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  background: 'rgba(31, 163, 111, 0.12)',
-                  color: W.emerald,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                }}>
-                  ↓
-                </span>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: W.sub }}>
-                  Earned
-                </span>
-              </div>
-              <div style={{
-                fontSize: '18px',
-                fontWeight: 800,
-                color: W.text,
-                letterSpacing: '-0.02em',
-                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-              }}>
-                {currencySymbol} {monthIncomeTotal.toLocaleString()}
-              </div>
-              <div style={{ fontSize: '11px', color: W.muted }}>
-                Current month inflow
-              </div>
+              <TrendingUp size={14} />
+              <span>Across your tracked accounts and assets</span>
             </div>
 
-            {/* Spent this month */}
+            {/* Divider */}
             <div style={{
-              background: W.surface,
-              borderRadius: '18px',
-              padding: '16px',
-              border: `1.5px solid ${W.border}`,
-              boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  background: 'rgba(23, 74, 85, 0.12)',
-                  color: W.petrol,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                }}>
-                  ↑
-                </span>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: W.sub }}>
-                  Spent
-                </span>
-              </div>
-              <div style={{
-                fontSize: '18px',
-                fontWeight: 800,
-                color: W.text,
-                letterSpacing: '-0.02em',
-                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
-              }}>
-                {currencySymbol} {monthSpendTotal.toLocaleString()}
-              </div>
-              <div style={{ fontSize: '11px', color: netCashFlow >= 0 ? W.emerald : W.amber, fontWeight: 500 }}>
-                Net: {netCashFlow >= 0 ? '+' : ''}{currencySymbol} {netCashFlow.toLocaleString()}
-              </div>
-            </div>
-          </div>
+              borderTop: '1px solid rgba(255, 255, 255, 0.16)',
+              paddingTop: '16px',
+            }} />
 
-          {/* ── 4. Budget Pacing / Spending Status ── */}
-          {monthlyBudgetVal !== null && monthlyBudgetVal > 0 && (
-            <div style={{
-              background: W.surface,
-              borderRadius: '18px',
-              padding: '16px 18px',
-              border: `1.5px solid ${W.border}`,
-              boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '13px' }}>🎯</span>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: W.text }}>
-                    Monthly Budget Pacing
-                  </span>
+            {/* Bottom 2 columns: Liabilities & Net worth */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+              <div>
+                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)', fontWeight: 500 }}>
+                  Liabilities
                 </div>
-                <span style={{
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  color: pace?.status === 'exceeded' ? W.danger : pace?.status === 'ahead' ? W.amber : W.emerald,
-                  background: pace?.status === 'exceeded' ? 'rgba(239, 68, 68, 0.08)' : pace?.status === 'ahead' ? 'rgba(233, 180, 76, 0.12)' : 'rgba(31, 163, 111, 0.08)',
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                }}>
-                  {pace?.label || `${budgetPct}% used`}
-                </span>
-              </div>
-
-              {/* Progress Bar */}
-              <div style={{
-                width: '100%',
-                height: '7px',
-                background: '#FAF7F2',
-                borderRadius: '9999px',
-                overflow: 'hidden',
-                margin: '8px 0',
-                border: '1px solid #EFEAE1',
-              }}>
                 <div style={{
-                  width: `${Math.min(100, budgetPct)}%`,
-                  height: '100%',
-                  background: budgetPct >= 100 ? W.danger : budgetPct > 80 ? W.amber : W.petrol,
-                  borderRadius: '9999px',
-                  transition: 'width 0.3s ease',
-                }} />
+                  fontSize: '18px',
+                  fontWeight: 800,
+                  color: '#FFFFFF',
+                  marginTop: '4px',
+                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                }}>
+                  {isBalanceHidden
+                    ? '••••••'
+                    : `${currencySymbol} ${finOverview.totalTrackedLiabilities.toLocaleString()}`}
+                </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: W.sub }}>
-                <span>{currencySymbol} {monthSpendTotal.toLocaleString()} spent</span>
-                <span>{currencySymbol} {Math.max(0, monthlyBudgetVal - monthSpendTotal).toLocaleString()} remaining</span>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)', fontWeight: 500 }}>
+                  Net worth
+                </div>
+                <div style={{
+                  fontSize: '18px',
+                  fontWeight: 800,
+                  color: '#FFFFFF',
+                  marginTop: '4px',
+                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                }}>
+                  {isBalanceHidden
+                    ? '••••••'
+                    : (finOverview.netWorth !== null
+                        ? `${finOverview.netWorth < 0 ? '-' : ''}${currencySymbol} ${Math.abs(finOverview.netWorth).toLocaleString()}`
+                        : 'Not set')}
+                </div>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* ── 5. Next Upcoming Unpaid Commitment ── */}
-          {nextUnpaidBill && (
+          {/* ── 2. Safe to Spend this month Card (White) ── */}
+          <div
+            onClick={() => { setAssetsTab('flow'); setActiveView('assets'); }}
+            role="button"
+            tabIndex={0}
+            style={{
+              background: W.surface,
+              borderRadius: '20px',
+              padding: '20px',
+              border: `1.5px solid ${W.border}`,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ fontSize: '13.5px', color: W.sub, fontWeight: 500 }}>
+              Safe to Spend this month
+            </div>
+            <div style={{
+              fontSize: '32px',
+              fontWeight: 800,
+              color: W.petrol,
+              margin: '6px 0 4px 0',
+              fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              letterSpacing: '-0.02em',
+            }}>
+              {isBalanceHidden
+                ? '••••••'
+                : (availableToSpend !== null
+                    ? `${currencySymbol} ${availableToSpend.toLocaleString()}`
+                    : 'Not set')}
+            </div>
+            <div style={{ fontSize: '12px', color: W.muted }}>
+              Illustrative estimate after tracked commitments
+            </div>
+          </div>
+
+          {/* ── 3. Side-by-Side: Cash & accounts + Investments ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+            {/* Cash & accounts */}
             <div
-              onClick={() => { setPlanTab('commitments'); setActiveView('plan'); }}
+              onClick={() => setIsCalibrateModalOpen(true)}
               role="button"
               tabIndex={0}
               style={{
                 background: W.surface,
-                borderRadius: '18px',
-                padding: '16px 18px',
+                borderRadius: '20px',
+                padding: '18px',
                 border: `1.5px solid ${W.border}`,
-                boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
                 cursor: 'pointer',
+                minHeight: '44px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '12px',
-                  background: 'rgba(23, 74, 85, 0.08)',
-                  color: W.petrol,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '16px',
-                  flexShrink: 0,
-                }}>
-                  📅
-                </div>
-                <div>
-                  <div style={{ fontSize: '11.5px', fontWeight: 600, color: W.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Next Commitment
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: W.text, marginTop: '2px' }}>
-                    {nextUnpaidBill.name}
-                  </div>
-                  <div style={{ fontSize: '11px', color: W.muted, marginTop: '1px' }}>
-                    Due {nextUnpaidBill.daysUntil === 0 ? 'today' : nextUnpaidBill.daysUntil === 1 ? 'tomorrow' : `in ${nextUnpaidBill.daysUntil} days`} ({nextUnpaidBill.due_date})
-                  </div>
-                </div>
+              <Landmark size={20} color="#174A55" />
+              <div style={{ fontSize: '12.5px', color: W.sub, fontWeight: 500, marginTop: '10px' }}>
+                Cash & accounts
               </div>
-
-              <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: W.text }}>
-                    {currencySymbol} {Number(nextUnpaidBill.amount || 0).toLocaleString()}
-                  </div>
-                  <div style={{ fontSize: '11px', color: W.petrol, fontWeight: 600 }}>
-                    View in Plan ›
-                  </div>
-                </div>
-                <ChevronRight size={14} color={W.muted} />
+              <div style={{
+                fontSize: '18px',
+                fontWeight: 800,
+                color: W.text,
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                marginTop: '4px',
+                letterSpacing: '-0.02em',
+              }}>
+                {isBalanceHidden
+                  ? '••••••'
+                  : (finOverview.cashVal !== null || finOverview.savingsVal > 0
+                      ? `${currencySymbol} ${totalCashAndAccounts.toLocaleString()}`
+                      : 'Not set')}
               </div>
             </div>
-          )}
 
-          {/* ── 6. Existing Dex Financial Guidance ── */}
-          {dexText && (
+            {/* Investments */}
+            <div
+              onClick={() => { setAssetsTab('holdings'); setActiveView('assets'); }}
+              role="button"
+              tabIndex={0}
+              style={{
+                background: W.surface,
+                borderRadius: '20px',
+                padding: '18px',
+                border: `1.5px solid ${W.border}`,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                cursor: 'pointer',
+                minHeight: '44px',
+              }}
+            >
+              <TrendingUp size={20} color="#174A55" />
+              <div style={{ fontSize: '12.5px', color: W.sub, fontWeight: 500, marginTop: '10px' }}>
+                Investments
+              </div>
+              <div style={{
+                fontSize: '18px',
+                fontWeight: 800,
+                color: W.text,
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                marginTop: '4px',
+                letterSpacing: '-0.02em',
+              }}>
+                {isBalanceHidden ? '••••••' : `${currencySymbol} ${totalInvestments.toLocaleString()}`}
+              </div>
+            </div>
+          </div>
+
+          {/* ── 3B. Period Selection Pills for Cash Flow & Spending ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: W.sub }}>
+                Cash Flow Overview
+              </span>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {[
+                  { id: 'this_month', label: 'This Month' },
+                  { id: 'last_month', label: 'Last Month' },
+                  { id: 'this_year',  label: 'This Year' },
+                ].map((p) => {
+                  const isActive = homePeriod === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setHomePeriod(p.id)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '9999px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        border: `1px solid ${isActive ? W.petrol : W.border}`,
+                        background: isActive ? W.petrol : W.surface,
+                        color: isActive ? '#FFFFFF' : W.sub,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Cash Flow Summary (3 Cards) */}
             <div style={{
-              background: '#FAF7F2',
-              borderRadius: '18px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '8px',
+            }}>
+              {/* Cash In */}
+              <div style={{
+                background: W.surface,
+                borderRadius: '16px',
+                padding: '12px 14px',
+                border: `1.5px solid ${W.border}`,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '3px',
+              }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: W.sub }}>
+                  Cash In
+                </span>
+                <span style={{
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  color: W.emerald,
+                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                  letterSpacing: '-0.02em',
+                }}>
+                  {isBalanceHidden ? '••••' : `+${currencySymbol}${homeInflow.toLocaleString()}`}
+                </span>
+              </div>
+
+              {/* Outflow */}
+              <div style={{
+                background: W.surface,
+                borderRadius: '16px',
+                padding: '12px 14px',
+                border: `1.5px solid ${W.border}`,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '3px',
+              }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: W.sub }}>
+                  Outflow
+                </span>
+                <span style={{
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  color: W.text,
+                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                  letterSpacing: '-0.02em',
+                }}>
+                  {isBalanceHidden ? '••••' : `-${currencySymbol}${homeOutflow.toLocaleString()}`}
+                </span>
+              </div>
+
+              {/* Net */}
+              <div style={{
+                background: W.surface,
+                borderRadius: '16px',
+                padding: '12px 14px',
+                border: `1.5px solid ${W.border}`,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '3px',
+              }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: W.sub }}>
+                  Net Flow
+                </span>
+                <span style={{
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  color: homeNetFlow >= 0 ? W.emerald : W.amber,
+                  fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                  letterSpacing: '-0.02em',
+                }}>
+                  {isBalanceHidden ? '••••' : `${homeNetFlow >= 0 ? '+' : ''}${currencySymbol}${homeNetFlow.toLocaleString()}`}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── 3C. Data-Driven Dex Guidance Banner ── */}
+          {moneyState?.dexGuidance && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(31, 163, 111, 0.08) 0%, rgba(23, 74, 85, 0.08) 100%)',
+              border: '1.5px solid rgba(23, 74, 85, 0.15)',
+              borderRadius: '20px',
               padding: '14px 16px',
-              border: `1.5px solid ${W.border}`,
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
             }}>
               <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: W.petrol,
-                color: '#FFFFFF',
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                background: W.softTeal,
+                color: W.petrol,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontWeight: 800,
-                fontSize: '13px',
                 flexShrink: 0,
               }}>
-                Z
+                <Sparkles size={16} />
               </div>
-              <div style={{ fontSize: '12.5px', color: W.text, lineHeight: 1.4, fontWeight: 500 }}>
-                <span style={{ fontWeight: 700, color: W.petrol }}>Dex Insight: </span>
-                {dexText}
+              <div style={{ fontSize: '12.5px', fontWeight: 600, color: W.text, lineHeight: 1.4 }}>
+                {moneyState.dexGuidance}
               </div>
             </div>
           )}
 
-          {/* ── 8. Recent Transactions Preview (Latest 5 + Working Path to Activity) ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
+          {/* ── 4. Where your money went (Donut Breakdown) ── */}
+          <SpendingPieChart
+            expenses={homePeriod === 'this_year' ? homeFilteredExpenses : expenses}
+            incomes={incomes}
+            month={homePeriod === 'this_month' ? curMonthStr : homePeriod === 'last_month' ? lastMonthStr : undefined}
+            currencySymbol={currencySymbol}
+            isBalanceHidden={isBalanceHidden}
+            onAddExpense={() => {
+              setEditingTransaction(null);
+              setTransactionModalType('expense');
+              setIsTransactionModalOpen(true);
+            }}
+          />
+
+          {/* ── 5. Upcoming commitments ── */}
+          <div
+            onClick={() => { setPlanTab('commitments'); setActiveView('plan'); }}
+            role="button"
+            tabIndex={0}
+            style={{
+              background: W.surface,
+              borderRadius: '20px',
+              padding: '20px',
+              border: `1.5px solid ${W.border}`,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h2 style={{
                 margin: 0,
-                fontSize: '16px',
+                fontSize: '17px',
                 fontWeight: 800,
                 color: W.text,
                 letterSpacing: '-0.01em',
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
               }}>
-                Recent Transactions
+                Upcoming commitments
+              </h2>
+              <CalendarClock size={20} color="#174A55" />
+            </div>
+
+            {upcomingCommitmentsList.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {upcomingCommitmentsList.map((bill, idx) => (
+                  <div key={bill.id || idx}>
+                    {idx > 0 && (
+                      <div style={{ borderTop: '1px solid #F0ECE4', margin: '14px 0' }} />
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '15px', fontWeight: 600, color: W.text }}>
+                          {bill.name}
+                        </div>
+                        <div style={{ fontSize: '12.5px', color: W.muted, marginTop: '2px' }}>
+                          {formatDueDate(bill.due_date)}
+                        </div>
+                      </div>
+                      <div style={{
+                        fontSize: '17px',
+                        fontWeight: 800,
+                        color: W.text,
+                        fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+                      }}>
+                        {isBalanceHidden ? '••••••' : `${currencySymbol} ${Number(bill.amount || 0).toLocaleString()}`}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize: '13px', color: W.muted, textAlign: 'center', padding: '12px 0' }}>
+                All commitments settled · No upcoming bills
+              </div>
+            )}
+          </div>
+
+          {/* ── 5B. Recent transactions preview (Top 4 on Home) ── */}
+          <div style={{
+            background: W.surface,
+            borderRadius: '20px',
+            padding: '20px',
+            border: `1.5px solid ${W.border}`,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '17px',
+                fontWeight: 800,
+                color: W.text,
+                letterSpacing: '-0.01em',
+                fontFamily: "'Space Grotesk', -apple-system, sans-serif",
+              }}>
+                Recent activity
               </h2>
               <button
                 type="button"
                 onClick={() => setActiveView('activity')}
                 style={{
-                  background: 'none',
+                  background: 'transparent',
                   border: 'none',
                   fontSize: '12.5px',
                   fontWeight: 700,
                   color: W.petrol,
                   cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '2px',
-                  padding: '6px 8px',
-                  minHeight: '44px',
+                  padding: 0,
                 }}
               >
-                <span>View all</span>
-                <ChevronRight size={13} />
+                See all →
               </button>
             </div>
 
-            {/* Transaction Filter Pills (Overview / Expenses / Income) */}
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {[
-                { id: 'overview', label: 'All' },
-                { id: 'expense',  label: 'Expenses' },
-                { id: 'income',   label: 'Income' },
-              ].map((p) => {
-                const isActive = (recentFilter === p.id) || (p.id === 'overview' && (!recentFilter || recentFilter === 'all'));
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setRecentFilter(p.id === 'overview' ? 'all' : p.id)}
-                    style={{
-                      background: isActive ? W.petrol : W.surface,
-                      border: `1px solid ${isActive ? W.petrol : W.border}`,
-                      borderRadius: '9999px',
-                      padding: '8px 16px',
-                      minHeight: '36px',
-                      cursor: 'pointer',
-                      fontSize: '12.5px',
-                      fontWeight: 600,
-                      color: isActive ? '#FFFFFF' : W.sub,
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
-            </div>
+            {recentActivityPreview.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {recentActivityPreview.map((tx) => {
+                  const isCredit = tx.txType === 'income';
+                  const isTransfer = Boolean(tx.isTransfer);
+                  const glyph = isTransfer ? '⇄' : isCredit ? '↓' : '↑';
+                  const glyphBg = isTransfer ? 'rgba(23, 74, 85, 0.12)' : isCredit ? 'rgba(31, 163, 111, 0.14)' : W.softTeal;
+                  const glyphColor = isTransfer ? W.petrol : isCredit ? W.emerald : W.petrol;
 
-            {/* Transaction List Card */}
-            <div style={{
-              background: W.surface,
-              borderRadius: '20px',
-              padding: '14px',
-              border: `1.5px solid ${W.border}`,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}>
-              {homeTx.length === 0 ? (
-                <div style={{
-                  padding: '32px 16px',
-                  textAlign: 'center',
-                  color: W.muted,
-                  fontSize: '13px',
-                }}>
-                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>☕</div>
-                  No financial activity recorded yet.
-                </div>
-              ) : (
-                homeTx.slice(0, 5).map((tx) => {
-                  const isCredit = tx.isCredit || tx.txType === 'income';
                   return (
                     <div
                       key={tx.id}
                       onClick={() => {
                         setEditingTransaction(tx.raw || tx);
-                        setTransactionModalType(isCredit ? 'income' : 'expense');
+                        setTransactionModalType(tx.txType);
                         setIsTransactionModalOpen(true);
                       }}
                       role="button"
                       tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setEditingTransaction(tx.raw || tx);
+                          setTransactionModalType(tx.txType);
+                          setIsTransactionModalOpen(true);
+                        }
+                      }}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '12px 14px',
-                        borderRadius: '14px',
+                        padding: '10px 12px',
+                        borderRadius: '12px',
                         background: '#FAF7F2',
                         border: '1px solid #ECE8DF',
                         cursor: 'pointer',
                         minHeight: '44px',
-                        transition: 'background 0.15s ease',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                         <div style={{
-                          width: '36px',
-                          height: '36px',
+                          width: '32px',
+                          height: '32px',
                           borderRadius: '50%',
-                          background: isCredit ? 'rgba(31, 163, 111, 0.14)' : W.softTeal,
-                          color: isCredit ? W.emerald : W.petrol,
+                          background: glyphBg,
+                          color: glyphColor,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: 800,
-                          fontSize: '13px',
+                          fontSize: '12px',
                           flexShrink: 0,
                         }}>
-                          {isCredit ? '↓' : '↑'}
+                          {glyph}
                         </div>
                         <div style={{ minWidth: 0 }}>
                           <div style={{
-                            fontSize: '14px',
+                            fontSize: '13.5px',
                             fontWeight: 700,
                             color: W.text,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                           }}>
-                            {tx.merchant || tx.title || tx.name || (isCredit ? 'Income' : 'Expense')}
+                            {tx.title}
                           </div>
-                          <div style={{ fontSize: '11px', color: W.muted, marginTop: '2px' }}>
-                            {tx.category || (isCredit ? 'Income' : 'General')}
+                          <div style={{ fontSize: '11px', color: W.sub, marginTop: '1px' }}>
+                            <span style={{ fontWeight: 600 }}>{tx.categoryOrSource}</span>
+                            <span style={{ color: W.muted }}> · {tx.date ? tx.date.split('T')[0] : 'Recent'}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
-                        <div style={{
-                          fontSize: '14px',
-                          fontWeight: 800,
-                          color: isCredit ? W.emerald : W.text,
-                        }}>
-                          {isCredit ? '+' : '-'} {currencySymbol} {Number(tx.amount || 0).toLocaleString()}
-                        </div>
-                        <div style={{ fontSize: '11px', color: W.muted, marginTop: '2px' }}>
-                          {tx.date ? tx.date.split('T')[0] : 'Today'}
-                        </div>
+                      <div style={{
+                        fontSize: '14px',
+                        fontWeight: 800,
+                        color: isTransfer ? W.petrol : isCredit ? W.emerald : W.text,
+                        flexShrink: 0,
+                        marginLeft: '8px',
+                      }}>
+                        {isTransfer ? '' : isCredit ? '+' : '-'}{currencySymbol} {Number(tx.amount || 0).toLocaleString()}
                       </div>
                     </div>
                   );
-                })
-              )}
-            </div>
+                })}
+              </div>
+            ) : (
+              <div style={{ fontSize: '13px', color: W.muted, textAlign: 'center', padding: '14px 0' }}>
+                No recent activity recorded yet
+              </div>
+            )}
+          </div>
 
-            {/* Quick Destination Navigation Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '6px' }}>
-              <button
-                type="button"
-                onClick={() => { setAssetsTab('flow'); setActiveView('assets'); }}
-                style={{
-                  minHeight: '48px',
-                  background: W.surface,
-                  border: `1.5px solid ${W.border}`,
-                  borderRadius: '16px',
-                  padding: '12px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: '12.5px', fontWeight: 700, color: W.text, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span>📊</span> Flow & Assets
-                  </div>
-                  <div style={{ fontSize: '11px', color: W.sub, marginTop: '2px' }}>
-                    {fmtShort(moneyState.monthSpend || 0)} spent · {fmtShort(liquidCash)} cash
-                  </div>
+          {/* ── 6. View all activity → Card ── */}
+          <div
+            onClick={() => setActiveView('activity')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setActiveView('activity');
+              }
+            }}
+            style={{
+              background: W.surface,
+              borderRadius: '20px',
+              padding: '16px 20px',
+              border: `1.5px solid ${W.border}`,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              minHeight: '44px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: W.softTeal,
+                color: W.petrol,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <ClipboardList size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: W.text }}>
+                  View all activity →
                 </div>
-                <ChevronRight size={13} color={W.muted} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => { setPlanTab('commitments'); setActiveView('plan'); }}
-                style={{
-                  minHeight: '48px',
-                  background: W.surface,
-                  border: `1.5px solid ${W.border}`,
-                  borderRadius: '16px',
-                  padding: '12px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: '12.5px', fontWeight: 700, color: W.text, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span>📅</span> Plan & Bills
-                  </div>
-                  <div style={{ fontSize: '11px', color: W.sub, marginTop: '2px' }}>
-                    {bills.filter((b) => b.status !== 'paid').length} upcoming commitments
-                  </div>
+                <div style={{ fontSize: '12px', color: W.muted, marginTop: '2px' }}>
+                  See all recorded transactions
                 </div>
-                <ChevronRight size={13} color={W.muted} />
-              </button>
+              </div>
             </div>
+            <ChevronRight size={18} color={W.muted} />
           </div>
         </div>
       </div>
@@ -2931,10 +3856,10 @@ export default function Wealth() {
 
   // ── Four-Destination Bottom Bar ─────────────────────────────────────────
   const DEST_TABS = [
-    { id: 'home',     label: 'Home',     emoji: '🏠' },
-    { id: 'activity', label: 'Activity', emoji: '📋' },
-    { id: 'plan',     label: 'Plan',     emoji: '📅' },
-    { id: 'assets',   label: 'Assets',   emoji: '💰' },
+    { id: 'home',     label: 'Home' },
+    { id: 'activity', label: 'Activity' },
+    { id: 'plan',     label: 'Plan' },
+    { id: 'assets',   label: 'Assets' },
   ];
 
   return (
@@ -2954,15 +3879,15 @@ export default function Wealth() {
       <div
         style={{
           position: 'fixed',
-          bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+          bottom: 0,
           left: 0,
           right: 0,
           zIndex: 40,
           display: 'flex',
-          background: 'rgba(244,240,232,0.95)',
+          background: 'rgba(244,240,232,0.96)',
           backdropFilter: 'blur(12px)',
           borderTop: `1.5px solid ${W.border}`,
-          padding: '0 8px',
+          padding: '8px 12px calc(8px + env(safe-area-inset-bottom, 0px))',
         }}
       >
         {DEST_TABS.map((tab) => {
@@ -2975,11 +3900,9 @@ export default function Wealth() {
               style={{
                 flex: 1,
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '3px',
-                padding: '10px 4px',
+                padding: '14px 4px',
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
@@ -2987,13 +3910,12 @@ export default function Wealth() {
                 transition: 'all 0.15s',
               }}
             >
-              <span style={{ fontSize: '18px', lineHeight: 1 }}>{tab.emoji}</span>
               <span
                 style={{
-                  fontSize: '10px',
+                  fontSize: '13px',
                   fontWeight: isActive ? 800 : 500,
-                  color: isActive ? W.petrol : W.muted,
-                  letterSpacing: '0.02em',
+                  color: isActive ? W.petrol : '#68777B',
+                  letterSpacing: '0.01em',
                 }}
               >
                 {tab.label}
@@ -3238,12 +4160,23 @@ export default function Wealth() {
         isOpen={isConnectMoneyOpen}
         onClose={() => setIsConnectMoneyOpen(false)}
         userId={user?.id}
+        initialView={connectMoneyInitialView}
         currencySymbol={currencySymbol}
         onImportComplete={() => user && loadData(user.id)}
       />
 
-      {/* ── Global Navigation ────────────────────────────────────────────────── */}
-      <BottomNav activeTab="wealth" onTabChange={(t) => navigate(`/${t}`)} />
+      {/* Savings Goal Modal */}
+      <GoalFormModal
+        isOpen={isGoalModalOpen}
+        onClose={() => {
+          setIsGoalModalOpen(false);
+          setEditingGoal(null);
+        }}
+        onSave={handleSaveGoal}
+        onDelete={handleDeleteGoal}
+        initialData={editingGoal}
+        currencySymbol={currencySymbol}
+      />
     </div>
   );
 }

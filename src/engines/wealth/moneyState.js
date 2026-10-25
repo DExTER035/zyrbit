@@ -568,3 +568,175 @@ export function computeMoneyState({
     dexGuidance,
   };
 }
+
+// ─── computeCategorySpending ─────────────────────────────────────────────────
+
+/**
+ * Category-wise spending computation for a specific month.
+ *
+ * Rules:
+ * - Uses actual recorded expense data for the specified month (default: current month).
+ * - Excludes transfers (isTransferExpense).
+ * - Excludes principal/lending & debt repayments (isPrincipalExpense).
+ * - Excludes investment purchases (SIP, stocks, gold, mutual funds).
+ * - Handles refunds/reimbursements consistently with existing flow calculations (flowRefunds).
+ * - Returns structured categories with labels, amounts, percentages, colors, and net spend.
+ */
+export function computeCategorySpending({
+  expenses = [],
+  incomes = [],
+  month = localYMD().slice(0, 7),
+}) {
+  const monthExpenses = expenses.filter(e => e.expense_date?.startsWith(month));
+  const monthIncomes = incomes.filter(i => i.income_date?.startsWith(month));
+
+  // Exclude transfers, lending/debt repayments, and investment purchases
+  const eligibleExpenses = monthExpenses.filter(e => {
+    if (isTransferExpense(e)) return false;
+    if (isPrincipalExpense(e)) return false;
+    const cat = (e?.category || '').toLowerCase();
+    const note = (e?.note || '').toLowerCase();
+    if (
+      cat.includes('invest') ||
+      cat.includes('sip') ||
+      cat.includes('mutual') ||
+      cat.includes('stock') ||
+      cat.includes('gold') ||
+      note.includes('invest in')
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  // Refunds in current month
+  const refundsTotal = monthIncomes
+    .filter(i => {
+      const src = (i?.source || '').toLowerCase();
+      const note = (i?.note || '').toLowerCase();
+      return (
+        isRepaymentIncome(i) ||
+        src.includes('refund') ||
+        src.includes('reimburse') ||
+        note.includes('refund') ||
+        note.includes('reimburse')
+      );
+    })
+    .reduce((s, i) => s + toNum(i.amount), 0);
+
+  const categoryTotals = {};
+  eligibleExpenses.forEach(e => {
+    const rawCat = (e.category || 'Other').trim();
+    const cat = rawCat || 'Other';
+    categoryTotals[cat] = (categoryTotals[cat] || 0) + toNum(e.amount);
+  });
+
+  const grossSpend = Object.values(categoryTotals).reduce((sum, v) => sum + v, 0);
+  const netSpend = Math.max(0, grossSpend - refundsTotal);
+
+  const CATEGORY_COLORS = {
+    'Rent': '#964269',         // Plum / Mauve
+    'Rent & Bills': '#964269',
+    'Bills': '#964269',
+    'Food': '#1F4E8C',         // Navy Blue
+    'Shopping': '#2E7D42',     // Forest Green
+    'Travel': '#A84B25',       // Rust
+    'Transport': '#A84B25',    // Rust / Travel
+    'Other': '#D49A33',        // Mustard / Ochre
+    'Utilities': '#E9B44C',    // Amber
+    'Entertainment': '#EC4899',// Pink
+    'Leisure': '#A855F7',      // Violet
+    'Health': '#1FA36F',       // Emerald Green
+    'Education': '#D97706',    // Amber
+    'General': '#68777B',      // Muted Teal
+  };
+
+  const FALLBACK_PALETTE = [
+    '#964269', '#1F4E8C', '#2E7D42', '#A84B25', '#D49A33', '#1FA36F', '#EC4899', '#68777B'
+  ];
+
+  const categories = Object.entries(categoryTotals)
+    .map(([cat, amount], idx) => ({
+      category: cat,
+      amount,
+      pct: grossSpend > 0 ? Math.round((amount / grossSpend) * 100) : 0,
+      color: CATEGORY_COLORS[cat] || FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length],
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  return {
+    month,
+    eligibleExpenses,
+    categories,
+    grossSpend,
+    netSpend,
+    refundsTotal,
+    hasExpenses: categories.length > 0 && grossSpend > 0,
+  };
+}
+
+// ─── computeFinancialOverview ───────────────────────────────────────────────
+
+/**
+ * Computes verified financial overview metrics:
+ * Total recorded assets, total tracked liabilities, net worth, and available to spend.
+ *
+ * Rules:
+ * - Distinguishes actual recorded balances from estimates or unconfigured states.
+ * - Never treats an unconfigured/unknown balance as ₹0 unless explicitly recorded.
+ * - If user has no recorded transactions or calibration, assets and net worth return null.
+ * - If user explicitly recorded a 0 balance or transactions totaling 0, returns 0.
+ */
+export function computeFinancialOverview({
+  moneyState,
+  incomes = [],
+  expenses = [],
+  bills = [],
+}) {
+  // Calibration status is authoritatively determined by moneyState.isCalibrated.
+  // Mere presence of expense records does not configure or calibrate cash.
+  const isCashConfigured = Boolean(moneyState?.isCalibrated);
+
+  const cashVal = isCashConfigured ? Number(moneyState?.assets?.cash ?? moneyState?.liquidCash ?? 0) : null;
+  const savingsVal = Number(moneyState?.assets?.savings ?? 0);
+  const investedVal = Number(moneyState?.assets?.invested ?? 0);
+  const goldVal = Number(moneyState?.assets?.gold ?? 0);
+  const owedToYouVal = Number(moneyState?.assets?.owedToYou ?? 0);
+
+  const hasHoldings = savingsVal > 0 || investedVal > 0 || goldVal > 0 || owedToYouVal > 0;
+
+  // Total recorded assets (null if uncalibrated/unconfigured with 0 holdings)
+  const totalRecordedAssets = (isCashConfigured || hasHoldings)
+    ? (Number(cashVal || 0) + savingsVal + investedVal + goldVal + owedToYouVal)
+    : null;
+
+  // Tracked liabilities
+  const iOweTotal = Number(moneyState?.liabilities?.iOweTotal ?? 0);
+  const upcomingBillsTotal = Number(moneyState?.upcomingBillTotal ?? 0);
+  const totalTrackedLiabilities = iOweTotal;
+
+  // Net worth: only when supported by valid recorded data
+  const netWorth = (totalRecordedAssets !== null)
+    ? (totalRecordedAssets - totalTrackedLiabilities)
+    : null;
+
+  // Safe to Spend / Available to Spend
+  const availableToSpend = isCashConfigured
+    ? Number(moneyState?.unencumberedCash ?? moneyState?.liquidCash ?? 0)
+    : null;
+
+  return {
+    isCashConfigured,
+    hasHoldings,
+    cashVal,
+    savingsVal,
+    investedVal,
+    goldVal,
+    owedToYouVal,
+    totalRecordedAssets,
+    totalTrackedLiabilities,
+    upcomingBillsTotal,
+    netWorth,
+    availableToSpend,
+  };
+}

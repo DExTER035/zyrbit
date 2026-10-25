@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { parsePaytmStatement } from '../services/statementParserService.js';
+import { parsePaytmStatement, parseStatementDate, parseNumericAmount, extractTimeStr } from '../services/statementParserService.js';
 import { normalizeTransaction, generateFingerprint } from '../services/transactionNormalizer.js';
 import { classifyTransaction } from '../services/transactionClassifier.js';
 import { computeMoneyState } from '../engines/wealth/moneyState.js';
@@ -371,6 +371,215 @@ describe('Connect Money V1 — Comprehensive QA & Data Integrity Audit', () => {
       expect(tx.counterparty).toContain('XYZ POHA');
       expect(tx.sourceTransactionId).toBe('PTM-101');
       expect(tx.rawDescription).toBe('XYZ POHA Breakfast');
+    });
+  });
+
+  // ── AUDIT 15: PAYTM PARSER HARDENING REGRESSION SUITE ───────────────────────
+  describe('15. Paytm Parser Hardening Regression Suite — Failure Modes & Edge Cases', () => {
+    function createMultiSheetWorkbookBuffer(sheetsObj) {
+      const wb = XLSX.utils.book_new();
+      for (const [sheetName, rows] of Object.entries(sheetsObj)) {
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      }
+      return XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+    }
+
+    it('Regression 1: decodes CSV passed as ArrayBuffer without date corruption or numeric conversion', async () => {
+      const csvStr = `Date,Details,Debit,Credit,Order ID\n02-10-2026,Chai,25,,PTM-111\n02-10-2026,Cashback,,10,PTM-112`;
+      const encoder = new TextEncoder();
+      const arrayBuffer = encoder.encode(csvStr).buffer;
+      const res = await parsePaytmStatement(arrayBuffer, 'export.csv');
+      expect(res.success).toBe(true);
+      expect(res.rawTransactions).toHaveLength(2);
+      expect(res.rawTransactions[0].date).toBe('2026-10-02');
+      expect(res.rawTransactions[0].amount).toBe(25);
+      expect(res.rawTransactions[0].direction).toBe('out');
+      expect(res.rawTransactions[1].amount).toBe(10);
+      expect(res.rawTransactions[1].direction).toBe('in');
+    });
+
+    it('Regression 2: scans across multiple sheets and selects the sheet containing transaction headers', async () => {
+      const buffer = createMultiSheetWorkbookBuffer({
+        'Summary': [
+          ['Paytm Account Summary'],
+          ['Account Holder: Rahul Sharma'],
+          ['Total Balance: ₹12,450.00'],
+          ['Disclaimer: Generated electronically.'],
+        ],
+        'Passbook': [
+          ['Date', 'Transaction Details', 'Debit', 'Credit', 'Status'],
+          ['02-10-2026 09:30:00', 'Coffee House', '150.00', '', 'SUCCESS'],
+          ['02-10-2026 12:00:00', 'Salary Received', '', '25000.00', 'SUCCESS'],
+        ],
+      });
+
+      const res = await parsePaytmStatement(buffer, 'statement_multisheet.xlsx');
+      expect(res.success).toBe(true);
+      expect(res.metadata.sheetName).toBe('Passbook');
+      expect(res.rawTransactions).toHaveLength(2);
+      expect(res.rawTransactions[0].amount).toBe(150);
+      expect(res.rawTransactions[1].amount).toBe(25000);
+    });
+
+    it('Regression 3: scans up to 60 rows to detect headers pushed down by extensive preamble metadata', async () => {
+      const rows = [];
+      for (let i = 0; i < 42; i++) {
+        rows.push([`Preamble disclaimer or metadata line ${i + 1}`]);
+      }
+      rows.push(['Date', 'Description', 'Amount', 'Order ID']);
+      rows.push(['2026-10-05', 'Book Store', '450.00', 'PTM-BOOK-1']);
+      rows.push(['2026-10-06', 'Snacks', '60.00', 'PTM-SNK-2']);
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Statement');
+      const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+      const res = await parsePaytmStatement(buffer, 'deep_preamble.xlsx');
+      expect(res.success).toBe(true);
+      expect(res.rawTransactions).toHaveLength(2);
+      expect(res.rawTransactions[0].amount).toBe(450);
+      expect(res.rawTransactions[1].amount).toBe(60);
+    });
+
+    it('Regression 4A: accurately recognizes Indian banking aliases (Particulars, Withdrawal (Dr), Deposit (Cr), Balance)', async () => {
+      const rows = [
+        ['Date', 'Particulars', 'Withdrawal (Dr)', 'Deposit (Cr)', 'Balance'],
+        ['02-10-2026', 'ATM Cash Withdrawal', '500.00', '', '10000.00'],
+        ['03-10-2026', 'Interest Credit', '', '125.50', '10125.50'],
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Passbook');
+      const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+      const res = await parsePaytmStatement(buffer, 'bank_statement.xlsx');
+      expect(res.success).toBe(true);
+      expect(res.rawTransactions).toHaveLength(2);
+      expect(res.rawTransactions[0].amount).toBe(500);
+      expect(res.rawTransactions[0].direction).toBe('out');
+      expect(res.rawTransactions[0].rawDescription).toBe('ATM Cash Withdrawal');
+      expect(res.rawTransactions[1].amount).toBe(125.5);
+      expect(res.rawTransactions[1].direction).toBe('in');
+      expect(res.rawTransactions[1].rawDescription).toBe('Interest Credit');
+    });
+
+    it('Regression 4B: avoids unsafe substring matching on unrelated columns like Credit Limit or Debit Card Number', async () => {
+      const rows = [
+        ['Date', 'Particulars', 'Debit Card Number', 'Credit Limit', 'Amount', 'Type'],
+        ['02-10-2026', 'Shopping', 'XXXX-1234', '50000', '1200.00', 'Dr'],
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+      const res = await parsePaytmStatement(buffer, 'card_statement.xlsx');
+      expect(res.success).toBe(true);
+      expect(res.rawTransactions).toHaveLength(1);
+      // Must read 1200 from Amount, NOT 50000 from Credit Limit
+      expect(res.rawTransactions[0].amount).toBe(1200);
+      expect(res.rawTransactions[0].direction).toBe('out');
+    });
+
+    it('Regression 5: parses Excel serial dates (with epoch fallback) and text month dates', () => {
+      // Serial number 46063 = 2026-02-10
+      const d1 = parseStatementDate(46063);
+      expect(d1.date).toBe('2026-02-10');
+
+      // Serial number with time fraction (46063.5 = 12:00:00)
+      const d2 = parseStatementDate(46063.5);
+      expect(d2.date).toBe('2026-02-10');
+      expect(d2.time).toBe('12:00:00');
+
+      // Text month format "02-Oct-2026 10:15:00"
+      const d3 = parseStatementDate('02-Oct-2026 10:15:00');
+      expect(d3.date).toBe('2026-10-02');
+      expect(d3.time).toBe('10:15:00');
+
+      // Text month format "2 October 2026"
+      const d4 = parseStatementDate('2 October 2026');
+      expect(d4.date).toBe('2026-10-02');
+    });
+
+    it('Regression 6: combines separate Date and Time columns into exact ISO timestamp', async () => {
+      const rows = [
+        ['Date', 'Time', 'Particulars', 'Amount'],
+        ['02-10-2026', '14:30:00', 'Lunch Buffet', '450.00'],
+        ['03-10-2026', '09:15 AM', 'Morning Tea', '20.00'],
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Passbook');
+      const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+      const res = await parsePaytmStatement(buffer, 'datetime_separate.xlsx');
+      expect(res.success).toBe(true);
+      expect(res.rawTransactions[0].date).toBe('2026-10-02');
+      expect(res.rawTransactions[0].time).toBe('14:30:00');
+      expect(res.rawTransactions[0].occurredAt).toBe('2026-10-02T14:30:00Z');
+
+      expect(res.rawTransactions[1].date).toBe('2026-10-03');
+      expect(res.rawTransactions[1].time).toBe('09:15:00');
+      expect(res.rawTransactions[1].occurredAt).toBe('2026-10-03T09:15:00Z');
+    });
+
+    it('Regression 7: detects direction from Dr/Cr suffixes and sign prefixes on generic amount columns', async () => {
+      const rows = [
+        ['Date', 'Description', 'Amount'],
+        ['02-10-2026', 'Electricity Bill', '₹ 1,500.00 Dr'],
+        ['02-10-2026', 'Freelance Payment', '₹ 10,000.00 Cr'],
+        ['03-10-2026', 'Gas Recharge', '-450.00'],
+        ['03-10-2026', 'Cashback Received', '+50.00'],
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+      const res = await parsePaytmStatement(buffer, 'drcr_suffix.xlsx');
+      expect(res.success).toBe(true);
+      expect(res.rawTransactions).toHaveLength(4);
+
+      expect(res.rawTransactions[0].amount).toBe(1500);
+      expect(res.rawTransactions[0].direction).toBe('out');
+
+      expect(res.rawTransactions[1].amount).toBe(10000);
+      expect(res.rawTransactions[1].direction).toBe('in');
+
+      expect(res.rawTransactions[2].amount).toBe(450);
+      expect(res.rawTransactions[2].direction).toBe('out');
+
+      expect(res.rawTransactions[3].amount).toBe(50);
+      expect(res.rawTransactions[3].direction).toBe('in');
+    });
+
+    it('Regression 8: falls back description to Beneficiary Name when description column is absent', async () => {
+      const rows = [
+        ['Date', 'Beneficiary Name', 'Amount', 'Type'],
+        ['02-10-2026', 'Sharma Kirana Store', '320.00', 'Dr'],
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+      const res = await parsePaytmStatement(buffer, 'beneficiary_only.xlsx');
+      expect(res.success).toBe(true);
+      expect(res.rawTransactions).toHaveLength(1);
+      expect(res.rawTransactions[0].rawDescription).toBe('Sharma Kirana Store');
+      expect(res.rawTransactions[0].explicitCounterparty).toBe('Sharma Kirana Store');
+    });
+
+    it('Regression 9: parseNumericAmount correctly strips symbols, commas, and parentheses', () => {
+      expect(parseNumericAmount('₹ 1,500.00 Dr')).toBe(1500);
+      expect(parseNumericAmount('2,000.00 Cr')).toBe(2000);
+      expect(parseNumericAmount('(500.00)')).toBe(500);
+      expect(parseNumericAmount('Rs. 450')).toBe(450);
+      expect(parseNumericAmount('INR 1,200.50')).toBe(1200.5);
+      expect(parseNumericAmount(null)).toBeNull();
+      expect(parseNumericAmount('')).toBeNull();
     });
   });
 });

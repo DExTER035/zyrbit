@@ -37,12 +37,13 @@ export default function ConnectMoneyModal({
   onClose,
   userId,
   currencySymbol = '₹',
+  initialView = 'upload',
   onImportComplete,
 }) {
   const fileInputRef = useRef(null);
 
   // Modal views: 'upload' | 'review' | 'batches' | 'success'
-  const [view, setView] = useState('upload');
+  const [view, setView] = useState(initialView);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -68,12 +69,15 @@ export default function ConnectMoneyModal({
     }
   }, [userId]);
 
-  // Load past batches on open
+  // Load past batches and reset view on open
   useEffect(() => {
-    if (isOpen && userId) {
-      loadPastBatches();
+    if (isOpen) {
+      setView(initialView || 'upload');
+      if (userId) {
+        loadPastBatches();
+      }
     }
-  }, [isOpen, userId, loadPastBatches]);
+  }, [isOpen, initialView, userId, loadPastBatches]);
 
   // ── File Upload Handler ──────────────────────────────────────────────────────
   const handleFileSelect = async (file) => {

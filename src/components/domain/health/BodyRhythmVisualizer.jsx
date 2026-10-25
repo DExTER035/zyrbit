@@ -54,7 +54,7 @@ export default function BodyRhythmVisualizer({
       display: 'flex',
       flexDirection: 'column',
       gap: '16px',
-      boxShadow: '0 2px 8px rgba(17,26,32,0.03)',
+      boxShadow: '0 2px 8px rgba(6, 103, 168, 0.03)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -112,7 +112,7 @@ export default function BodyRhythmVisualizer({
 
         {/* The 4 Rhythm Tracks: Sleep, Fuel, Water, Movement */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          
+
           {/* TRACK 1: SLEEP */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <span style={{ width: '70px', fontSize: '11px', color: 'var(--brand-muted, #68777B)', fontWeight: 700 }}>

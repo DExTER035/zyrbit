@@ -654,17 +654,20 @@ export async function getWealthSnapshot(userId) {
         .from('money_expenses')
         .select('*')
         .eq('user_id', userId)
-        .order('expense_date', { ascending: false }),
+        .order('expense_date', { ascending: false })
+        .limit(25000),
       supabase
         .from('wealth_income')
         .select('*')
         .eq('user_id', userId)
-        .order('income_date', { ascending: false }),
+        .order('income_date', { ascending: false })
+        .limit(25000),
       supabase
         .from('wealth_bills')
         .select('*')
         .eq('user_id', userId)
-        .order('due_date', { ascending: true }),
+        .order('due_date', { ascending: true })
+        .limit(1000),
     ]);
 
     if (eRes.error) throw new Error(`Failed to fetch expenses: ${eRes.error.message}`);
@@ -680,8 +683,11 @@ export async function getWealthSnapshot(userId) {
 
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        localStorage.setItem(`zyrbit_wealth_cache_${userId}`, JSON.stringify(snapshotData));
-      } catch { /* ignore */ }
+        const totalCount = (snapshotData.expenses?.length || 0) + (snapshotData.incomes?.length || 0);
+        if (totalCount <= 1000) {
+          window.localStorage.setItem(`zyrbit_wealth_cache_${userId}`, JSON.stringify(snapshotData));
+        }
+      } catch { /* ignore quota errors */ }
     }
 
     return {
@@ -691,7 +697,7 @@ export async function getWealthSnapshot(userId) {
   } catch (err) {
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        const cached = localStorage.getItem(`zyrbit_wealth_cache_${userId}`);
+        const cached = window.localStorage.getItem(`zyrbit_wealth_cache_${userId}`);
         if (cached) {
           const parsed = JSON.parse(cached);
           return { success: true, data: parsed, fromCache: true };
@@ -1551,3 +1557,102 @@ export async function getPendingClarifications(userId) {
     return [];
   }
 }
+
+/**
+ * Fetches user savings goals.
+ * @param {string} userId
+ * @returns {Promise<{success: boolean, data: Array<Object>, error?: string}>}
+ */
+export async function getSavingsGoals(userId) {
+  if (!userId) return { success: false, data: [] };
+  try {
+    const { data, error } = await supabase
+      .from('wealth_savings_goals')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+    if (error) return { success: false, data: [], error: error.message };
+    return { success: true, data: data || [] };
+  } catch (err) {
+    return { success: false, data: [], error: err.message };
+  }
+}
+
+/**
+ * Adds a savings goal.
+ */
+export async function addSavingsGoal({ userId, name, targetAmount, currentAmount = 0, deadline = null }) {
+  if (!userId) return { success: false, error: 'User ID is required.' };
+  const cleanName = (name || '').trim();
+  if (!cleanName) return { success: false, error: 'Goal name is required.' };
+  const numTarget = Number(targetAmount);
+  if (!isFinite(numTarget) || numTarget <= 0) return { success: false, error: 'Target amount must be positive.' };
+
+  const payload = {
+    id: crypto.randomUUID(),
+    user_id: userId,
+    name: cleanName,
+    target_amount: numTarget,
+    current_amount: Math.max(0, Number(currentAmount || 0)),
+    deadline: deadline || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('wealth_savings_goals')
+      .insert([payload])
+      .select()
+      .maybeSingle();
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data || payload };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Updates a savings goal.
+ */
+export async function updateSavingsGoal({ userId, id, name, targetAmount, currentAmount, deadline }) {
+  if (!userId || !id) return { success: false, error: 'User ID and Goal ID are required.' };
+  const payload = { updated_at: new Date().toISOString() };
+  if (name !== undefined) payload.name = (name || '').trim();
+  if (targetAmount !== undefined) payload.target_amount = Number(targetAmount);
+  if (currentAmount !== undefined) payload.current_amount = Number(currentAmount);
+  if (deadline !== undefined) payload.deadline = deadline;
+
+  try {
+    const { data, error } = await supabase
+      .from('wealth_savings_goals')
+      .update(payload)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .maybeSingle();
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Deletes a savings goal.
+ */
+export async function deleteSavingsGoal({ userId, id }) {
+  if (!userId || !id) return { success: false, error: 'User ID and Goal ID are required.' };
+  try {
+    const { error } = await supabase
+      .from('wealth_savings_goals')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+

@@ -63,12 +63,13 @@ export async function deduplicateTransactions(userId, candidates = []) {
   let existingSourceIds = new Set();
 
   try {
-    // 1. Check imported_transactions table in Supabase
+    // 1. Check imported_transactions table in Supabase (with high limit for lifetime history)
     const { data: pastImports, error } = await supabase
       .from('imported_transactions')
       .select('fingerprint, source_transaction_id')
       .eq('user_id', userId)
-      .eq('status', 'confirmed');
+      .eq('status', 'confirmed')
+      .limit(25000);
 
     if (!error && pastImports) {
       pastImports.forEach(row => {
@@ -88,8 +89,8 @@ export async function deduplicateTransactions(userId, candidates = []) {
     const minDate = candidates.reduce((min, c) => (!min || c.date < min ? c.date : min), null);
     if (minDate) {
       const [expRes, incRes] = await Promise.all([
-        supabase.from('money_expenses').select('amount, expense_date, note').eq('user_id', userId).gte('expense_date', minDate),
-        supabase.from('wealth_income').select('amount, income_date, note').eq('user_id', userId).gte('income_date', minDate),
+        supabase.from('money_expenses').select('amount, expense_date, note').eq('user_id', userId).gte('expense_date', minDate).limit(25000),
+        supabase.from('wealth_income').select('amount, income_date, note').eq('user_id', userId).gte('income_date', minDate).limit(25000),
       ]);
 
       const existingExpenses = expRes.data || [];
@@ -267,9 +268,14 @@ export async function importStatement({ userId, fileData, filename = 'statement.
       status: t.status,
     }));
 
-    const { error: txErr } = await supabase.from('imported_transactions').insert(dbTxRows);
-    if (txErr) {
-      throw txErr;
+    // Insert in chunks of 250 to avoid request payload limit errors on large statements
+    const INSERT_CHUNK = 250;
+    for (let i = 0; i < dbTxRows.length; i += INSERT_CHUNK) {
+      const chunk = dbTxRows.slice(i, i + INSERT_CHUNK);
+      const { error: txErr } = await supabase.from('imported_transactions').insert(chunk);
+      if (txErr) {
+        throw txErr;
+      }
     }
   } catch (err) {
     return {
@@ -338,8 +344,11 @@ export async function confirmImportTransactions({
 
   let confirmedCount = 0;
   const updates = [];
+  const bulkExpenses = [];
+  const bulkIncomes = [];
+  const complexTransactions = [];
 
-  // 2. Iterate and mutate Wealth through canonical recordMoneyEvent
+  // 2. Classify candidates into bulk insert buckets or complex flows
   for (const tx of candidateTxs) {
     const override = overrides[tx.id] || {};
     const action = override.action || tx.suggested_action || tx.suggestedAction || 'add_expense';
@@ -348,66 +357,134 @@ export async function confirmImportTransactions({
     const date = tx.date || (tx.occurred_at || tx.occurredAt ? (tx.occurred_at || tx.occurredAt).slice(0, 10) : new Date().toISOString().split('T')[0]);
     const amount = Number(tx.amount);
 
-    let eventType = 'SPEND';
-    let source = 'Other';
-
-    if (action === 'transfer') {
-      eventType = 'TRANSFER';
-    } else if (action === 'investment') {
-      eventType = 'INVESTMENT';
-    } else if (action === 'refund') {
-      eventType = 'REFUND';
-      source = 'Refund';
-    } else if (action === 'add_income') {
-      eventType = 'INCOME';
-      source = category || 'Income';
-    } else if (action === 'add_bill') {
-      eventType = 'COMMITMENT';
-    } else if (category === 'Lend') {
-      eventType = 'LEND';
+    if (action === 'add_bill' || category === 'Lend') {
+      complexTransactions.push({ tx, action, category, note, date, amount });
+    } else if (action === 'transfer' || action === 'investment' || action === 'add_expense') {
+      const expId = crypto.randomUUID();
+      const expCategory = action === 'transfer' ? 'Transfer' : action === 'investment' ? 'Investment' : (category || 'Other');
+      bulkExpenses.push({
+        txId: tx.id,
+        record: {
+          id: expId,
+          user_id: userId,
+          amount,
+          category: expCategory,
+          note: note.trim(),
+          expense_date: date,
+          created_at: new Date().toISOString(),
+        },
+      });
+    } else if (action === 'refund' || action === 'add_income') {
+      const incId = crypto.randomUUID();
+      const incSource = action === 'refund' ? 'Refund' : (category || 'Income');
+      bulkIncomes.push({
+        txId: tx.id,
+        record: {
+          id: incId,
+          user_id: userId,
+          amount,
+          source: incSource,
+          note: note.trim(),
+          income_date: date,
+          created_at: new Date().toISOString(),
+        },
+      });
     }
+  }
 
+  const CHUNK_SIZE = 100;
+
+  // 2A. Chunked bulk insert for expenses
+  if (bulkExpenses.length > 0) {
+    for (let i = 0; i < bulkExpenses.length; i += CHUNK_SIZE) {
+      const chunk = bulkExpenses.slice(i, i + CHUNK_SIZE);
+      const rows = chunk.map(c => c.record);
+      const { error } = await supabase.from('money_expenses').insert(rows);
+      if (error) {
+        console.error('Failed to insert bulk expenses chunk:', error);
+      } else {
+        chunk.forEach(c => {
+          confirmedCount++;
+          updates.push({
+            id: c.txId,
+            status: 'confirmed',
+            linked_expense_id: c.record.id,
+            linked_income_id: null,
+            linked_bill_id: null,
+          });
+        });
+      }
+    }
+  }
+
+  // 2B. Chunked bulk insert for incomes
+  if (bulkIncomes.length > 0) {
+    for (let i = 0; i < bulkIncomes.length; i += CHUNK_SIZE) {
+      const chunk = bulkIncomes.slice(i, i + CHUNK_SIZE);
+      const rows = chunk.map(c => c.record);
+      const { error } = await supabase.from('wealth_income').insert(rows);
+      if (error) {
+        console.error('Failed to insert bulk incomes chunk:', error);
+      } else {
+        chunk.forEach(c => {
+          confirmedCount++;
+          updates.push({
+            id: c.txId,
+            status: 'confirmed',
+            linked_expense_id: null,
+            linked_income_id: c.record.id,
+            linked_bill_id: null,
+          });
+        });
+      }
+    }
+  }
+
+  // 2C. Process complex transactions (LEND or COMMITMENT) via canonical recordMoneyEvent
+  for (const item of complexTransactions) {
     try {
+      const eventType = item.action === 'add_bill' ? 'COMMITMENT' : 'LEND';
       const res = await recordMoneyEvent({
         userId,
         type: eventType,
-        amount,
-        category,
-        source,
-        note,
-        date,
+        amount: item.amount,
+        category: item.category,
+        note: item.note,
+        date: item.date,
       });
-
       if (res.success) {
         confirmedCount++;
         const linkedId = res.data?.id || null;
         updates.push({
-          id: tx.id,
+          id: item.tx.id,
           status: 'confirmed',
-          linked_expense_id: eventType === 'SPEND' || eventType === 'TRANSFER' || eventType === 'INVESTMENT' || eventType === 'LEND' ? linkedId : null,
-          linked_income_id: eventType === 'INCOME' || eventType === 'REFUND' ? linkedId : null,
+          linked_expense_id: eventType === 'LEND' ? linkedId : null,
+          linked_income_id: null,
           linked_bill_id: eventType === 'COMMITMENT' ? linkedId : null,
         });
       }
     } catch (err) {
-      console.error(`Failed to confirm transaction ${tx.id}:`, err);
+      console.error(`Failed to record complex transaction ${item.tx.id}:`, err);
     }
   }
 
-  // 3. Update imported_transactions status and batch progress
+  // 3. Update imported_transactions status and batch progress in concurrent chunks of 25
   try {
-    for (const u of updates) {
-      const { error: txErr } = await supabase
-        .from('imported_transactions')
-        .update({
-          status: 'confirmed',
-          linked_expense_id: u.linked_expense_id,
-          linked_income_id: u.linked_income_id,
-          linked_bill_id: u.linked_bill_id,
-        })
-        .eq('id', u.id)
-        .eq('user_id', userId);
-      if (txErr) throw txErr;
+    const UPDATE_BATCH = 25;
+    for (let i = 0; i < updates.length; i += UPDATE_BATCH) {
+      const chunk = updates.slice(i, i + UPDATE_BATCH);
+      await Promise.all(chunk.map(u =>
+        supabase
+          .from('imported_transactions')
+          .update({
+            status: 'confirmed',
+            linked_expense_id: u.linked_expense_id,
+            linked_income_id: u.linked_income_id,
+            linked_bill_id: u.linked_bill_id,
+          })
+          .eq('id', u.id)
+          .eq('user_id', userId)
+      ));
     }
 
     const { error: bErr } = await supabase
